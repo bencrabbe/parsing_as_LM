@@ -495,7 +495,7 @@ if __name__ == '__main__':
     istream.close()
 
     #search for structure
-    NNLanguageModel.grid_search(ttreebank,dtreebank,DPOUT=[0.0])
+    NNLanguageModel.grid_search(ttreebank,dtreebank,LR=[0.0001],DPOUT=[0.0])
     #search for smoothing
     #NNLanguageModel.grid_search(ttreebank,dtreebank,LR=[0.001],HSIZE=[200],ESIZE=[300])    
 
