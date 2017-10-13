@@ -457,7 +457,7 @@ class NNLanguageModel:
                                                 lr=lr,\
                                                 batch_size=128,\
                                                 hidden_dropout=dpout,\
-                                                max_epochs=20,\
+                                                max_epochs=40,\
                                                 alpha_lex=alpha,\
                                                 glove_file='glove/glove.6B.%dd.txt'%(esize))
                             modstr = 'LM-lr=%f-esize=%d-hsize=%d-dpout=%f-alpha=%f'%(lr,esize,hsize,dpout,alpha)
@@ -495,7 +495,7 @@ if __name__ == '__main__':
     istream.close()
 
     #search for structure
-    NNLanguageModel.grid_search(ttreebank,dtreebank,LR=[0.0001],DPOUT=[0.0])
+    NNLanguageModel.grid_search(ttreebank,dtreebank,LR=[0.001,0.0001],ESIZE=[300],HSIZE=[200,400],DPOUT=[0.1,0.2,0.3])
     #search for smoothing
     #NNLanguageModel.grid_search(ttreebank,dtreebank,LR=[0.001],HSIZE=[200],ESIZE=[300])    
 
