@@ -36,25 +36,66 @@ class NumericDataGenerator:
         self.unk_x_code = unk_word_code
         self.x_counts(self.X)
         
+        
     def x_counts(self,X):
         self.word_freqs = Counter() 
         for line in X:
             self.word_freqs.update(line)
 
-            
+
+    #you might want to avoid resampling reserved tokens such as START OR END SENTENCE markers
     def sample_one(self,x,alpha):
         """
         Sample x data for unk words
         """
         f = alpha / (self.word_freqs[x]+alpha)
         if rand() < f:
-            x = self.unk_x_code
-        return x
-            
-    def sample_unknowns(self,X,alpha):
-          
-        return [ [self.sample_one(elt,alpha) for elt in line]  for line in X]
+            return self.unk_x_code
+        else:
+            return x
         
+    def sample_unknowns(self,X,alpha):
+
+        return [ [self.sample_one(elt,alpha) for elt in line]  for line in X]
+       
+
+    def oov_rate(self,X=None):
+        """
+        Returns the oov rate of this data set
+        """
+        if X == None:
+            X = self.X
+        Nx =  len(X)*len(X[0])
+        return sum( sum(x == self.unk_x_code for x in line ) for line in X) / Nx
+    
+    def guess_alpha(self,oov_rate,epsilon=0.01):
+        """
+        Provides a guess of the word drop alpha value from a dataset
+        and an oov rate
+        Uses the oov rate to compute alpha estimation from the dataset
+        @epsilon: the precision of the estimation for the alpha value
+        @return alpha (0 <= alpha <= infty)
+        """
+        print('guessing alpha lex...')
+        Nx =  len(self.X)*len(self.X[0])
+        if oov_rate == 0 :
+            return 0
+            
+        amin,amax = (0.0, 10.0)
+        
+        while (amax - amin) > epsilon:
+            alpha = (amax+amin) / 2
+            print(alpha)
+            genX = self.sample_unknowns(self.X,alpha)
+            gen_oov = self.oov_rate(X=genX)
+            if gen_oov > oov_rate:
+                amax = alpha
+            elif gen_oov < oov_rate:
+                amin = alpha
+        return alpha
+                
+                
+    
     def select_indexes(self):
         end_idx = self.start_idx+self.batch_size
         if end_idx >= self.N:
@@ -332,7 +373,6 @@ class NNLanguageModel:
                     hidden_dropout=0.1,\
                     batch_size=100,\
                     max_epochs=100,\
-                    alpha_lex =0.8375,\
                     glove_file=None):
                       
         """
@@ -347,6 +387,7 @@ class NNLanguageModel:
         print("Encoding dataset from %d trees."%len(treebank_train))
         training_generator = self.make_data_generator(treebank_train,batch_size)
         validation_generator = self.make_data_generator(treebank_validation,batch_size)
+        alpha_lex = training_generator.guess_alpha(validation_generator.oov_rate())
 
         print(self)
         print("training examples [N] = %d\nBatch size = %d\nDropout = %f\nlearning rate = %f\nalpha-lex = %f"%(training_generator.N,batch_size,hidden_dropout,lr,alpha_lex))
@@ -430,8 +471,7 @@ class NNLanguageModel:
                     LR    = (0.01,0.001,0.0001),\
                     HSIZE = (100,200,400),\
                     ESIZE = (50,100,300),\
-                    DPOUT = (0.1,0.2,0.3),\
-                    ALPHA = (0.25,0.5,0.8375)):
+                    DPOUT = (0.1,0.2,0.3)):
         """
         Performs a grid search on hyperparameters and dumps whatever.
         This function should be called with care...
@@ -441,28 +481,25 @@ class NNLanguageModel:
         @param HSIZE: size of the hidden layer
         @param ESIZE: size of the embeddings
         @param DPOUT: value of dropout on hiddden layer output
-        @param ALPHA: unknown word resampling param
         """
         global_stats = []
         for lr in LR:
             for esize in ESIZE:
                 for hsize in HSIZE:
                     for dpout in DPOUT:
-                        for alpha in ALPHA:
-                            lm = NNLanguageModel()
-                            lm.hidden_size    = hsize
-                            lm.embedding_size = esize
-                            df = lm.train_nn_lm(train,\
-                                                dev,\
-                                                lr=lr,\
-                                                batch_size=128,\
-                                                hidden_dropout=dpout,\
-                                                max_epochs=40,\
-                                                alpha_lex=alpha,\
-                                                glove_file='glove/glove.6B.%dd.txt'%(esize))
-                            modstr = 'LM-lr=%f-esize=%d-hsize=%d-dpout=%f-alpha=%f'%(lr,esize,hsize,dpout,alpha)
-                            global_stats.append((modstr,df['loss'].iloc[-1],lm.perplexity(train),lm.perplexity(dev)))
-                            print(global_stats[-1])
+                        lm = NNLanguageModel()
+                        lm.hidden_size    = hsize
+                        lm.embedding_size = esize
+                        df = lm.train_nn_lm(train,\
+                                            dev,\
+                                            lr=lr,\
+                                            batch_size=128,\
+                                            hidden_dropout=dpout,\
+                                            max_epochs=40,\
+                                            glove_file='glove/glove.6B.%dd.txt'%(esize))
+                        modstr = 'LM-lr=%f-esize=%d-hsize=%d-dpout=%f'%(lr,esize,hsize,dpout)
+                        global_stats.append((modstr,df['loss'].iloc[-1],lm.perplexity(train),lm.perplexity(dev)))
+                        print(global_stats[-1])
         #dumps summary at the end
         print('modname : train-loss : ppl-train : ppl-dev')                
         print('\n'.join(['%s : %f : %f : %f'%(modname,train_loss,pplt,ppld) for (modname,train_loss,pplt,ppld) in global_stats]))
@@ -493,17 +530,17 @@ if __name__ == '__main__':
             #    break
         dtree = DependencyTree.read_tree(istream)
     istream.close()
-
+ 
     #search for structure
     NNLanguageModel.grid_search(ttreebank,dtreebank,LR=[0.001,0.0001],ESIZE=[300],HSIZE=[200,400],DPOUT=[0.1,0.2,0.3])
     #search for smoothing
     #NNLanguageModel.grid_search(ttreebank,dtreebank,LR=[0.001],HSIZE=[200],ESIZE=[300])    
 
     #lm = NNLanguageModel()
-    #lm.hidden_size    = 200
-    #lm.embedding_size = 300
-    #lm.train_nn_lm(ttreebank,dtreebank,lr=0.001,alpha_lex=0.5,hidden_dropout=0.2,batch_size=128,max_epochs=200,\
-    #               glove_file='glove/glove.6B.300d.txt')
+    #lm.hidden_size    = 100
+    #lm.embedding_size = 100
+    #lm.train_nn_lm(ttreebank,dtreebank,lr=0.001,hidden_dropout=0.2,batch_size=128,max_epochs=200,\
+    #               glove_file='glove/glove.6B.100d.txt')
     #lm.save_model('testLM')
     #print('PPL-T = ',lm.perplexity(ttreebank),'PPL-D = ',lm.perplexity(dtreebank))
 
