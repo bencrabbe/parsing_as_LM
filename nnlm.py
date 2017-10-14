@@ -81,7 +81,7 @@ class NumericDataGenerator:
         if oov_rate == 0 :
             return 0
             
-        amin,amax = (0.0, 10.0)
+        amin,amax = (0.0, 20.0)
         
         while (amax - amin) > epsilon:
             alpha = (amax+amin) / 2
@@ -106,7 +106,7 @@ class NumericDataGenerator:
         sidx = self.start_idx
         self.start_idx = end_idx
         return (sidx,end_idx)
-                
+
     def generate(self,alpha=0.0):
         """
         The generator called by the fitting function.
@@ -228,7 +228,7 @@ class NNLanguageModel:
     """
     #Undefined and unknown symbols
     UNDEF_TOKEN   = "__UNDEF__"
-    UNKNOWN_TOKEN = "__UNK__"
+    UNKNOWN_TOKEN = "<unk>"
     EOS_TOKEN     = "__EOS__"
     
     def __init__(self):
@@ -246,7 +246,7 @@ class NNLanguageModel:
             'HIDDEN_LAYER_SIZE : %d'%(self.hidden_size),\
             'LEXICON_SIZE : %d'%(self.lexicon_size)]
         return '\n'.join(s)
-    
+
     def read_glove_embeddings(self,glove_filename):
         """
         Reads embeddings from a glove filename and returns an embedding
@@ -297,8 +297,8 @@ class NNLanguageModel:
         @param treebank: the treebank where to extract the data from
         """
         lexicon = set([NNLanguageModel.UNKNOWN_TOKEN,NNLanguageModel.UNDEF_TOKEN,NNLanguageModel.EOS_TOKEN])
-        for dtree in treebank:
-            lexicon.update(dtree.tokens)
+        for sentence in treebank:
+            lexicon.update(sentence)
         self.lexicon_size = len(lexicon)
         self.rev_word_codes = list(lexicon)
         self.word_codes = dict([(s,idx) for (idx,s) in enumerate(self.rev_word_codes)])
@@ -311,8 +311,8 @@ class NNLanguageModel:
         """
         Y    = []
         X    = []
-        for dtree in treebank:
-            tokens = [NNLanguageModel.UNKNOWN_TOKEN,NNLanguageModel.UNKNOWN_TOKEN,NNLanguageModel.UNKNOWN_TOKEN]+dtree.tokens+[NNLanguageModel.EOS_TOKEN]
+        for line in treebank:
+            tokens = [NNLanguageModel.UNKNOWN_TOKEN,NNLanguageModel.UNKNOWN_TOKEN,NNLanguageModel.UNKNOWN_TOKEN]+line+[NNLanguageModel.EOS_TOKEN]
             for (w3,w2,w1,wy) in zip(tokens,tokens[1:],tokens[2:],tokens[3:]):
                 x,y    = self.make_representation([w3,w2,w1],wy)
                 X.append(x)
@@ -335,22 +335,49 @@ class NNLanguageModel:
             return self.rev_word_codes[choice(self.lexicon_size,p=Y)] 
         else:
             return Y[self.word_codes.get(yvalue,self.word_codes[NNLanguageModel.UNKNOWN_TOKEN])]
-        
-    def perplexity(self,treebank):
+
+
+    def predict_sentence(self,sentence):
         """
-        Computes the perplexity of an LM on a treebank
+        Outputs a corpus together with its transitions probs as a data frame
+        @param sent_list: a list of list of strings
         """
         X = []
         Y = []
-        for dtree in treebank:
-            tokens = [NNLanguageModel.UNDEF_TOKEN,NNLanguageModel.UNDEF_TOKEN,NNLanguageModel.UNDEF_TOKEN]+dtree.tokens+[NNLanguageModel.EOS_TOKEN]
+        tokens = [NNLanguageModel.UNKNOWN_TOKEN,NNLanguageModel.UNKNOWN_TOKEN,NNLanguageModel.UNKNOWN_TOKEN]+sentence
+        for (w3,w2,w1,wy) in zip(tokens,tokens[1:],tokens[2:],tokens[3:]):
+            x,y = self.make_representation([w3,w2,w1],wy)
+            X.append(x)
+            Y.append(y)
+        preds = self.model.predict(np.array(X))
+        records = []
+        for idx,yref in enumerate(Y):
+            records.append( ( sentence[idx], sentence[idx] not in self.word_codes, preds[idx,yref],log2(preds[idx,yref])))
+        return pd.DataFrame(records,columns=['token','unk_word','cond_prob','cond_log2prob'])
+    
+            
+    def perplexity(self,treebank,control=False):
+        """
+        Computes the perplexity of an LM on a treebank
+        @param control : outputs a perplexity that would be produced
+        by an uniform distribution.
+        """
+        X = []
+        Y = []
+        for sentence in treebank:
+            tokens = [NNLanguageModel.UNDEF_TOKEN,NNLanguageModel.UNDEF_TOKEN,NNLanguageModel.UNDEF_TOKEN]+sentence+[NNLanguageModel.EOS_TOKEN]
             for (w3,w2,w1,y) in zip(tokens,tokens[1:],tokens[2:],tokens[3:]):
                 x,y = self.make_representation([w3,w2,w1],y)
                 X.append(x)
                 Y.append(y)
-        preds = self.model.predict(X)
-        cross_entropy = sum( log2(preds[idx,yref]+np.finfo(float).eps) for idx,yref in enumerate(Y) )
-        return 2**(-cross_entropy/len(Y))
+        if control:
+            unip = 1/len(self.word_codes)
+            unice = sum(log2(unip) for _ in range(len(Y)))
+            return 2**(-unice/len(Y))
+        else:
+            preds = self.model.predict(X)
+            cross_entropy = sum( log2(preds[idx,yref]+np.finfo(float).eps) for idx,yref in enumerate(Y) )
+            return 2**(-cross_entropy/len(Y))
 
     
     def sample_sentence(self):
@@ -503,47 +530,52 @@ class NNLanguageModel:
         #dumps summary at the end
         print('modname : train-loss : ppl-train : ppl-dev')                
         print('\n'.join(['%s : %f : %f : %f'%(modname,train_loss,pplt,ppld) for (modname,train_loss,pplt,ppld) in global_stats]))
-        
+
+def UDtreebank_reader(filename):
+    treebank = []
+    istream = open(filename)
+    dtree = DependencyTree.read_tree(istream)
+    while dtree != None:
+        if dtree.is_projective():
+            treebank.append(dtree.tokens)
+        dtree = DependencyTree.read_tree(istream)
+    istream.close()
+    return treebank
+
+def ptb_reader(filename):
+    istream = open(filename)
+    treebank = []
+    for line in istream:
+        treebank.append(line.split())
+    istream.close()
+    return treebank
+
 if __name__ == '__main__':
-    ttreebank = []
-    istream = open('UD_English/en-ud-train.conllu')
-    dtree = DependencyTree.read_tree(istream)
-    idx = 0
-    while dtree != None:
-        if dtree.is_projective():
-            ttreebank.append(dtree)
-            idx += 1
-            #if idx > 10:
-            #    break
-        dtree = DependencyTree.read_tree(istream)
-    istream.close()
+
+    #read UD treebank
+    #ttreebank = UDtreebank_reader('UD_English/en-ud-train.conllu')
+    #dtreebank = UDtreebank_reader('UD_English/en-ud-dev.conllu')
+
+    #read penn treebank
+    ttreebank =  ptb_reader('ptb/ptb_train_50w.txt')
+    dtreebank =  ptb_reader('ptb/ptb_valid.txt')
     
-    dtreebank = []
-    istream = open('UD_English/en-ud-dev.conllu')
-    dtree = DependencyTree.read_tree(istream)
-    idx = 0
-    while dtree != None:
-        if dtree.is_projective():
-            dtreebank.append(dtree)
-            idx += 1
-            #if idx > 10:
-            #    break
-        dtree = DependencyTree.read_tree(istream)
-    istream.close()
- 
     #search for structure
-    NNLanguageModel.grid_search(ttreebank,dtreebank,LR=[0.001,0.0001],ESIZE=[300],HSIZE=[200,400],DPOUT=[0.1,0.2,0.3])
+    #NNLanguageModel.grid_search(ttreebank,dtreebank,LR=[0.001,0.0001],ESIZE=[300],HSIZE=[200,400],DPOUT=[0.0,0.1,0.2,0.3])
     #search for smoothing
     #NNLanguageModel.grid_search(ttreebank,dtreebank,LR=[0.001],HSIZE=[200],ESIZE=[300])    
 
-    #lm = NNLanguageModel()
-    #lm.hidden_size    = 100
-    #lm.embedding_size = 100
-    #lm.train_nn_lm(ttreebank,dtreebank,lr=0.001,hidden_dropout=0.2,batch_size=128,max_epochs=200,\
-    #               glove_file='glove/glove.6B.100d.txt')
+    lm = NNLanguageModel()
+    lm.hidden_size    = 50
+    lm.embedding_size = 50
+    lm.train_nn_lm(ttreebank,dtreebank,lr=0.0001,hidden_dropout=0.2,batch_size=128,max_epochs=1,\
+            glove_file='glove/glove.6B.50d.txt')
     #lm.save_model('testLM')
-    #print('PPL-T = ',lm.perplexity(ttreebank),'PPL-D = ',lm.perplexity(dtreebank))
-
+    print('PPL-T = ',lm.perplexity(ttreebank),'PPL-D = ',lm.perplexity(dtreebank),'PPL-D(control) = ',lm.perplexity(dtreebank,control=True))
+    for s in dtreebank[:10]:
+        df = lm.predict_sentence(s.tokens[1:])
+        print(df)
+    
     #lm = NNLanguageModel.load_model('testLM')
     #for _ in range(10):
     #    print(' '.join(lm.sample_sentence()[3:]))
