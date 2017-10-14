@@ -400,6 +400,7 @@ class NNLanguageModel:
                     hidden_dropout=0.1,\
                     batch_size=100,\
                     max_epochs=100,\
+                    alpha_lex=-1,\
                     glove_file=None):
                       
         """
@@ -411,10 +412,11 @@ class NNLanguageModel:
         print("Dictionaries built.")
 
         #(2) read off treebank and build keras data set
-        print("Encoding dataset from %d trees."%len(treebank_train))
+        print("Encoding dataset from %d sentences."%len(treebank_train))
         training_generator = self.make_data_generator(treebank_train,batch_size)
         validation_generator = self.make_data_generator(treebank_validation,batch_size)
-        alpha_lex = training_generator.guess_alpha(validation_generator.oov_rate())
+        if alpha_lex < 0:
+            alpha_lex = training_generator.guess_alpha(validation_generator.oov_rate())
 
         print(self)
         print("training examples [N] = %d\nBatch size = %d\nDropout = %f\nlearning rate = %f\nalpha-lex = %f"%(training_generator.N,batch_size,hidden_dropout,lr,alpha_lex))
@@ -566,14 +568,14 @@ if __name__ == '__main__':
     #NNLanguageModel.grid_search(ttreebank,dtreebank,LR=[0.001],HSIZE=[200],ESIZE=[300])    
 
     lm = NNLanguageModel()
-    lm.hidden_size    = 50
-    lm.embedding_size = 50
-    lm.train_nn_lm(ttreebank,dtreebank,lr=0.001,hidden_dropout=0.0,batch_size=64,max_epochs=20,\
-            glove_file='glove/glove.6B.50d.txt')
+    lm.hidden_size    = 250
+    lm.embedding_size = 300
+    lm.train_nn_lm(ttreebank,dtreebank,lr=0.001,hidden_dropout=0.0,batch_size=128,max_epochs=20,\
+            glove_file='glove/glove.6B.300d.txt')
     #lm.save_model('testLM')
     print('PPL-T = ',lm.perplexity(ttreebank),'PPL-D = ',lm.perplexity(dtreebank),'PPL-D(control) = ',lm.perplexity(dtreebank,control=True))
-    for s in dtreebank[:10]:
-        df = lm.predict_sentence(s.tokens[1:])
+    for sentence in dtreebank[:10]:
+        df = lm.predict_sentence(sentence)
         print(df)
     
     #lm = NNLanguageModel.load_model('testLM')
