@@ -96,36 +96,65 @@ class NumericDataGenerator:
                 
                 
     
-    def select_indexes(self):
+    def select_indexes(self,randomize=True):
+        """
+        Internal function for selecting samples indexes.
+        @param: if randomize is True, shuffles the
+        dataset when it is fully processed and restart processing at
+        the beginning. if randomize is False, there is no restart.
+        Returns a couple where start_idx == end_idx to indicate termination.
+        """
         end_idx = self.start_idx+self.batch_size
-        if end_idx >= self.N:
-            shuffle(self.idxes)
-            self.start_idx = 0
-            end_idx = self.batch_size
-
+        if end_idx > self.N:
+            if randomize:
+                shuffle(self.idxes)
+                self.start_idx = 0
+                end_idx = self.batch_size
+            else:
+                end_idx = self.N
+                
         sidx = self.start_idx
         self.start_idx = end_idx
         return (sidx,end_idx)
 
-    def generate(self,alpha=0.0):
+    def generate(self,alpha=0.0,test=False):
         """
-        The generator called by the fitting function.
+        A generator called by the fitting function.
+        @alpha: param ( >= 0 ) indicating the rate of sampling for OOV.
+        @test : generate the data sequentially by batches without
+        restarting when the data set is fully consumed alpha is
+        automatically set to 0.0. if test is False, it
+        is a perpetual generator.
+        @yield : an encoded subset of the data or False if end of data
+        is reached 
         """
-        while True:
-            start_idx,end_idx = self.select_indexes()
-            Y = np.zeros((self.batch_size,self.nclasses))
-            X     = self.X[start_idx:end_idx]
-            yvals = self.Y[start_idx:end_idx]
+        if test:
+            while True:
+                start_idx,end_idx = self.select_indexes(randomize=False)
+                if start_idx==end_idx:
+                    yield False
+                Y = np.zeros((self.batch_size,self.nclasses))
+                X     = self.X[start_idx:end_idx]
+                yvals = self.Y[start_idx:end_idx]
+                for i,y in enumerate(yvals):
+                    Y[i,y] = 1.0
+                yield (X,Y)
+        else:
+            while True:
+                start_idx,end_idx = self.select_indexes()
+                Y = np.zeros((self.batch_size,self.nclasses))
+                X     = self.X[start_idx:end_idx]
+                yvals = self.Y[start_idx:end_idx]
 
-            if alpha > 0.0:#dynamic resampling for unk words
-                yvals = [   self.sample_one(elt,alpha) for elt in yvals ]
-                for idx in range(len(X)):
-                    for jdx in range(len(X[idx])):
-                        X[idx,jdx] = self.sample_one(X[idx,jdx],alpha) 
+                if alpha > 0.0:#dynamic resampling for unk words
+                    yvals = [   self.sample_one(elt,alpha) for elt in yvals ]
+                    for idx in range(len(X)):
+                        for jdx in range(len(X[idx])):
+                            X[idx,jdx] = self.sample_one(X[idx,jdx],alpha) 
                         
-            for i,y in enumerate(yvals):
-                Y[i,y] = 1.0
-            yield (X,Y)
+                for i,y in enumerate(yvals):
+                    Y[i,y] = 1.0
+                yield (X,Y)
 
             
 class DependencyTree:
@@ -356,31 +385,33 @@ class NNLanguageModel:
         return pd.DataFrame(records,columns=['token','unk_word','cond_prob','cond_log2prob'])
     
             
-    def perplexity(self,treebank,control=False):
+    def perplexity(self,treebank,uniform=False):
         """
         Computes the perplexity of an LM on a treebank
-        @param control : outputs a perplexity that would be produced
+        @param uniform : outputs a perplexity that would be produced
         by an uniform distribution.
         """
-        try:        #Requires to batch predictions
-            X = []
-            Y = []
-            for sentence in treebank:
-                tokens = [NNLanguageModel.UNDEF_TOKEN,NNLanguageModel.UNDEF_TOKEN,NNLanguageModel.UNDEF_TOKEN]+sentence+[NNLanguageModel.EOS_TOKEN]
-                for (w3,w2,w1,y) in zip(tokens,tokens[1:],tokens[2:],tokens[3:]):
-                    x,y = self.make_representation([w3,w2,w1],y)
-                    X.append(x)
-                    Y.append(y)
-            if control:
-                unip = 1/len(self.word_codes)
-                unice = sum(log2(unip) for _ in range(len(Y)))
-                return 2**(-unice/len(Y))
+        X = []
+        Y = []
+
+
+        cross_entropy = 0
+        N             = 0
+
+        uniform_prob  = 1/len(self.word_codes)
+        for sentence in treebank:
+            tokens = [NNLanguageModel.UNDEF_TOKEN,NNLanguageModel.UNDEF_TOKEN,NNLanguageModel.UNDEF_TOKEN]+sentence+[NNLanguageModel.EOS_TOKEN]
+            for (w3,w2,w1,y) in zip(tokens,tokens[1:],tokens[2:],tokens[3:]):
+                x,y = self.make_representation([w3,w2,w1],y)
+                X.append(x)
+                Y.append(y)
+            if uniform:
+                 cross_entropy += sum(log2(uniform_prob) for _ in range(len(Y)))
             else:
                 preds = self.model.predict(X)
-                cross_entropy = sum( log2(preds[idx,yref]+np.finfo(float).eps) for idx,yref in enumerate(Y) )
-                return 2**(-cross_entropy/len(Y))
-        except MemoryError:
-            return 0
+                cross_entropy += sum( log2(preds[idx,yref]+np.finfo(float).eps) for idx,yref in enumerate(Y) )
+            N += len(Y)
+        return 2**(-cross_entropy/len(Y))
     
     def sample_sentence(self):
 
