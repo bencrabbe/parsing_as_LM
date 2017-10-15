@@ -394,7 +394,6 @@ class NNLanguageModel:
         X = []
         Y = []
 
-
         cross_entropy = 0
         N             = 0
 
