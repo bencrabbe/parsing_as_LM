@@ -393,7 +393,7 @@ class NNLanguageModel:
         """
         X = []
         Y = []
-
+        
         cross_entropy = 0
         N             = 0
 
@@ -595,20 +595,20 @@ if __name__ == '__main__':
     dtreebank =  ptb_reader('ptb/ptb_valid.txt')
     
     #search for structure
-    NNLanguageModel.grid_search(ttreebank,dtreebank,LR=[0.001,0.0001],ESIZE=[300],HSIZE=[200,300],DPOUT=[0.1,0.2,0.3])
+    #NNLanguageModel.grid_search(ttreebank,dtreebank,LR=[0.001,0.0001],ESIZE=[300],HSIZE=[200,300],DPOUT=[0.1,0.2,0.3])
     #search for smoothing
     #NNLanguageModel.grid_search(ttreebank,dtreebank,LR=[0.001],HSIZE=[200],ESIZE=[300])    
 
-    #lm = NNLanguageModel()
-    #lm.hidden_size    = 250
-    #lm.embedding_size = 300
-    #lm.train_nn_lm(ttreebank,dtreebank,lr=0.001,alpha_lex=0,hidden_dropout=0.0,batch_size=128,max_epochs=20,\
-    #        glove_file='glove/glove.6B.300d.txt')
-    #lm.save_model('testLM')
-    #print('PPL-T = ',lm.perplexity(ttreebank),'PPL-D = ',lm.perplexity(dtreebank),'PPL-D(control) = ',lm.perplexity(dtreebank,control=True))
-    #for sentence in dtreebank[:10]:
-    #    df = lm.predict_sentence(sentence)
-    #    print(df)
+    lm = NNLanguageModel()
+    lm.hidden_size    = 200
+    lm.embedding_size = 300
+    lm.train_nn_lm(ttreebank,dtreebank,lr=0.001,alpha_lex=0,hidden_dropout=0.3,batch_size=128,max_epochs=200,\
+                glove_file='glove/glove.6B.300d.txt')
+    lm.save_model('testLM')
+    print('PPL-T = ',lm.perplexity(ttreebank),'PPL-D = ',lm.perplexity(dtreebank),'PPL-D(control) = ',lm.perplexity(dtreebank,control=True))
+    for sentence in dtreebank[:10]:
+        df = lm.predict_sentence(sentence)
+        print(df)
     
     #lm = NNLanguageModel.load_model('testLM')
     #for _ in range(10):
