@@ -362,23 +362,25 @@ class NNLanguageModel:
         @param control : outputs a perplexity that would be produced
         by an uniform distribution.
         """
-        X = []
-        Y = []
-        for sentence in treebank:
-            tokens = [NNLanguageModel.UNDEF_TOKEN,NNLanguageModel.UNDEF_TOKEN,NNLanguageModel.UNDEF_TOKEN]+sentence+[NNLanguageModel.EOS_TOKEN]
-            for (w3,w2,w1,y) in zip(tokens,tokens[1:],tokens[2:],tokens[3:]):
-                x,y = self.make_representation([w3,w2,w1],y)
-                X.append(x)
-                Y.append(y)
-        if control:
-            unip = 1/len(self.word_codes)
-            unice = sum(log2(unip) for _ in range(len(Y)))
-            return 2**(-unice/len(Y))
-        else:
-            preds = self.model.predict(X)
-            cross_entropy = sum( log2(preds[idx,yref]+np.finfo(float).eps) for idx,yref in enumerate(Y) )
-            return 2**(-cross_entropy/len(Y))
-
+        try:        #Requires to batch predictions
+            X = []
+            Y = []
+            for sentence in treebank:
+                tokens = [NNLanguageModel.UNDEF_TOKEN,NNLanguageModel.UNDEF_TOKEN,NNLanguageModel.UNDEF_TOKEN]+sentence+[NNLanguageModel.EOS_TOKEN]
+                for (w3,w2,w1,y) in zip(tokens,tokens[1:],tokens[2:],tokens[3:]):
+                    x,y = self.make_representation([w3,w2,w1],y)
+                    X.append(x)
+                    Y.append(y)
+            if control:
+                unip = 1/len(self.word_codes)
+                unice = sum(log2(unip) for _ in range(len(Y)))
+                return 2**(-unice/len(Y))
+            else:
+                preds = self.model.predict(X)
+                cross_entropy = sum( log2(preds[idx,yref]+np.finfo(float).eps) for idx,yref in enumerate(Y) )
+                return 2**(-cross_entropy/len(Y))
+        except MemoryError:
+            return 0
     
     def sample_sentence(self):
 
@@ -563,7 +565,7 @@ if __name__ == '__main__':
     dtreebank =  ptb_reader('ptb/ptb_valid.txt')
     
     #search for structure
-    NNLanguageModel.grid_search(ttreebank,dtreebank,LR=[0.001,0.0001],ESIZE=[300],HSIZE=[100,200,300],DPOUT=[0.1,0.2,0.3])
+    NNLanguageModel.grid_search(ttreebank,dtreebank,LR=[0.001,0.0001],ESIZE=[300],HSIZE=[200,300],DPOUT=[0.1,0.2,0.3])
     #search for smoothing
     #NNLanguageModel.grid_search(ttreebank,dtreebank,LR=[0.001],HSIZE=[200],ESIZE=[300])    
 
