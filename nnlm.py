@@ -459,7 +459,7 @@ class NNLanguageModel:
             self.model.add(Embedding(self.lexicon_size,\
                                      self.embedding_size,\
                                      input_length=self.input_size,\
-                                     trainable=False,\
+                                     trainable=True,\
                                      weights=[self.read_glove_embeddings(glove_file)]))
 
         self.model.add(Flatten())                   #concatenates the embeddings layers
@@ -597,17 +597,17 @@ if __name__ == '__main__':
     #search for smoothing
     #NNLanguageModel.grid_search(ttreebank,dtreebank,LR=[0.001],HSIZE=[200],ESIZE=[300])    
 
-    #lm = NNLanguageModel()
-    #lm.hidden_size    = 200
-    #lm.embedding_size = 300
-    #lm.train_nn_lm(ttreebank,dtreebank,lr=0.0001,alpha_lex=0,hidden_dropout=0.3,batch_size=128,max_epochs=200,\
-    #            glove_file='glove/glove.6B.300d.txt')
-    #lm.save_model('testLM')
-    lm = NNLanguageModel.load_model('testLM')
-    print('PPL-T = ',lm.perplexity(ttreebank),'PPL-D = ',lm.perplexity(dtreebank),'PPL-D(control) = ',lm.perplexity(dtreebank,uniform=True))
-    for sentence in dtreebank[:10]:
-        df = lm.predict_sentence(sentence)
-        print(df)
+    lm = NNLanguageModel()
+    lm.hidden_size    = 200
+    lm.embedding_size = 300
+    lm.train_nn_lm(ttreebank,dtreebank,lr=0.0001,alpha_lex=0,hidden_dropout=0.3,batch_size=128,max_epochs=200,\
+                glove_file='glove/glove.6B.300d.txt')
+    lm.save_model('testLM')
+    #lm = NNLanguageModel.load_model('testLM')
+    #print('PPL-T = ',lm.perplexity(ttreebank),'PPL-D = ',lm.perplexity(dtreebank),'PPL-D(control) = ',lm.perplexity(dtreebank,uniform=True))
+    #for sentence in dtreebank[:10]:
+    #    df = lm.predict_sentence(sentence)
+    #    print(df)
     
     #lm = NNLanguageModel.load_model('testLM')
     #for _ in range(10):
