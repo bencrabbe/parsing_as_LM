@@ -393,14 +393,13 @@ class NNLanguageModel:
         @param uniform : outputs a perplexity that would be produced
         by an uniform distribution.
         """
-        X = []
-        Y = []
-        
         cross_entropy = 0
         N             = 0
 
         uniform_prob  = 1/len(self.word_codes)
         for sentence in treebank:
+            X = []
+            Y = []
             print ('@')
             tokens = [NNLanguageModel.UNDEF_TOKEN,NNLanguageModel.UNDEF_TOKEN,NNLanguageModel.UNDEF_TOKEN]+sentence+[NNLanguageModel.EOS_TOKEN]
             for (w3,w2,w1,y) in zip(tokens,tokens[1:],tokens[2:],tokens[3:]):
