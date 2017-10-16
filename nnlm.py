@@ -602,7 +602,7 @@ if __name__ == '__main__':
     lm = NNLanguageModel()
     lm.hidden_size    = 200
     lm.embedding_size = 300
-    lm.train_nn_lm(ttreebank,dtreebank,lr=0.001,alpha_lex=0,hidden_dropout=0.3,batch_size=128,max_epochs=200,\
+    lm.train_nn_lm(ttreebank,dtreebank,lr=0.0001,alpha_lex=0,hidden_dropout=0.3,batch_size=128,max_epochs=200,\
                 glove_file='glove/glove.6B.300d.txt')
     lm.save_model('testLM')
     print('PPL-T = ',lm.perplexity(ttreebank),'PPL-D = ',lm.perplexity(dtreebank),'PPL-D(control) = ',lm.perplexity(dtreebank,control=True))
