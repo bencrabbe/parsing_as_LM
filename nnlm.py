@@ -4,6 +4,8 @@ import pickle
 import numpy as np
 import pandas as pd
 
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'     #turns GPU off
+
 
 from math import log2,exp
 from random import shuffle
@@ -606,7 +608,6 @@ if __name__ == '__main__':
     #lm.train_nn_lm(ttreebank,dtreebank,lr=0.0001,alpha_lex=0,hidden_dropout=0.3,batch_size=128,max_epochs=200,\
     #            glove_file='glove/glove.6B.300d.txt')
     #lm.save_model('testLM')
-    os.environ['CUDA_VISIBLE_DEVICES'] = '0'     #turns GPU off
     lm = NNLanguageModel.load_model('test200LM')
     print('PPL-T = ',lm.perplexity(ttreebank),'PPL-D = ',lm.perplexity(dtreebank),'PPL-D(control) = ',lm.perplexity(dtreebank,uniform=True))
     for sentence in dtreebank[:10]:
