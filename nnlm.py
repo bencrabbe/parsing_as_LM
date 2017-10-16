@@ -4,7 +4,7 @@ import pickle
 import numpy as np
 import pandas as pd
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'     #turns GPU off
+os.environ['CUDA_VISIBLE_DEVICES'] = ''     #turns GPU off
 
 
 from math import log2,exp
