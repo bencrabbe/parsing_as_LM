@@ -399,6 +399,7 @@ class NNLanguageModel:
 
         uniform_prob  = 1/len(self.word_codes)
         for sentence in treebank:
+            print ('@')
             tokens = [NNLanguageModel.UNDEF_TOKEN,NNLanguageModel.UNDEF_TOKEN,NNLanguageModel.UNDEF_TOKEN]+sentence+[NNLanguageModel.EOS_TOKEN]
             for (w3,w2,w1,y) in zip(tokens,tokens[1:],tokens[2:],tokens[3:]):
                 x,y = self.make_representation([w3,w2,w1],y)
