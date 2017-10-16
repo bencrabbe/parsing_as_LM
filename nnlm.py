@@ -4,8 +4,6 @@ import pickle
 import numpy as np
 import pandas as pd
 
-os.environ['CUDA_VISIBLE_DEVICES'] = ''     #turns GPU off
-
 
 from math import log2,exp
 from random import shuffle
@@ -400,7 +398,6 @@ class NNLanguageModel:
         for sentence in treebank:
             X = []
             Y = []
-            print ('@')
             tokens = [NNLanguageModel.UNDEF_TOKEN,NNLanguageModel.UNDEF_TOKEN,NNLanguageModel.UNDEF_TOKEN]+sentence+[NNLanguageModel.EOS_TOKEN]
             for (w3,w2,w1,y) in zip(tokens,tokens[1:],tokens[2:],tokens[3:]):
                 x,y = self.make_representation([w3,w2,w1],y)
@@ -412,7 +409,7 @@ class NNLanguageModel:
                 preds = self.model.predict(X)
                 cross_entropy += sum( log2(preds[idx,yref]+np.finfo(float).eps) for idx,yref in enumerate(Y) )
             N += len(Y)
-        return 2**(-cross_entropy/len(Y))
+        return 2**(-cross_entropy/N)
     
     def sample_sentence(self):
 
