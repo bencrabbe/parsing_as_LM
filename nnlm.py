@@ -472,7 +472,7 @@ class NNLanguageModel:
         sgd = Adam(lr=lr,beta_1=0.0)
         self.model.compile(optimizer=sgd,loss='categorical_crossentropy',metrics=['accuracy'])         #also works fine with adam
         #(4) Fitting
-        lr_scheduler = ReduceLROnPlateau( monitor='val_loss',factor=0.1,patience=10,verbose=1)
+        lr_scheduler = ReduceLROnPlateau( monitor='val_loss',factor=0.1,patience=5,verbose=1)
         checkpoint = ModelCheckpoint('temporary-model-{epoch:02d}.hdf5', monitor='val_loss', verbose=0, save_best_only=True, mode='min')
         ntrain_batches = max(1,round(training_generator.N/batch_size))
         nvalidation_batches = max(1,round(validation_generator.N/batch_size))
