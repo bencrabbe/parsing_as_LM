@@ -12,7 +12,7 @@ from collections import Counter
 from keras.models import Sequential,load_model
 from keras.layers import Dense, Activation, Embedding,Flatten, Dropout
 from keras.optimizers import RMSprop,Adam
-from keras.callbacks import ModelCheckpoint
+from keras.callbacks import ModelCheckpoint,ReduceLROnPlateau
 
 class NumericDataGenerator:
     """
@@ -248,7 +248,7 @@ class DependencyTree:
         Returns the token at index idx
         """
         return self.tokens[idx]
-
+        
 
 class NNLanguageModel:
     """
@@ -469,9 +469,10 @@ class NNLanguageModel:
             self.model.add(Dropout(hidden_dropout))
         self.model.add(Dense(self.lexicon_size))
         self.model.add(Activation('softmax'))
-        sgd = Adam(lr=lr)
+        sgd = Adam(lr=lr,beta_1=0.0)
         self.model.compile(optimizer=sgd,loss='categorical_crossentropy',metrics=['accuracy'])         #also works fine with adam
         #(4) Fitting
+        lr_scheduler = ReduceLROnPlateau( monitor='val_loss',factor=0.1,patience=10)
         checkpoint = ModelCheckpoint('temporary-model-{epoch:02d}.hdf5', monitor='val_loss', verbose=0, save_best_only=True, mode='min')
         ntrain_batches = max(1,round(training_generator.N/batch_size))
         nvalidation_batches = max(1,round(validation_generator.N/batch_size))
@@ -480,7 +481,7 @@ class NNLanguageModel:
                                        epochs=max_epochs,\
                                        steps_per_epoch = ntrain_batches,\
                                        validation_steps = nvalidation_batches,\
-                                       callbacks = [checkpoint])
+                                       callbacks = [checkpoint,lr_scheduler])
         return pd.DataFrame(log.history)
 
     @staticmethod
@@ -600,11 +601,11 @@ if __name__ == '__main__':
     lm = NNLanguageModel()
     lm.hidden_size    = 200
     lm.embedding_size = 300
-    lm.train_nn_lm(ttreebank,dtreebank,lr=0.0001,alpha_lex=0,hidden_dropout=0.3,batch_size=128,max_epochs=200,\
+    lm.train_nn_lm(ttreebank,dtreebank,lr=0.001,alpha_lex=0,hidden_dropout=0.3,batch_size=128,max_epochs=200,\
                 glove_file='glove/glove.6B.300d.txt')
     lm.save_model('testLM')
     #lm = NNLanguageModel.load_model('testLM')
-    #print('PPL-T = ',lm.perplexity(ttreebank),'PPL-D = ',lm.perplexity(dtreebank),'PPL-D(control) = ',lm.perplexity(dtreebank,uniform=True))
+    print('PPL-T = ',lm.perplexity(ttreebank),'PPL-D = ',lm.perplexity(dtreebank),'PPL-D(control) = ',lm.perplexity(dtreebank,uniform=True))
     #for sentence in dtreebank[:10]:
     #    df = lm.predict_sentence(sentence)
     #    print(df)
