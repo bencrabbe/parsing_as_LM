@@ -36,7 +36,6 @@ class NumericDataGenerator:
         self.unk_x_code = unk_word_code
         self.x_counts(self.X)
         
-        
     def x_counts(self,X):
         self.word_freqs = Counter() 
         for line in X:
@@ -454,21 +453,26 @@ class NNLanguageModel:
 
         #(3) Model structure
         self.model = Sequential()
+        input_embedding = None
+        
         if glove_file == None:
-            self.model.add(Embedding(self.lexicon_size,self.embedding_size,input_length=self.input_size))
+            input_embedding = Embedding(self.lexicon_size,self.embedding_size,input_length=self.input_size)
+            self.model.add( input_embedding )
         else:
-            self.model.add(Embedding(self.lexicon_size,\
-                                     self.embedding_size,\
-                                     input_length=self.input_size,\
-                                     trainable=True,\
-                                     weights=[self.read_glove_embeddings(glove_file)]))
-
+            input_embedding = Embedding(self.lexicon_size,\
+                                        self.embedding_size,\
+                                        input_length=self.input_size,\
+                                        trainable=True,\
+                                        weights=[self.read_glove_embeddings(glove_file)]) 
+            self.model.add(input_embedding)
+    
         self.model.add(Flatten())                   #concatenates the embeddings layers
         self.model.add(Dense(self.hidden_size))
         self.model.add(Activation('tanh'))
         if hidden_dropout > 0:
             self.model.add(Dropout(hidden_dropout))
-        self.model.add(Dense(self.lexicon_size))
+        #self.model.add(Dense(self.lexicon_size))
+        self.model.add(EmbeddingTranspose(self.lexicon_size,input_embedding))
         self.model.add(Activation('softmax'))
         sgd = Adam(lr=lr,beta_1=0.0)
         self.model.compile(optimizer=sgd,loss='categorical_crossentropy',metrics=['accuracy'])         #also works fine with adam
@@ -600,13 +604,13 @@ if __name__ == '__main__':
     #NNLanguageModel.grid_search(ttreebank,dtreebank,LR=[0.001],HSIZE=[200],ESIZE=[300])    
 
     lm = NNLanguageModel()
-    lm.hidden_size    = 200
+    lm.hidden_size    = 300
     lm.embedding_size = 300
-    lm.train_nn_lm(ttreebank,dtreebank,lr=0.0001,alpha_lex=0,hidden_dropout=0.3,batch_size=128,max_epochs=200,\
-                glove_file='glove/glove.6B.300d.txt')
+    lm.train_nn_lm(ttreebank[:10],dtreebank[:10],lr=0.001,alpha_lex=0,hidden_dropout=0.3,batch_size=128,max_epochs=300,\
+                    glove_file='glove/glove.6B.300d.txt')
     lm.save_model('testLM')
     #lm = NNLanguageModel.load_model('testLM')
-    print('PPL-T = ',lm.perplexity(ttreebank),'PPL-D = ',lm.perplexity(dtreebank),'PPL-D(control) = ',lm.perplexity(dtreebank,uniform=True))
+    #print('PPL-T = ',lm.perplexity(ttreebank),'PPL-D = ',lm.perplexity(dtreebank),'PPL-D(control) = ',lm.perplexity(dtreebank,uniform=True))
     #for sentence in dtreebank[:10]:
     #    df = lm.predict_sentence(sentence)
     #    print(df)
