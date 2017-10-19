@@ -11,6 +11,7 @@ from numpy.random import choice,rand
 from collections import Counter
 from keras.models import Sequential,load_model
 from keras.layers import Dense, Activation, Embedding,Flatten, Dropout
+from keras_extra import EmbeddingTranspose
 from keras.optimizers import RMSprop,Adam
 from keras.callbacks import ModelCheckpoint,ReduceLROnPlateau
 
