@@ -6,7 +6,6 @@ import pandas as pd
 
 
 from math import log2,exp
-from random import shuffle
 from numpy.random import choice,rand
 from keras.models import Sequential,load_model
 from keras.layers import Dense, Activation, Embedding,Flatten, Dropout
@@ -464,7 +463,7 @@ if __name__ == '__main__':
     lm = NNLanguageModel()
     lm.hidden_size    = 300
     lm.embedding_size = 300
-    lm.train_nn_lm(ttreebank[:10],dtreebank[:10],lr=0.001,alpha_lex=0,hidden_dropout=0.3,batch_size=128,max_epochs=300,\
+    lm.train_nn_lm(ttreebank,dtreebank,lr=0.00001,alpha_lex=0,hidden_dropout=0.3,batch_size=128,max_epochs=240,\
                     glove_file='glove/glove.6B.300d.txt')
     lm.save_model('testLM')
     #lm = NNLanguageModel.load_model('testLM')

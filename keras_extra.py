@@ -10,14 +10,13 @@ from keras.optimizers import SGD
 from keras import backend as K
 
 
-
 class NumericDataGenerator:
     """
     Stores an encoded treebank and provides it with a python generator interface
     """
     def __init__(self,X,Y,batch_size,nclasses,unk_word_code):
         """
-        @param X,Y the encoded X,Y values as lists
+        @param X,Y the encoded X,Y values as lists (of lists for X)
         @param batch_size:size of generated data batches
         @param nclasses: number of Y classes
         @param unk_word_code : the integer xcode for unknwown words
