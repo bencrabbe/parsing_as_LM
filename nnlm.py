@@ -299,7 +299,7 @@ class NNLanguageModel:
             start_t = time.time()
             for b in range(training_generator.get_num_batches()):
                 X,Y = next(xgen)
-                print('starting batch',b, 'out of',training_generator.get_num_batches() )
+                #print('starting batch',b, 'out of',training_generator.get_num_batches() )
                 if self.tied:
                     dy.renew_cg()
                     W = dy.parameter(self.hidden_weights)
@@ -332,7 +332,7 @@ class NNLanguageModel:
             #validation and auto-saving
             Xvalid,Yvalid = validation_generator.batch_all()
             valid_nll = -sum(self.predict_logprobs(Xvalid,Yvalid))
-            valid_ppl = exp(valid_nll/N)
+            valid_ppl = exp(valid_nll/len(Yvalid))
             history_log.append((e,end_t-start_t,L,exp(L/N),valid_nll,valid_ppl))
             print('Epoch %d (%.2f sec.) NLL (train) = %f, PPL (train) = %f, NLL(valid) = %f, PPL(valid) = %f'%tuple(history_log[-1]))
 
