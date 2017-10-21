@@ -4,11 +4,13 @@ import pickle
 import numpy as np
 import pandas as pd
 import dynet as dy
+import time
 
 from math import log2,exp
 from numpy.random import choice,rand
 from lm_utils import NNLMGenerator
 from dataset_utils import ptb_reader,UDtreebank_reader
+
 
 class NNLanguageModel:
     """
@@ -197,20 +199,56 @@ class NNLanguageModel:
             records.append(tuple(r))
         return pd.DataFrame(records,columns=cols)
 
-    
-    # def sample_sentence(self):
+    def sample_sentence(self,cutoff=40):
+        """
+        Randomly samples a sentence from the conditional distribution.
+        @param cutoff ; max size of generated strings
+        @return : a list of words strings
+        """
+        ios = self.word_codes[NNLanguageModel.IOS_TOKEN]
+        eos = self.word_codes[NNLanguageModel.EOS_TOKEN]
+        sentence = [ios,ios,ios]
 
-    #     sentence = [NNLanguageModel.UNDEF_TOKEN,NNLanguageModel.UNDEF_TOKEN,NNLanguageModel.UNDEF_TOKEN]
-    #     action = self.predict(sentence)
-    #     while True:
-    #         if action == NNLanguageModel.EOS_TOKEN:
-    #              if len(sentence) > 20:
-    #                 break
-    #         else:
-    #             sentence.append(action)
-    #         action = self.predict(sentence)
-    #     return sentence
- 
+        tok = self.sample_token(sentence)
+        while tok != eos and len(sentence) < cutoff+3:
+            sentence.append(tok)
+            tok = self.sample_token(sentence[-3:])
+            
+        return [self.rev_word_codes[tok] for tok in sentence][3:]
+
+    def sample_token(self,sentence):
+        """
+        Samples a token from the conditional distrib
+        @param sentence: a list of token indexes
+        @return the index of the sampled token
+        """
+        ctxt = sentence[-3:]
+        if self.tied:
+            dy.renew_cg()
+            W = dy.parameter(self.hidden_weights)
+            E = dy.parameter(self.embedding_matrix)
+            embeddings = [dy.pick(E, x) for x in ctxt]
+            xdense     = dy.concatenate(embeddings)
+            ypred     = dy.softmax(E * dy.tanh( W * xdense ))
+
+            Ypred = np.array(ypred.value())
+            Ypred /= Ypred.sum()  #fixes numerical instabilities
+            return choice(range(self.lexicon_size),p=Ypred)
+            
+        else:
+            dy.renew_cg()
+            O = dy.parameter(self.output_weights)
+            W = dy.parameter(self.hidden_weights)
+            E = dy.parameter(self.embedding_matrix)
+            for x,y in zip(X,Y):
+                embeddings = [dy.pick(E, x) for x in ctxt]
+                xdense     = dy.concatenate(embeddings)
+                ypred     = dy.softmax(O * dy.tanh( W * xdense ),y)
+
+            Ypred = np.array(ypred.value())
+            Ypred /= Ypred.sum()   #fixes numerical instabilities
+            return choice(range(self.lexicon_size),p=Ypred)
+
     def train_nn_lm(self,\
                     train_sentences,\
                     validation_sentences,\
@@ -235,7 +273,7 @@ class NNLanguageModel:
         validation_generator = self.make_data_generator(validation_sentences,batch_size)
         
         print(self)
-        print("training examples [N] = %d\nBatch size = %d\nDropout = %f\nlearning rate = %f"%(training_generator.N,batch_size,hidden_dropout,lr))
+        print("max_epochs = %d\ntraining examples [N] = %d\nBatch size = %d\nDropout = %f\nlearning rate = %f"%(max_epochs,training_generator.N,batch_size,hidden_dropout,lr))
 
         
         #(3) Model structure
@@ -253,10 +291,10 @@ class NNLanguageModel:
         trainer = dy.AdamTrainer(self.model,alpha=lr)
         min_nll = float('inf')
         history_log = []
-        
         for e in range(max_epochs):
             L = 0
             N = 0
+            start_t = time.time()
             for b in range(training_generator.get_num_batches()):
                 X,Y = next(xgen)
                 if self.tied:
@@ -286,18 +324,20 @@ class NNLanguageModel:
                 loss.backward()
                 trainer.update()
                 N+=len(Y)
+                
+            end_t = time.time()
             #validation and auto-saving
             Xvalid,Yvalid = validation_generator.batch_all()
             valid_nll = -sum(self.predict_logprobs(Xvalid,Yvalid))
             valid_ppl = exp(valid_nll/N)
-            history_log.append((e,L,exp(L/N),valid_nll,valid_ppl))
-            print('Epoch %d, NLL (train) = %f, PPL (train) = %f, NLL(valid) = %f, PPL(valid) = %f'%history_log[-1])
+            history_log.append((e,end_t-start_t,L,exp(L/N),valid_nll,valid_ppl))
+            print('Epoch %d (%.2f sec.) NLL (train) = %f, PPL (train) = %f, NLL(valid) = %f, PPL(valid) = %f'%tuple(history_log[-1]))
 
             if valid_nll == min(valid_nll,min_nll):
                 min_nll = valid_nll
                 self.save_model('best_model_dump-epoch=%d'%(e,))
 
-        return pd.DataFrame(history_log,columns=['epoch','NLL(train)','PPL(train)','NLL(dev)','PPL(dev)'])
+        return pd.DataFrame(history_log,columns=['epoch','wall_time','NLL(train)','PPL(train)','NLL(dev)','PPL(dev)'])
 
     
     @staticmethod
@@ -324,6 +364,7 @@ class NNLanguageModel:
 
         g.model = dy.populate(os.path.join(dirname,'model.prm'))
         return g
+
     
     def save_model(self,dirname):
         
@@ -408,5 +449,8 @@ if __name__ == '__main__':
     lm.train_nn_lm(ttreebank[:30],dtreebank[:30],lr=0.001,hidden_dropout=0.3,batch_size=128,max_epochs=40,glove_file='glove/glove.6B.300d.txt')
     lm.save_model('final_model')
 
-    for s in ttreebank[:3]:
+    for s in ttreebank[10:15]:
         print(lm.predict_sentence(s))
+
+    for _ in range(10):
+        print(' '.join(lm.sample_sentence()))
