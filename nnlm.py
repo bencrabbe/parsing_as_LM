@@ -8,6 +8,7 @@ import dynet as dy
 from math import log2,exp
 from numpy.random import choice,rand
 from lm_utils import NNLMGenerator
+from dataset_utils import ptb_reader,UDtreebank_reader
 
 class NNLanguageModel:
     """
@@ -386,24 +387,6 @@ class NNLanguageModel:
         print('\n'.join(['%s : %f : %f : %f'%(modname,train_loss,pplt,ppld) for (modname,train_loss,pplt,ppld) in global_stats]))
 
         
-def UDtreebank_reader(filename):
-    treebank = []
-    istream = open(filename)
-    dtree = DependencyTree.read_tree(istream)
-    while dtree != None:
-        if dtree.is_projective():
-            treebank.append(dtree.tokens)
-        dtree = DependencyTree.read_tree(istream)
-    istream.close()
-    return treebank
-
-def ptb_reader(filename):
-    istream = open(filename)
-    treebank = []
-    for line in istream:
-        treebank.append(line.split())
-    istream.close()
-    return treebank
 
 
 if __name__ == '__main__':
