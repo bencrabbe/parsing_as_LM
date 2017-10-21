@@ -3,6 +3,8 @@ import os.path
 import pickle
 import numpy as np
 import pandas as pd
+import dynet_config
+dynet_config.set_gpu()
 import dynet as dy
 import time
 
