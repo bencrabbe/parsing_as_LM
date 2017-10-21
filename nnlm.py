@@ -3,132 +3,50 @@ import os.path
 import pickle
 import numpy as np
 import pandas as pd
-
+import dynet as dy
 
 from math import log2,exp
 from numpy.random import choice,rand
-from keras.models import Sequential,load_model
-from keras.layers import Dense, Activation, Embedding,Flatten, Dropout,LSTM,GRU
-from keras_extra import EmbeddingTranspose,NumericDataGenerator,perplexity
-from keras.optimizers import Adam
-from keras.callbacks import ModelCheckpoint,ReduceLROnPlateau
-            
-class DependencyTree:
+from lm_utils import NNLMGenerator
 
-    def __init__(self,tokens=None, edges=None):
-        self.edges  = [] if edges is None else edges   #couples (gov_idx,dep_idx)
-        self.tokens = ['#ROOT#'] if tokens is None else tokens #list of wordforms
-    
-    def __str__(self):
-        gdict = dict([(d,g) for (g,d) in self.edges])
-        return '\n'.join(['\t'.join([str(idx+1),tok,str(gdict[idx+1])]) for idx,tok in enumerate(self.tokens[1:])])
-
-    def is_projective(self,root=0,ideps=None):
-        """
-        Tests if a dependency tree is projective.
-        @param root : the index of the root node
-        @param ideps: a dict index -> list of immediate dependants.
-        @return: (a boolean stating if the root is projective , a list
-        of children idxes)
-        """
-        if ideps is None:#builds dict if not existing
-            ideps = {}
-            for gov,dep in self.edges:
-                if gov in ideps:
-                    ideps[gov].append(dep)
-                else:
-                    ideps[gov] = [dep]
-        
-        allc = [root]                              #reflexive
-        if root not in ideps:                      #we have a leaf
-            return (True,allc)
-        for child in ideps[root]:
-            proj,children = self.is_projective(child,ideps)
-            if not proj:
-                return (proj,None)
-            allc.extend(children)                   #transitivity
-
-        allc.sort()                                 #checks projectivity
-        for _prev,_next in zip(allc,allc[1:]):
-            if _next != _prev+1:
-                return (False,None)
-        return (True, allc)
-    
-    @staticmethod
-    def read_tree(istream):
-        """
-        Reads a tree from an input stream in CONLL-U format.
-        Currently ignores empty nodes and compound spans.
-        
-        @param istream: the stream where to read from
-        @return: a DependencyTree instance 
-        """
-        deptree = DependencyTree()
-        bfr = istream.readline()
-        while bfr:
-            if bfr[0] == '#':
-                bfr = istream.readline()
-            elif (bfr.isspace() or bfr == ''):
-                if deptree.N() > 0:
-                    return deptree
-                else:
-                    bfr = istream.readline()
-            else:
-                line_fields = bfr.split()
-                idx, word, governor_idx = line_fields[0],line_fields[1],line_fields[6]
-                if not '.' in idx: #empty nodes have a dot (and are discarded here)
-                    deptree.tokens.append(word)
-                    deptree.edges.append((int(governor_idx),int(idx)))
-                bfr = istream.readline()
-        return None
-
-    
-    def accurracy(self,other):
-        """
-        Compares this dep tree with another by computing their UAS.
-        Assumes this tree is the reference tree
-        @param other: other dep tree
-        @return : the UAS as a float
-        """
-        S1 = set(self.edges)
-        S2 = set(other.edges)
-        return len(S1.intersection(S2)) / len(S1)
-    
-    def N(self):
-        """
-        Returns the length of the input
-        """
-        return len(self.tokens)
-    
-    def __getitem__(self,idx):
-        """
-        Returns the token at index idx
-        """
-        return self.tokens[idx]
-        
 class NNLanguageModel:
     """
     A simple NNLM a la Bengio 2002.
     """
     #Undefined and unknown symbols
-    UNDEF_TOKEN   = "__UNDEF__"
     UNKNOWN_TOKEN = "<unk>"
-    EOS_TOKEN     = "__EOS__"
+    EOS_TOKEN     = "__EOS__" #end  sentence
+    IOS_TOKEN   = "__IOS__"   #init sentence 
     
-    def __init__(self):
-        self.model            = None
-        self.input_size       = 3    #num symbols fed to the network for predictions
-        self.embedding_size   = 50
-        self.hidden_size      = 100
+    def __init__(self,\
+                 input_length=3,\
+                 embedding_size=300,\
+                 hidden_size=300,
+                 tiedIO = True):
+        """
+        @param input_length  : the number of x conditioning words in the input
+        @param embedding_size: the size of the embedding vectors
+        @param lexicon_size  : the number of distinct lexical items
+        @param tiedIO : input embeddings are tied with output weights
+        """
+        self.model = dy.ParameterCollection()
+        self.input_length     = input_length    #num symbols fed to the network for predictions
+        self.embedding_size   = embedding_size
+        self.hidden_size      = hidden_size
+        
+        self.lexicon_size     = 0    #TBD at train time or at param loading        
         self.word_codes       = None  #TBD at train time or at param loading
         self.rev_word_codes   = None  #TBD at train time or at param loading
-        self.lexicon_size     = 0     #TBD at train time or at param loading
+        self.tied             = tiedIO
+        if self.tied:
+            assert(self.embedding_size == self.hidden_size)
         
     def __str__(self):
-        s = ['INPUT SIZE : %d'%(self.input_size),\
-            'EMBEDDING_SIZE : %d'%(self.embedding_size),\
-            'HIDDEN_LAYER_SIZE : %d'%(self.hidden_size),\
-            'LEXICON_SIZE : %d'%(self.lexicon_size)]
+        s = ['Input Length      : %d'%(self.input_length),\
+            'Embedding size    : %d'%(self.embedding_size),\
+            'Hidden layer size : %d'%(self.hidden_size),\
+            'Lexicon size      : %d'%(self.lexicon_size),\
+            'Tied I/O          : %r'%(self.tied)]
         return '\n'.join(s)
 
     def read_glove_embeddings(self,glove_filename):
@@ -140,7 +58,7 @@ class NNLanguageModel:
         """
         print('Reading embeddings from %s ...'%glove_filename)
 
-        embedding_matrix = (rand(self.lexicon_size,self.embedding_size) - 0.5)/10.0 #like a Keras uniform initializer 
+        embedding_matrix = (rand(self.lexicon_size,self.embedding_size) - 0.5)/10.0 #an uniform initializer 
 
         istream = open(glove_filename)
         for line in istream:
@@ -153,21 +71,26 @@ class NNLanguageModel:
         istream.close()
         print('done.')
         return embedding_matrix
-
+    
     def make_representation(self,xcontext,prediction=None):
         """
         Turns a configuration into a couple of vectors (X,Y) data and
         outputs the coded configuration as a tuple of vectors suitable
-        for Keras.
-        @param xcontext: the preceding words
+        for dynet.
+        @param xcontext  : the actual preceding words
+        @param prediction: the actual y value (next word) or None in case of true prediction.  
         @return a couple (X,Y) or just X if no prediction is given as param
         """
         Nx   = len(xcontext)
-        X    = [None]*self.input_size
+        X    = [self.word_codes[NNLanguageModel.IOS_TOKEN]]*self.input_length
         unk_code = self.word_codes[NNLanguageModel.UNKNOWN_TOKEN]
-        X[0] = self.word_codes.get(xcontext[-1],unk_code) if  Nx > 0 else self.word_codes[NNLanguageModel.UNDEF_TOKEN]  
-        X[1] = self.word_codes.get(xcontext[-2],unk_code) if  Nx > 1 else self.word_codes[NNLanguageModel.UNDEF_TOKEN]  
-        X[2] = self.word_codes.get(xcontext[-3],unk_code) if  Nx > 2 else self.word_codes[NNLanguageModel.UNDEF_TOKEN]  
+        #print('unk=',unk_code)
+        if  Nx > 0:  
+            X[0] = self.word_codes.get(xcontext[-1],unk_code)
+        if  Nx > 1:
+            X[1] = self.word_codes.get(xcontext[-2],unk_code)
+        if Nx > 2:
+            X[2] = self.word_codes.get(xcontext[-3],unk_code) 
     
         if prediction is not None:
             Y = self.word_codes.get(prediction,unk_code)
@@ -180,7 +103,7 @@ class NNLanguageModel:
         Codes lexicon (x-data) on integers.
         @param treebank: the treebank where to extract the data from
         """
-        lexicon = set([NNLanguageModel.UNKNOWN_TOKEN,NNLanguageModel.UNDEF_TOKEN,NNLanguageModel.EOS_TOKEN])
+        lexicon = set([NNLanguageModel.UNKNOWN_TOKEN,NNLanguageModel.IOS_TOKEN,NNLanguageModel.EOS_TOKEN])
         for sentence in treebank:
             lexicon.update(sentence)
         self.lexicon_size = len(lexicon)
@@ -189,252 +112,207 @@ class NNLanguageModel:
 
     def make_data_generator(self,treebank,batch_size):
         """
-        This returns a data generator suitable for use with Keras
-        @param treebank: the treebank to encode
+        This returns a data generator suitable for use with dynet
+        @param treebank: the treebank (list of sentences) to encode
         @param batch_size: the size of the batches yielded by the generator
         """
         Y    = []
         X    = []
         for line in treebank:
-            tokens = [NNLanguageModel.UNKNOWN_TOKEN,NNLanguageModel.UNKNOWN_TOKEN,NNLanguageModel.UNKNOWN_TOKEN]+line+[NNLanguageModel.EOS_TOKEN]
+            tokens = [NNLanguageModel.IOS_TOKEN,NNLanguageModel.IOS_TOKEN,NNLanguageModel.IOS_TOKEN]+line+[NNLanguageModel.EOS_TOKEN]
             for (w3,w2,w1,wy) in zip(tokens,tokens[1:],tokens[2:],tokens[3:]):
                 x,y    = self.make_representation([w3,w2,w1],wy)
                 X.append(x)
                 Y.append(y)
-                
-        return NumericDataGenerator(X,Y,batch_size,self.lexicon_size,self.word_codes[NNLanguageModel.UNKNOWN_TOKEN])
+        return NNLMGenerator(X,Y,self.word_codes[NNLanguageModel.UNKNOWN_TOKEN],batch_size)
 
-    def make_sequential_data_generator(self):
-        """
-        This returns a data generator suitable for use with Keras
-        sequential models
-        @param treebank: the treebank to encode
-        @param batch_size: the size of the batches yielded by the generator
-        """
-        Y    = []
-        X    = []
-        for line in treebank:
-            tokens = [NNLanguageModel.UNKNOWN_TOKEN]+line+[NNLanguageModel.EOS_TOKEN]
-            X.append(tokens[:-1])
-            Y.append(tokens[1:])
-                
-        return NumericSequentialGenerator(X,Y,batch_size,self.lexicon_size,self.word_codes[NNLanguageModel.UNKNOWN_TOKEN])
     
-    
-    def predict(self,sentence,yvalue=None):
+    def predict_logprobs(self,X,Y):
         """
-        Returns the prediction of this model given configuration.
-        if yvalue is a word string, then return the probability of this word
-        if yvalue is None, then samples a prediction from the X|Y conditional distribution
-        """
-        X = np.array([self.make_representation(sentence,None)])
-        Y = self.model.predict(X,batch_size=1)[0]
+        Returns the log probabilities of the predictions for this model (batched version).
 
-        if yvalue is None:
-            return self.rev_word_codes[choice(self.lexicon_size,p=Y)] 
+        @param X: the input indexes from which to predict (each xdatum is expected to be an iterable of integers) 
+        @param Y: a list of references indexes for which to extract the prob. 
+        @return the list of predicted logprobabilities for each of the provided ref y in Y
+        """
+        assert(len(X) == len(Y))
+        assert(all(len(x) == self.input_length for x in X))
+
+        preds = []
+
+        if self.tied:
+            dy.renew_cg()
+            W = dy.parameter(self.hidden_weights)
+            E = dy.parameter(self.embedding_matrix)
+            for x,y in zip(X,Y):
+                embeddings = [dy.pick(E, widx) for widx in x]
+                xdense     = dy.concatenate(embeddings)
+                ypred     = dy.pickneglogsoftmax(E * dy.tanh( W * xdense ),y)
+                preds.append(ypred)
+            dy.forward(preds)
+            return [-ypred.value()  for ypred in preds]
         else:
-            return Y[self.word_codes.get(yvalue,self.word_codes[NNLanguageModel.UNKNOWN_TOKEN])]
-
-
-    def predict_sentence(self,sentence):
+            dy.renew_cg()
+            O = dy.parameter(self.output_weights)
+            W = dy.parameter(self.hidden_weights)
+            E = dy.parameter(self.embedding_matrix)
+            for x,y in zip(X,Y):
+                embeddings = [dy.pick(E, widx) for widx in x]
+                xdense     = dy.concatenate(embeddings)
+                ypred     = dy.pickneglogsoftmax(O * dy.tanh( W * xdense ),y)
+                preds.append(ypred)
+            dy.forward(preds)
+            return [-ypred.value()  for ypred in preds]
+        
+    def predict_sentence(self,sentence,unk_flag=True,surprisal=True):
         """
-        Outputs a corpus together with its transitions probs as a data frame
-        @param sent_list: a list of list of strings
+        Outputs a sentence together with its predicted transitions probs as a pandas data frame
+        @param sententce : a list of strings (words)
+        @param unk_flag  : flags if this word is UNK TOKEN
+        @param surprisals: also outputs -log2(p)
+        @return a pandas DataFrame
         """
         X = []
         Y = []
-        tokens = [NNLanguageModel.UNKNOWN_TOKEN,NNLanguageModel.UNKNOWN_TOKEN,NNLanguageModel.UNKNOWN_TOKEN]+sentence
+        tokens = [NNLanguageModel.IOS_TOKEN,NNLanguageModel.IOS_TOKEN,NNLanguageModel.IOS_TOKEN]+sentence
         for (w3,w2,w1,wy) in zip(tokens,tokens[1:],tokens[2:],tokens[3:]):
             x,y = self.make_representation([w3,w2,w1],wy)
             X.append(x)
             Y.append(y)
-        preds = self.model.predict(np.array(X))
+        preds = self.predict_logprobs(X,Y)
         records = []
-        for idx,yref in enumerate(Y):
-            records.append( ( sentence[idx], sentence[idx] not in self.word_codes, preds[idx,yref],log2(preds[idx,yref])))
-        return pd.DataFrame(records,columns=['token','unk_word','cond_prob','cond_log2prob'])
-    
-    # def perplexity(self,treebank,uniform=False):
-    #     """
-    #     Computes the perplexity of an LM on a treebank
-    #     @param uniform : outputs a perplexity that would be produced
-    #     by an uniform distribution.
-    #     """
-    #     if uniform:
-    #        return self.lexicon_size
-    #     else:
-    #         xgen = self.make_data_generator(treebank,batch_size,test=True)
-    #         val = self.model.evaluate_generator(xgen,xgen.n_test_steps())
-    #         #return exp(val/xgen.N())
-
+        cols = ['token','cond_prob']
+        if unk_flag:
+            cols.append('unk_word')
+        if surprisal:
+            cols.append('surprisal')
             
-    def sample_sentence(self):
+        for word,logpred in zip(sentence,preds):
+            r = [ word, exp(logpred) ]
+            if unk_flag:
+                r.append( word not in self.word_codes )
+            if surprisal:
+                r.append( -logpred)
+            records.append(tuple(r))
+        return pd.DataFrame(records,columns=cols)
 
-        sentence = [NNLanguageModel.UNDEF_TOKEN,NNLanguageModel.UNDEF_TOKEN,NNLanguageModel.UNDEF_TOKEN]
-        action = self.predict(sentence)
-        while True:
-            if action == NNLanguageModel.EOS_TOKEN:
-                 if len(sentence) > 20:
-                    break
-            else:
-                sentence.append(action)
-            action = self.predict(sentence)
-        return sentence
-
-    def train_rnn_lm(self,\
-                    treebank_train,\
-                    treebank_validation,\
-                    lr=0.001,\
-                    hidden_dropout=0.1,\
-                    batch_size=100,\
-                    max_epochs=100,\
-                    alpha_lex=-1,\
-                    glove_file=None,
-                    lstm=True,
-                    gru=False,
-                    tied=True):
-        """
-        Trains an RNN word language model (Lstm or Gru) 
-        @param treebank_train        : a list of sentences
-        @param treebank_validation   : a list of sentences
-        @param lstm : bool, if True trains an LSTM (sets GRU to False)
-        @param gru  : bool, if True trains a GRU   (sets LSTM to False)
-        @param tied : bool, if True, ties input embedding layer with output word layer
-        """
-        #(1) build dictionaries
-        self.code_symbols(treebank_train) 
-        print("Dictionaries built.")
-
-        #(2) read off treebank and build keras data set
-        print("Encoding dataset from %d sentences."%len(treebank_train))
-        training_generator = self.make_data_generator(treebank_train,batch_size)
-        validation_generator = self.make_data_generator(treebank_validation,batch_size)
-        if alpha_lex < 0:
-            alpha_lex = training_generator.guess_alpha(validation_generator.oov_rate())
     
-        print(self)
-        print("training examples [N] = %d\nBatch size = %d\nDropout = %f\nlearning rate = %f\nalpha-lex = %f"%(training_generator.N,batch_size,hidden_dropout,lr,alpha_lex))
+    # def sample_sentence(self):
 
-        #(3) Model structure
-        self.model = Sequential()
-        input_embedding = None
-        
-        if glove_file == None:
-            input_embedding = Embedding(self.lexicon_size,self.embedding_size,input_length=1)
-            self.model.add( input_embedding )
-        else:
-            input_embedding = Embedding(self.lexicon_size,\
-                                        self.embedding_size,\
-                                        input_length=1,\
-                                        trainable=True,\
-                                        weights=[self.read_glove_embeddings(glove_file)]) 
-        self.model.add(input_embedding)
-        self.model.add(Flatten())       #reshape the embedding layer
-        if lstm:
-            self.model.add(LSTM(self.hidden_size))
-        else:
-            self.model.add(GRU(self.hidden_size))
-        if hidden_dropout > 0:
-            self.model.add(Dropout(hidden_dropout))
-            #self.model.add(Dense(self.lexicon_size))
-        self.model.add(EmbeddingTranspose(self.lexicon_size,input_embedding))
-        self.model.add(Activation('softmax'))    
-
-        #(4) Fitting
-        sgd = Adam(lr=lr)  #sgd = Adam(lr=lr,beta_1=0.0)
-        self.model.compile(optimizer=sgd,loss='categorical_crossentropy',metrics=['accuracy'])
-        lr_scheduler = ReduceLROnPlateau( monitor='val_loss',factor=0.1,patience=5,verbose=1)
-        checkpoint = ModelCheckpoint('temporary-model-{epoch:02d}.hdf5', monitor='val_loss', verbose=0, save_best_only=True, mode='min')
-        ntrain_batches = max(1,round(training_generator.N/batch_size))
-        nvalidation_batches = max(1,round(validation_generator.N/batch_size))
-        log = self.model.fit_generator(generator = training_generator.generate(alpha=alpha_lex),\
-                                        validation_data = validation_generator.generate(),\
-                                        epochs=max_epochs,\
-                                        steps_per_epoch = ntrain_batches,\
-                                        validation_steps = nvalidation_batches,\
-                                        callbacks = [checkpoint,lr_scheduler])
-        return pd.DataFrame(log.history)
-    
+    #     sentence = [NNLanguageModel.UNDEF_TOKEN,NNLanguageModel.UNDEF_TOKEN,NNLanguageModel.UNDEF_TOKEN]
+    #     action = self.predict(sentence)
+    #     while True:
+    #         if action == NNLanguageModel.EOS_TOKEN:
+    #              if len(sentence) > 20:
+    #                 break
+    #         else:
+    #             sentence.append(action)
+    #         action = self.predict(sentence)
+    #     return sentence
+ 
     def train_nn_lm(self,\
-                    treebank_train,\
-                    treebank_validation,\
+                    train_sentences,\
+                    validation_sentences,\
                     lr=0.001,\
                     hidden_dropout=0.1,\
                     batch_size=100,\
                     max_epochs=100,\
-                    alpha_lex=-1,\
                     glove_file=None):
-                      
         """
         Locally trains a model with a static oracle and a standard feedforward NN.  
-        @param treebank_train        : a list of sentences
-        @param treebank_validation   : a list of sentences
+        @param train_sentences        : a list of sentences
+        @param validation_sentences   : a list of sentences
+        @return learning curves for various metrics as a pandas dataframe
         """
         #(1) build dictionaries
-        self.code_symbols(treebank_train) 
+        self.code_symbols(train_sentences) 
         print("Dictionaries built.")
 
-        #(2) read off treebank and build keras data set
-        print("Encoding dataset from %d sentences."%len(treebank_train))
-        training_generator = self.make_data_generator(treebank_train,batch_size)
-        validation_generator = self.make_data_generator(treebank_validation,batch_size)
-        if alpha_lex < 0:
-            alpha_lex = training_generator.guess_alpha(validation_generator.oov_rate())
-
-        print(self)
-        print("training examples [N] = %d\nBatch size = %d\nDropout = %f\nlearning rate = %f\nalpha-lex = %f"%(training_generator.N,batch_size,hidden_dropout,lr,alpha_lex))
-
-        #(3) Model structure
-        self.model = Sequential()
-        input_embedding = None
+        #(2) read off treebank and builds data set
+        print("Encoding dataset from %d sentences."%len(train_sentences))
+        training_generator = self.make_data_generator(train_sentences,batch_size)
+        validation_generator = self.make_data_generator(validation_sentences,batch_size)
         
-        if glove_file == None:
-            input_embedding = Embedding(self.lexicon_size,self.embedding_size,input_length=self.input_size)
-            self.model.add( input_embedding )
+        print(self)
+        print("training examples [N] = %d\nBatch size = %d\nDropout = %f\nlearning rate = %f"%(training_generator.N,batch_size,hidden_dropout,lr))
+
+        
+        #(3) Model structure
+        self.model = dy.ParameterCollection()
+        self.hidden_weights   = self.model.add_parameters((self.hidden_size,self.embedding_size*self.input_length))
+        if glove_file is None:
+            self.embedding_matrix = self.model.add_parameters((self.lexicon_size,self.embedding_size))
         else:
-            input_embedding = Embedding(self.lexicon_size,\
-                                        self.embedding_size,\
-                                        input_length=self.input_size,\
-                                        trainable=True,\
-                                        weights=[self.read_glove_embeddings(glove_file)]) 
-            self.model.add(input_embedding)
+            self.embedding_matrix = self.model.parameters_from_numpy(self.read_glove_embeddings(glove_file))
+        if not self.tied:
+            self.output_weights =  self.model.add_parameters((self.lexicon_size,self.hidden_size))
+            
+        #fitting
+        xgen    =  training_generator.next_batch()
+        trainer = dy.AdamTrainer(self.model,alpha=lr)
+        min_nll = float('inf')
+        history_log = []
+        
+        for e in range(max_epochs):
+            L = 0
+            N = 0
+            for b in range(training_generator.get_num_batches()):
+                X,Y = next(xgen)
+                if self.tied:
+                    dy.renew_cg()
+                    W = dy.parameter(self.hidden_weights)
+                    E = dy.parameter(self.embedding_matrix)
+                    losses = []
+                    for x,y in zip(X,Y):
+                        embeddings = [dy.pick(E, widx) for widx in x]
+                        xdense     = dy.concatenate(embeddings)
+                        ypreds     = dy.pickneglogsoftmax(E * dy.dropout(dy.tanh(W * xdense),hidden_dropout),y)
+                        losses.append(ypreds)
+                    loss = dy.esum(losses)
+                else:
+                    dy.renew_cg()
+                    O = dy.parameter(self.output_weights)
+                    W = dy.parameter(self.hidden_weights)
+                    E = dy.parameter(self.embedding_matrix)
+                    losses = []
+                    for x,y in zip(X,Y):
+                        embeddings = [dy.pick(E, widx) for widx in x]
+                        xdense     = dy.concatenate(embeddings)
+                        ypreds     = dy.pickneglogsoftmax(O * dy.dropout(dy.tanh(W * xdense),hidden_dropout),y)
+                        losses.append(ypreds)
+                    loss = dy.esum(losses)
+                L += loss.value()
+                loss.backward()
+                trainer.update()
+                N+=len(Y)
+            #validation and auto-saving
+            Xvalid,Yvalid = validation_generator.batch_all()
+            valid_nll = -sum(self.predict_logprobs(Xvalid,Yvalid))
+            valid_ppl = exp(valid_nll/N)
+            history_log.append((e,L,exp(L/N),valid_nll,valid_ppl))
+            print('Epoch %d, NLL (train) = %f, PPL (train) = %f, NLL(valid) = %f, PPL(valid) = %f'%history_log[-1])
+
+            if valid_nll == min(valid_nll,min_nll):
+                min_nll = valid_nll
+                self.save_model('best_model_dump-epoch=%d'%(e,))
+
+        return pd.DataFrame(history_log,columns=['epoch','NLL(train)','PPL(train)','NLL(dev)','PPL(dev)'])
+
     
-        self.model.add(Flatten())                   #concatenates the embeddings layers
-        self.model.add(Dense(self.hidden_size))
-        self.model.add(Activation('tanh'))
-        if hidden_dropout > 0:
-            self.model.add(Dropout(hidden_dropout))
-        #self.model.add(Dense(self.lexicon_size))
-        self.model.add(EmbeddingTranspose(self.lexicon_size,input_embedding))
-        self.model.add(Activation('softmax'))
-
-        #(4) Fitting
-        sgd = Adam(lr=lr)  #sgd = Adam(lr=lr,beta_1=0.0)
-        self.model.compile(optimizer=sgd,loss='categorical_crossentropy',metrics=['accuracy',perplexity])
-        lr_scheduler = ReduceLROnPlateau( monitor='val_loss',factor=0.1,patience=5,verbose=1)
-        checkpoint = ModelCheckpoint('temporary-model-{epoch:02d}.hdf5', monitor='val_loss', verbose=0, save_best_only=True, mode='min')
-        ntrain_batches = max(1,round(training_generator.N/batch_size))
-        nvalidation_batches = max(1,round(validation_generator.N/batch_size))
-        log = self.model.fit_generator(generator = training_generator.generate(alpha=alpha_lex),\
-                                       validation_data = validation_generator.generate(),\
-                                       epochs=max_epochs,\
-                                       steps_per_epoch = ntrain_batches,\
-                                       validation_steps = nvalidation_batches,\
-                                       callbacks = [checkpoint,lr_scheduler])
-        return pd.DataFrame(log.history)
-
     @staticmethod
     def load_model(dirname):
 
-        g = NNLanguageModel()
-         
         istream = open(os.path.join(dirname,'params.pkl'),'rb')
         params = pickle.load(istream)
         istream.close()
         
-        g.lexicon_size = params['lexicon_size']
-        g.input_size  = params['input_size']
+        g = NNLanguageModel(input_length=params['input_length'],\
+                            embedding_size=params['embedding_size'],\
+                            hidden_size=params['hidden_size'],
+                            tiedIO=params['tied'])
 
+        g.lexicon_size    = params['lexicon_size']
+                            
         istream = open(os.path.join(dirname,'words.pkl'),'rb')
         g.word_codes = pickle.load(istream)
         istream.close()
@@ -443,7 +321,7 @@ class NNLanguageModel:
         for w,idx  in g.word_codes.items():
             g.rev_word_codes[idx] = w
 
-        g.model = load_model(os.path.join(dirname,'model.prm'))
+        g.model = dy.populate(os.path.join(dirname,'model.prm'))
         return g
     
     def save_model(self,dirname):
@@ -452,7 +330,11 @@ class NNLanguageModel:
             os.mkdir(dirname)
 
         #select parameters to save
-        params = {'input_size':self.input_size,'lexicon_size':self.lexicon_size}
+        params = {'input_length':self.input_length,\
+                  'lexicon_size':self.lexicon_size,\
+                  'embedding_size':self.embedding_size,\
+                  'hidden_size':self.hidden_size,\
+                  'tied':self.tied}
 
         ostream = open(os.path.join(dirname,'params.pkl'),'wb')
         pickle.dump(params,ostream)
@@ -503,6 +385,7 @@ class NNLanguageModel:
         print('modname : train-loss : ppl-train : ppl-dev')                
         print('\n'.join(['%s : %f : %f : %f'%(modname,train_loss,pplt,ppld) for (modname,train_loss,pplt,ppld) in global_stats]))
 
+        
 def UDtreebank_reader(filename):
     treebank = []
     istream = open(filename)
@@ -522,6 +405,7 @@ def ptb_reader(filename):
     istream.close()
     return treebank
 
+
 if __name__ == '__main__':
 
     #read UD treebank
@@ -537,20 +421,9 @@ if __name__ == '__main__':
     #search for smoothing
     #NNLanguageModel.grid_search(ttreebank,dtreebank,LR=[0.001],HSIZE=[200],ESIZE=[300])    
 
-    lm = NNLanguageModel()
-    lm.hidden_size    = 300
-    lm.embedding_size = 300
-    lm.train_nn_lm(ttreebank[:30],dtreebank[:30],lr=0.001,alpha_lex=0,hidden_dropout=0.3,batch_size=128,max_epochs=20,\
-                    glove_file='glove/glove.6B.300d.txt')
-    #  lm.train_rnn_lm(ttreebank,dtreebank,lr=0.00001,alpha_lex=0,hidden_dropout=0.3,batch_size=128,max_epochs=240,\
-                    #glove_file='glove/glove.6B.300d.txt')
-    lm.save_model('testLM')
-    #lm = NNLanguageModel.load_model('testLM')
-    #print('PPL-T = ',lm.perplexity(ttreebank),'PPL-D = ',lm.perplexity(dtreebank),'PPL-D(control) = ',lm.perplexity(dtreebank,uniform=True))
-    #for sentence in dtreebank[:10]:
-    #    df = lm.predict_sentence(sentence)
-    #    print(df)
-    
-    #lm = NNLanguageModel.load_model('testLM')
-    #for _ in range(10):
-    #    print(' '.join(lm.sample_sentence()[3:]))
+    lm = NNLanguageModel(hidden_size=300,embedding_size=300,input_length=3,tiedIO=True)
+    lm.train_nn_lm(ttreebank[:30],dtreebank[:30],lr=0.001,hidden_dropout=0.3,batch_size=128,max_epochs=40,glove_file='glove/glove.6B.300d.txt')
+    lm.save_model('final_model')
+
+    for s in ttreebank[:3]:
+        print(lm.predict_sentence(s))
