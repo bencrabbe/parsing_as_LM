@@ -77,3 +77,4 @@ class NNLMGenerator:
 if __name__ == '__main__':
     #Exemple usage (basic autoencoder)
     #TODO
+    pass
