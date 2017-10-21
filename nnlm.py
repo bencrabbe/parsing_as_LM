@@ -446,11 +446,11 @@ if __name__ == '__main__':
     #NNLanguageModel.grid_search(ttreebank,dtreebank,LR=[0.001],HSIZE=[200],ESIZE=[300])    
 
     lm = NNLanguageModel(hidden_size=300,embedding_size=300,input_length=3,tiedIO=True)
-    lm.train_nn_lm(ttreebank[:30],dtreebank[:30],lr=0.001,hidden_dropout=0.3,batch_size=128,max_epochs=40,glove_file='glove/glove.6B.300d.txt')
+    lm.train_nn_lm(ttreebank,dtreebank,lr=0.001,hidden_dropout=0.3,batch_size=128,max_epochs=200,glove_file='glove/glove.6B.300d.txt')
     lm.save_model('final_model')
 
-    for s in ttreebank[10:15]:
-        print(lm.predict_sentence(s))
+    #for s in ttreebank[10:15]:
+    #    print(lm.predict_sentence(s))
 
-    for _ in range(10):
-        print(' '.join(lm.sample_sentence()))
+    #for _ in range(10):
+    #    print(' '.join(lm.sample_sentence()))
