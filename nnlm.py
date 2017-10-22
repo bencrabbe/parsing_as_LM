@@ -358,6 +358,8 @@ class NNLanguageModel:
     @staticmethod
     def load_model(dirname):
 
+        #TODO: forgot to store refs to embedding_matrix and weights
+        
         istream = open(os.path.join(dirname,'params.pkl'),'rb')
         params = pickle.load(istream)
         istream.close()
