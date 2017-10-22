@@ -304,25 +304,35 @@ class NNLanguageModel:
                     dy.renew_cg()
                     W = dy.parameter(self.hidden_weights)
                     E = dy.parameter(self.embedding_matrix)
-                    losses = []
-                    for x,y in zip(X,Y):
-                        embeddings = [dy.pick(E, widx) for widx in x]
-                        xdense     = dy.concatenate(embeddings)
-                        ypreds     = dy.pickneglogsoftmax(E * dy.dropout(dy.tanh(W * xdense),hidden_dropout),y)
-                        losses.append(ypreds)
-                    loss = dy.esum(losses)
+                    batched_X        = zip(*X) #transposes the X matrix
+                    lookups          = [dy.pick_batch(E,xcolumn) for xcolumn in batched_X]
+                    xdense           = dy.concatenate(lookups)
+                    ybatch_preds     = dy.pickneglogsoftmax_batch(E * dy.dropout(dy.tanh( W * xdense ),hidden_dropout),Y)
+                    loss = dy.sum_batches(ybatch_preds)
+                    
+                    #for x,y in zip(X,Y):
+                    #    embeddings = [dy.pick(E, widx) for widx in x]
+                    #    xdense     = dy.concatenate(embeddings)
+                    #    ypreds     = dy.pickneglogsoftmax(E * dy.dropout(dy.tanh(W * xdense),hidden_dropout),y)
+                    #    losses.append(ypreds)
+                    #loss = dy.esum(losses)
                 else:
                     dy.renew_cg()
                     O = dy.parameter(self.output_weights)
                     W = dy.parameter(self.hidden_weights)
                     E = dy.parameter(self.embedding_matrix)
-                    losses = []
-                    for x,y in zip(X,Y):
-                        embeddings = [dy.pick(E, widx) for widx in x]
-                        xdense     = dy.concatenate(embeddings)
-                        ypreds     = dy.pickneglogsoftmax(O * dy.dropout(dy.tanh(W * xdense),hidden_dropout),y)
-                        losses.append(ypreds)
-                    loss = dy.esum(losses)
+                    batched_X        = zip(*X) #transposes the X matrix
+                    lookups          = [dy.pick_batch(E,xcolumn) for xcolumn in batched_X]
+                    xdense           = dy.concatenate(lookups)
+                    ybatch_preds     = dy.pickneglogsoftmax_batch(O * dy.dropout(dy.tanh(W * xdense),hidden_dropout),Y)
+                    loss = dy.sum_batches(ybatch_preds)
+                    
+                    #for x,y in zip(X,Y):
+                    #    embeddings = [dy.pick(E, widx) for widx in x]
+                    #    xdense     = dy.concatenate(embeddings)
+                    #    ypreds     = dy.pickneglogsoftmax(O * dy.dropout(dy.tanh(W * xdense),hidden_dropout),y)
+                    #    losses.append(ypreds)
+                    #loss = dy.esum(losses)
                 L += loss.value()
                 loss.backward()
                 trainer.update()
@@ -449,7 +459,7 @@ if __name__ == '__main__':
     #NNLanguageModel.grid_search(ttreebank,dtreebank,LR=[0.001],HSIZE=[200],ESIZE=[300])    
 
     lm = NNLanguageModel(hidden_size=300,embedding_size=300,input_length=3,tiedIO=True)
-    lm.train_nn_lm(ttreebank,dtreebank,lr=0.001,hidden_dropout=0.3,batch_size=512,max_epochs=200,glove_file='glove/glove.6B.300d.txt')
+    lm.train_nn_lm(ttreebank,dtreebank,lr=0.0001,hidden_dropout=0.3,batch_size=512,max_epochs=20,glove_file='glove/glove.6B.300d.txt')
     lm.save_model('final_model')
 
     #for s in ttreebank[10:15]:
