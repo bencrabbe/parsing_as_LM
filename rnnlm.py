@@ -142,7 +142,7 @@ class RNNLanguageModel:
         @param surprisals: also outputs -log2(p)
         @return a pandas DataFrame
         """
-        tokens = [NNLanguageModel.IOS_TOKEN]+sentence
+        tokens = [RNNLanguageModel.IOS_TOKEN]+sentence
         X = [self.word_codes[elt] for elt in tokens[:-1]]
         Y = [self.word_codes[elt] for elt in tokens[1:]]
         
@@ -191,8 +191,7 @@ class RNNLanguageModel:
         
         print(self,flush=True)
         print("max_epochs = %d\ntraining sentences [N] = %d\nBatch size = %d\nDropout = %f\nlearning rate = %f"%(max_epochs,training_generator.get_num_sentences(),batch_size,hidden_dropout,lr),flush=True)
-
-         #(3) Model structure
+        #(3) Model structure
         self.model = dy.ParameterCollection()
         if glove_file is None:
             self.embedding_matrix = self.model.add_parameters((self.lexicon_size,self.embedding_size))
@@ -213,6 +212,7 @@ class RNNLanguageModel:
             start_t = time.time()
             for b in range(training_generator.get_num_batches()):
                 X,Y = next(xgen)
+                #TODO : manually batch this !
                 if self.tied:
                     dy.renew_cg()
                     state = self.rnn.initial_state()
@@ -220,7 +220,7 @@ class RNNLanguageModel:
                     preds = []
                     for x,y in zip(X,Y):
                         state = state.add_input(dy.pick(E,x))
-                        ypred = dy.pickneglogsoftmax(E * state.output(),y)
+                        ypred = dy.pickneglogsoftmax(E * dy.dropout(state.output(),hidden_dropout),y)
                         preds.append(ypred)
                     loss = dy.esum(preds)
                     L+= loss.value()
@@ -229,13 +229,13 @@ class RNNLanguageModel:
                     N+= len(Y)
                 else:
                     dy.renew_cg()
-                    state = rnn.initial_state()
+                    state = self.rnn.initial_state()
                     O = dy.parameter(self.output_weights)
                     E = dy.parameter(self.embedding_matrix)
                     preds = []
                     for x,y in zip(X,Y):
                         state = state.add_input(dy.pick(E,x))
-                        ypred = dy.pickneglogsoftmax(O * state.output(),y)
+                        ypred = dy.pickneglogsoftmax(O * dy.dropout(state.output(),hidden_dropout),y)
                         preds.append(ypred)
                     loss = dy.esum(preds)
                     L+= loss.value()
@@ -258,6 +258,104 @@ class RNNLanguageModel:
                 #self.save_model('best_model_dump',epoch=e)
         return pd.DataFrame(history_log,columns=['epoch','wall_time','NLL(train)','PPL(train)','NLL(dev)','PPL(dev)'])
 
+
+    def sample_sentence(self,cutoff=40):
+        """
+        Randomly samples a sentence from the conditional distribution.
+        @param cutoff ; max size of generated strings
+        @return : a list of words strings
+        """
+        ios = self.word_codes[RNNLanguageModel.IOS_TOKEN]
+        eos = self.word_codes[RNNLanguageModel.EOS_TOKEN]
+
+        tok      = ios
+        sentence = []
+
+
+        if self.tied:
+            dy.renew_cg()
+            state = self.rnn.initial_state()
+            E = dy.parameter(self.embedding_matrix)
+            while tok != eos and len(sentence) < cutoff:
+                sentence.append(tok)
+                state = state.add_input(dy.pick(E,tok))
+                ypred = dy.softmax(E * state.output())
+                yvec = ypred.npvalue()
+                yvec /= yvec.sum()
+                tok = choice(self.lexicon_size, p=yvec)
+        else:
+            dy.renew_cg()
+            state = self.rnn.initial_state()
+            E = dy.parameter(self.embedding_matrix)
+            O = dy.parameter(self.output_weights)
+            while tok != eos and len(sentence) < cutoff:
+                sentence.append(tok)
+                state = state.add_input(dy.pick(E,tok))
+                ypred = dy.softmax(O * state.output())
+                yvec = ypred.npvalue()
+                yvec /= yvec.sum()
+                tok = choice(self.lexicon_size, p=yvec)
+        return [self.rev_word_codes[tok] for tok in sentence][1:]
+
+    
+    @staticmethod
+    def load_model(dirname):
+
+        #TODO: forgot to store refs to embedding_matrix and weights
+        
+        istream = open(os.path.join(dirname,'params.pkl'),'rb')
+        params = pickle.load(istream)
+        istream.close()
+        
+        g = RNNLanguageModel(input_length=params['input_length'],\
+                            embedding_size=params['embedding_size'],\
+                            hidden_size=params['hidden_size'],
+                            tiedIO=params['tied'])
+
+        g.lexicon_size    = params['lexicon_size']
+                            
+        istream = open(os.path.join(dirname,'words.pkl'),'rb')
+        g.word_codes = pickle.load(istream)
+        istream.close()
+    
+        g.rev_word_codes = ['']*len(g.word_codes)
+        for w,idx  in g.word_codes.items():
+            g.rev_word_codes[idx] = w
+
+        g.model = dy.populate(os.path.join(dirname,'model.prm'))
+        return g
+
+    
+    def save_model(self,dirname,epoch= -1):
+        """
+        @param dirname:the name of a directory (existing or to create) where to save the model.
+        @param epoch: if positive; stores the epoch at which this model was generated.
+        """
+        
+        if not os.path.exists(dirname):
+            os.mkdir(dirname)
+
+        #select parameters to save
+        params = {'input_length':self.input_length,\
+                  'lexicon_size':self.lexicon_size,\
+                  'embedding_size':self.embedding_size,\
+                  'hidden_size':self.hidden_size,\
+                  'tied':self.tied}
+        if epoch > 0:
+            params['epoch'] = epoch
+                  
+        ostream = open(os.path.join(dirname,'params.pkl'),'wb')
+        pickle.dump(params,ostream)
+        ostream.close()
+
+        ostream = open(os.path.join(dirname,'words.pkl'),'wb')
+        pickle.dump(self.word_codes,ostream)
+        ostream.close()
+    
+        self.model.save(os.path.join(dirname,'model.prm')) 
+
+
+    
 if __name__ == '__main__':
 
     #read penn treebank
@@ -265,5 +363,9 @@ if __name__ == '__main__':
     dtreebank =  ptb_reader('ptb/ptb_valid.txt')
     
     lm = RNNLanguageModel(hidden_size=300,embedding_size=300,tiedIO=True)
-    lm.train_rnn_lm(ttreebank[:10],dtreebank[:10],lr=0.1,hidden_dropout=0.3,batch_size=512,max_epochs=20,glove_file='glove/glove.6B.300d.txt')
+    lm.train_rnn_lm(ttreebank,dtreebank,lr=0.1,hidden_dropout=0.3,batch_size=512,max_epochs=200,glove_file='glove/glove.6B.300d.txt')
     #lm.save_model('final_model')
+    for s in ttreebank[:3]:
+        print(lm.predict_sentence(s))
+    for _ in range(10):
+        print(' '.join(lm.sample_sentence()))
