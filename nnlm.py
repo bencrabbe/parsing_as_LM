@@ -17,6 +17,8 @@ from dataset_utils import ptb_reader,UDtreebank_reader
 class NNLanguageModel:
     """
     A simple NNLM a la Bengio 2002.
+
+    Designed to run on a GPU.
     """
     #Undefined and unknown symbols
     UNKNOWN_TOKEN = "<unk>"
@@ -164,7 +166,7 @@ class NNLanguageModel:
             for x,y in zip(X,Y):
                 embeddings = [dy.pick(E, widx) for widx in x]
                 xdense     = dy.concatenate(embeddings)
-                ypred     = dy.pickneglogsoftmax(O * dy.tanh( W * xdense ),y)
+                ypred      = dy.pickneglogsoftmax(O * dy.tanh( W * xdense ),y)
                 preds.append(ypred)
             dy.forward(preds)
             return [-ypred.value()  for ypred in preds]
@@ -348,7 +350,7 @@ class NNLanguageModel:
 
             if valid_nll == min(valid_nll,min_nll):
                 min_nll = valid_nll
-                self.save_model('best_model_dump-epoch=%d'%(e,))
+                self.save_model('best_model_dump',epoch=e)
 
         return pd.DataFrame(history_log,columns=['epoch','wall_time','NLL(train)','PPL(train)','NLL(dev)','PPL(dev)'])
 
@@ -379,7 +381,11 @@ class NNLanguageModel:
         return g
 
     
-    def save_model(self,dirname):
+    def save_model(self,dirname,epoch= -1):
+        """
+        @param dirname:the name of a directory (existing or to create) where to save the model.
+        @param epoch: if positive; stores the epoch at which this model was generated.
+        """
         
         if not os.path.exists(dirname):
             os.mkdir(dirname)
@@ -390,7 +396,9 @@ class NNLanguageModel:
                   'embedding_size':self.embedding_size,\
                   'hidden_size':self.hidden_size,\
                   'tied':self.tied}
-
+        if epoch > 0:
+            params['epoch'] = epoch
+                  
         ostream = open(os.path.join(dirname,'params.pkl'),'wb')
         pickle.dump(params,ostream)
         ostream.close()
@@ -459,7 +467,7 @@ if __name__ == '__main__':
     #NNLanguageModel.grid_search(ttreebank,dtreebank,LR=[0.001],HSIZE=[200],ESIZE=[300])    
 
     lm = NNLanguageModel(hidden_size=300,embedding_size=300,input_length=3,tiedIO=True)
-    lm.train_nn_lm(ttreebank,dtreebank,lr=0.0001,hidden_dropout=0.3,batch_size=512,max_epochs=20,glove_file='glove/glove.6B.300d.txt')
+    lm.train_nn_lm(ttreebank,dtreebank,lr=0.00001,hidden_dropout=0.3,batch_size=512,max_epochs=200,glove_file='glove/glove.6B.300d.txt')
     lm.save_model('final_model')
 
     #for s in ttreebank[10:15]:
