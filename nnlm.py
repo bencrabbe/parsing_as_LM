@@ -276,8 +276,8 @@ class NNLanguageModel:
         training_generator = self.make_data_generator(train_sentences,batch_size)
         validation_generator = self.make_data_generator(validation_sentences,batch_size)
         
-        print(self)
-        print("max_epochs = %d\ntraining examples [N] = %d\nBatch size = %d\nDropout = %f\nlearning rate = %f"%(max_epochs,training_generator.N,batch_size,hidden_dropout,lr))
+        print(self,flush=True)
+        print("max_epochs = %d\ntraining examples [N] = %d\nBatch size = %d\nDropout = %f\nlearning rate = %f"%(max_epochs,training_generator.N,batch_size,hidden_dropout,lr),flush=True)
 
         
         #(3) Model structure
@@ -346,7 +346,7 @@ class NNLanguageModel:
             valid_nll = -sum(self.predict_logprobs(Xvalid,Yvalid))
             valid_ppl = exp(valid_nll/len(Yvalid))
             history_log.append((e,end_t-start_t,L,exp(L/N),valid_nll,valid_ppl))
-            print('Epoch %d (%.2f sec.) NLL (train) = %f, PPL (train) = %f, NLL(valid) = %f, PPL(valid) = %f'%tuple(history_log[-1]))
+            print('Epoch %d (%.2f sec.) NLL (train) = %f, PPL (train) = %f, NLL(valid) = %f, PPL(valid) = %f'%tuple(history_log[-1]),flush=True)
 
             if valid_nll == min(valid_nll,min_nll):
                 min_nll = valid_nll
