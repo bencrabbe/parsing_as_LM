@@ -170,8 +170,8 @@ class NNLMGenerator:
         """
         while True:
             start_idx,end_idx = self.select_indexes(random_restart)
-            X     = self.Xtoks[start_idx:end_idx]
-            Y     = self.Ytoks[start_idx:end_idx]
+            X     = self.X[start_idx:end_idx]
+            Y     = self.Y[start_idx:end_idx]
             yield (X,Y)
 
 
