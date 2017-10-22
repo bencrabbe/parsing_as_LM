@@ -299,7 +299,7 @@ class NNLanguageModel:
             start_t = time.time()
             for b in range(training_generator.get_num_batches()):
                 X,Y = next(xgen)
-                print('starting batch',b, 'out of',training_generator.get_num_batches() )
+                #print('starting batch',b, 'out of',training_generator.get_num_batches() )
                 if self.tied:
                     dy.renew_cg()
                     W = dy.parameter(self.hidden_weights)
