@@ -338,8 +338,9 @@ class NNLanguageModel:
 
             if valid_nll == min(valid_nll,min_nll):
                 min_nll = valid_nll
-                self.save_model('best_model_dump',epoch=e)
-
+                lc = pd.DataFrame(history_log,columns=['epoch','wall_time','NLL(train)','PPL(train)','NLL(dev)','PPL(dev)'])
+                self.save_model('best_model_dump',epoch=e,learning_curve=lc)
+        
         return pd.DataFrame(history_log,columns=['epoch','wall_time','NLL(train)','PPL(train)','NLL(dev)','PPL(dev)'])
 
     
@@ -388,10 +389,11 @@ class NNLanguageModel:
         return g
 
     
-    def save_model(self,dirname,epoch= -1):
+    def save_model(self,dirname,epoch= -1,learning_curve=None):
         """
         @param dirname:the name of a directory (existing or to create) where to save the model.
         @param epoch: if positive; stores the epoch at which this model was generated.
+        @param learning_curve: if not None, dumps a pandas Dataframe with the model learning curve
         """
         
         if not os.path.exists(dirname):
@@ -416,6 +418,10 @@ class NNLanguageModel:
     
         self.model.save(os.path.join(dirname,'model.prm')) 
 
+        if learning_curve is not None:
+            learning_curve.to_csv(os.path.join(dirname,'learning_curve.csv'),index=False)
+
+        
     @staticmethod
     def grid_search(train,\
                     dev,\
@@ -474,11 +480,11 @@ if __name__ == '__main__':
     #NNLanguageModel.grid_search(ttreebank,dtreebank,LR=[0.001],HSIZE=[200],ESIZE=[300])    
 
     lm = NNLanguageModel(hidden_size=300,embedding_size=300,input_length=3,tiedIO=True)
-    lm.train_nn_lm(ttreebank,dtreebank,lr=0.00001,hidden_dropout=0.4,batch_size=512,max_epochs=35,glove_file='glove/glove.6B.300d.txt')
+    lm.train_nn_lm(ttreebank,dtreebank,lr=0.00001,hidden_dropout=0.4,batch_size=512,max_epochs=350,glove_file='glove/glove.6B.300d.txt')
     lm.save_model('final_model')
 
-    test_treebank =  ptb_reader('ptb/ptb_test.txt')
-    print(lm.eval_dataset(test_treebank))
+    #test_treebank =  ptb_reader('ptb/ptb_test.txt')
+    #print(lm.eval_dataset(test_treebank))
     
     #lm2 =  NNLanguageModel.load_model('final_model')
     #for s in ttreebank[:5]:
