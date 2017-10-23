@@ -301,7 +301,7 @@ class NNLanguageModel:
             start_t = time.time()
             for b in range(training_generator.get_num_batches()):
                 X,Y = next(xgen)
-                #print('starting batch',b, 'out of',training_generator.get_num_batches() )
+                
                 if self.tied:
                     dy.renew_cg()
                     W = dy.parameter(self.hidden_weights)
@@ -311,13 +311,6 @@ class NNLanguageModel:
                     xdense           = dy.concatenate(lookups)
                     ybatch_preds     = dy.pickneglogsoftmax_batch(E * dy.dropout(dy.tanh( W * xdense ),hidden_dropout),Y)
                     loss = dy.sum_batches(ybatch_preds)
-                    
-                    #for x,y in zip(X,Y):
-                    #    embeddings = [dy.pick(E, widx) for widx in x]
-                    #    xdense     = dy.concatenate(embeddings)
-                    #    ypreds     = dy.pickneglogsoftmax(E * dy.dropout(dy.tanh(W * xdense),hidden_dropout),y)
-                    #    losses.append(ypreds)
-                    #loss = dy.esum(losses)
                 else:
                     dy.renew_cg()
                     O = dy.parameter(self.output_weights)
@@ -328,17 +321,12 @@ class NNLanguageModel:
                     xdense           = dy.concatenate(lookups)
                     ybatch_preds     = dy.pickneglogsoftmax_batch(O * dy.dropout(dy.tanh(W * xdense),hidden_dropout),Y)
                     loss = dy.sum_batches(ybatch_preds)
-                    
-                    #for x,y in zip(X,Y):
-                    #    embeddings = [dy.pick(E, widx) for widx in x]
-                    #    xdense     = dy.concatenate(embeddings)
-                    #    ypreds     = dy.pickneglogsoftmax(O * dy.dropout(dy.tanh(W * xdense),hidden_dropout),y)
-                    #    losses.append(ypreds)
-                    #loss = dy.esum(losses)
+
+                N+=len(Y)
                 L += loss.value()
                 loss.backward()
                 trainer.update()
-                N+=len(Y)
+                
             end_t = time.time()
             
             #validation and auto-saving
@@ -379,7 +367,12 @@ class NNLanguageModel:
         for w,idx  in g.word_codes.items():
             g.rev_word_codes[idx] = w
 
-        g.model = dy.populate(os.path.join(dirname,'model.prm'))
+        g.model              = dy.ParameterCollection()
+        g.hidden_weights     = g.model.add_parameters((g.hidden_size,g.embedding_size*g.input_length))
+        g.embedding_matrix   = g.model.add_parameters((g.lexicon_size,g.embedding_size))
+        if not g.tied:
+            g.output_weights =  g.model.add_parameters((g.lexicon_size,g.hidden_size))
+        g.model.populate(os.path.join(dirname,'model.prm'))
         return g
 
     
@@ -469,11 +462,14 @@ if __name__ == '__main__':
     #NNLanguageModel.grid_search(ttreebank,dtreebank,LR=[0.001],HSIZE=[200],ESIZE=[300])    
 
     lm = NNLanguageModel(hidden_size=300,embedding_size=300,input_length=3,tiedIO=True)
-    lm.train_nn_lm(ttreebank,dtreebank,lr=0.00001,hidden_dropout=0.3,batch_size=512,max_epochs=300,glove_file='glove/glove.6B.300d.txt')
+    lm.train_nn_lm(ttreebank[:10],dtreebank[:10],lr=0.01,hidden_dropout=0.3,batch_size=512,max_epochs=30,glove_file='glove/glove.6B.300d.txt')
     lm.save_model('final_model')
 
-    #for s in ttreebank[10:15]:
-    #    print(lm.predict_sentence(s))
+    lm2 =  NNLanguageModel.load_model('final_model')
+
+    
+    for s in ttreebank[:5]:
+        print(lm2.predict_sentence(s))
 
     #for _ in range(10):
     #    print(' '.join(lm.sample_sentence()))

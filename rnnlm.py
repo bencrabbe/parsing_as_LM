@@ -212,7 +212,8 @@ class RNNLanguageModel:
             start_t = time.time()
             for b in range(training_generator.get_num_batches()):
                 X,Y = next(xgen)
-                #TODO : manually batch this !
+                #TODO : manually batch this ! @see https://github.com/clab/dynet/blob/master/examples/batching/rnnlm-batch.py
+                #http://phontron.com/class/nn4nlp2017/assets/slides/nn4nlp-06-rnn.pdf
                 if self.tied:
                     dy.renew_cg()
                     state = self.rnn.initial_state()
@@ -270,8 +271,7 @@ class RNNLanguageModel:
 
         tok      = ios
         sentence = []
-
-
+        
         if self.tied:
             dy.renew_cg()
             state = self.rnn.initial_state()
