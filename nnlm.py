@@ -474,7 +474,7 @@ if __name__ == '__main__':
     #NNLanguageModel.grid_search(ttreebank,dtreebank,LR=[0.001],HSIZE=[200],ESIZE=[300])    
 
     lm = NNLanguageModel(hidden_size=300,embedding_size=300,input_length=3,tiedIO=True)
-    lm.train_nn_lm(ttreebank[:10],dtreebank[:10],lr=0.001,hidden_dropout=0.4,batch_size=512,max_epochs=35,glove_file='glove/glove.6B.300d.txt')
+    lm.train_nn_lm(ttreebank,dtreebank,lr=0.00001,hidden_dropout=0.4,batch_size=512,max_epochs=35,glove_file='glove/glove.6B.300d.txt')
     lm.save_model('final_model')
 
     test_treebank =  ptb_reader('ptb/ptb_test.txt')
