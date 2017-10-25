@@ -38,7 +38,7 @@ class RNNLMGenerator:
         self.buckets = {}
         for idx in idxes:
             L = len(self.X[idx])
-            if L in buckets:
+            if L in self.buckets:
                 self.buckets[L].append(idx)
             else:
                 self.buckets[L] = [idx]
