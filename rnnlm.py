@@ -236,7 +236,7 @@ class RNNLanguageModel:
                     state = self.rnn.initial_state()
                     E = dy.parameter(self.embedding_matrix)
                     losses     = []
-                    lookups    = [dy.pick_batch(E,xcolumn) for xcolumn in X]
+                    lookups    = [dy.dropout(dy.pick_batch(E,xcolumn),hidden_dropout) for xcolumn in X]
                     outputs    = state.transduce(lookups)
                     losses     = [ dy.pickneglogsoftmax_batch(E * dy.dropout(lstm_out,hidden_dropout),y) for lstm_out,y in zip(outputs,Y) ]
                     batch_loss = dy.sum_batches(dy.esum(losses))
@@ -250,7 +250,7 @@ class RNNLanguageModel:
                     O = dy.parameter(self.output_weights)
                     E = dy.parameter(self.embedding_matrix)
                     losses     = [ ]
-                    lookups    = [ dy.pick_batch(E,xcolumn) for xcolumn in X ]
+                    lookups    = [ dy.dropout(dy.pick_batch(E,xcolumn),hidden_dropout) for xcolumn in X ]
                     outputs    = state.transduce(lookups)
                     losses     = [ dy.pickneglogsoftmax_batch(O * dy.dropout(lstm_out,hidden_dropout),y) for lstm_out,y in zip(outputs,Y) ]
                     batch_loss = dy.sum_batches(dy.esum(losses))
@@ -380,7 +380,7 @@ if __name__ == '__main__':
     dtreebank =  ptb_reader('ptb/ptb_valid.txt')
 
     lm = RNNLanguageModel(hidden_size=300,embedding_size=300,tiedIO=False)
-    lm.train_rnn_lm(ttreebank,dtreebank,lr=0.001,hidden_dropout=0.4,batch_size=128,max_epochs=200,glove_file='glove/glove.6B.300d.txt')
+    lm.train_rnn_lm(ttreebank,dtreebank,lr=0.0001,hidden_dropout=0.5,batch_size=128,max_epochs=200,glove_file='glove/glove.6B.300d.txt')
     #lm.save_model('final_model')
     #for s in ttreebank[:3]:
     #    print(lm.predict_sentence(s))
