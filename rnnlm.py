@@ -113,12 +113,9 @@ class RNNLanguageModel:
         assert(len(X) == len(Y))
         assert(all([len(x) == len(y) for x,y in zip(X,Y)]))
 
+        nlines = len(X)
         X = zip(*X) #transposes the batch
         Y = zip(*Y) #transposes the batch
-
-        print(list(X))
-        print(list(Y))
-        
         if self.tied:
             dy.renew_cg()
             state = self.rnn.initial_state()
@@ -128,7 +125,10 @@ class RNNLanguageModel:
             outputs     = state.transduce(lookups)
             ypred_batch = [ dy.pickneglogsoftmax_batch(E * lstm_out,y) for lstm_out,y in zip(outputs,Y) ]
             dy.forward(ypred_batch)
-            preds = [ (-col.npvalue()).tolist()[0] for col in ypred_batch]
+            if nlines > 1:
+                preds = [ (-col.npvalue()).tolist()[0] for col in ypred_batch]
+            else:
+                preds = [ (-col.npvalue()).tolist() for col in ypred_batch]
             return list(zip(*preds)) #final back transposition
         else:
             dy.renew_cg()
@@ -141,8 +141,12 @@ class RNNLanguageModel:
             ypred_batch = [ dy.pickneglogsoftmax_batch(O * lstm_out,y) for lstm_out,y in zip(outputs,Y) ]
             dy.forward(ypred_batch)
             preds = [ (-col.npvalue()).tolist()[0] for col in ypred_batch]
-            return list(zip(*preds)) #final back transposition         
-    
+            if nlines > 1:
+                preds = [ (-col.npvalue()).tolist()[0] for col in ypred_batch]
+            else:
+                preds = [ (-col.npvalue()).tolist() for col in ypred_batch]
+            return list(zip(*preds)) #final back transposition
+        
     def predict_sentence(self,sentence,unk_flag=True,surprisal=True):
         """
         Outputs a sentence together with its predicted transitions probs as a pandas data frame
@@ -255,7 +259,6 @@ class RNNLanguageModel:
                     trainer.update()
                     N  +=  len(Y)*len(Y[0])
             end_t = time.time()
-
             vgen = validation_generator.next_exact_batch()
             valid_nll = 0
             vN        = 0
@@ -264,7 +267,7 @@ class RNNLanguageModel:
                 X = list(X)
                 Y = list(Y)
                 valid_nll = -sum( [sum(row) for row in self.predict_logprobs(X,Y)]) 
-                vN        += [ len(y) for yrow in Y]
+                vN        += sum([ len(yrow) for yrow in Y])
             valid_ppl = exp(valid_nll/vN)
             history_log.append((e,end_t-start_t,L,exp(L/N),valid_nll,valid_ppl))
             print('Epoch %d (%.2f sec.) NLL (train) = %f, PPL (train) = %f, NLL(valid) = %f, PPL(valid) = %f'%tuple(history_log[-1]),flush=True)
@@ -375,7 +378,7 @@ if __name__ == '__main__':
     ttreebank =  ptb_reader('ptb/ptb_train_50w.txt')
     dtreebank =  ptb_reader('ptb/ptb_valid.txt')
 
-    lm = RNNLanguageModel(hidden_size=300,embedding_size=300,tiedIO=True)
+    lm = RNNLanguageModel(hidden_size=300,embedding_size=300,tiedIO=False)
     lm.train_rnn_lm(ttreebank,dtreebank,lr=0.001,hidden_dropout=0.1,batch_size=128,max_epochs=50,glove_file='glove/glove.6B.300d.txt')
     #lm.save_model('final_model')
     #for s in ttreebank[:3]:

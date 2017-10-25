@@ -23,8 +23,8 @@ class RNNLMGenerator:
         self.eos_code               = eos_code
         self.batch_size             = batch_size
         self.batch_width            = batch_width
-        self.make_batches(max_width=batch_width)
         self.make_exact_batches()
+        self.make_batches(max_width=batch_width)
 
     def get_num_sentences(self):
         return len(self.X_stable)
@@ -58,7 +58,7 @@ class RNNLMGenerator:
             for key, values in self.buckets.items():
                 X = [self.X_stable[idx] for idx in values]
                 Y = [self.Y_stable[idx] for idx in values]
-            yield (X,Y)
+                yield (X,Y)
 
                  
     def make_batches(self,max_width=40):
