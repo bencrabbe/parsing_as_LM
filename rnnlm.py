@@ -254,7 +254,7 @@ class RNNLanguageModel:
             vgen = validation_generator.next_exact_batch()
             valid_nll = 0
             vN        = 0
-            for _ in range(get_num_exact_batches()):
+            for _ in range(validation_generator.get_num_exact_batches()):
                 X,Y = next(vgen)
                 X = list(X)
                 Y = list(Y)
