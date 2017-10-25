@@ -258,7 +258,7 @@ class RNNLanguageModel:
                 X,Y = next(vgen)
                 X = list(X)
                 Y = list(Y)
-                valid_nll = - sum( [sum(row) for row in self.predict_logprobs(X,Y)]) 
+                valid_nll = -sum( [sum(row) for row in self.predict_logprobs(X,Y)]) 
                 vN        += [ len(y) for yrow in Y]
             valid_ppl = exp(valid_nll/vN)
             history_log.append((e,end_t-start_t,L,exp(L/N),valid_nll,valid_ppl))

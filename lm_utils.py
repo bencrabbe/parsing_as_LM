@@ -55,7 +55,7 @@ class RNNLMGenerator:
         @yield a sentence as a couple (X,Y) in the natural order of the corpus
         """
         while True:
-            for key, values in self.buckets:
+            for key, values in self.buckets.items():
                 X = [self.X_stable[idx] for idx in values]
                 Y = [self.Y_stable[idx] for idx in values]
             yield (X,self.Y)
