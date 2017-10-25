@@ -254,6 +254,7 @@ class RNNLanguageModel:
             X,Y = next(vgen)
             X = list(X)
             Y = list(Y)
+            #as it stands the following metrics are biased because the extra padding symbols are counted (and should not be)
             valid_nll = - sum( [sum(row) for row in self.predict_logprobs(X,Y)]) 
             vN        = len(X)*len(X[0])
             valid_ppl = exp(valid_nll/vN)
