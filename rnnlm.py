@@ -98,41 +98,45 @@ class RNNLanguageModel:
             tokens = [RNNLanguageModel.IOS_TOKEN]+line+[RNNLanguageModel.EOS_TOKEN]
             X.append([self.word_codes.get(tok,unk_code) for tok in tokens[:-1]])
             Y.append([self.word_codes.get(tok,unk_code) for tok in tokens[1:]] )
-        return RNNLMGenerator(X,Y,self.word_codes[RNNLanguageModel.UNKNOWN_TOKEN],batch_size)
+        return RNNLMGenerator(X,Y,self.word_codes[RNNLanguageModel.EOS_TOKEN],batch_size)
 
     
     def predict_logprobs(self,X,Y):
         """
         Returns the log probabilities of the predictions for this model (batched version).
-        @param X: the input indexes from which to predict (each xdatum is expected to be an iterable of integers) 
+        Returns a matrix of log probabilities.
+        @param X: the input indexes from which to predict 
         @param Y: a list of references indexes for which to extract the prob. 
-        @return the list of predicted logprobabilities for each of the provided ref y in Y
+        @return the matrix of predicted logprobabilities for each of the provided ref y in Y
+        as a numpy array
         """
         assert(len(X) == len(Y))
 
-        preds = []
-
+        X = zip(*X) #transposes the batch
+        Y = zip(*Y) #transposes the batch
         if self.tied:
             dy.renew_cg()
-            state =  self.rnn.initial_state()
+            state = self.rnn.initial_state()
             E = dy.parameter(self.embedding_matrix)
-            for x,y in zip(X,Y):
-                state  = state.add_input(dy.pick(E,x))
-                ypred = dy.pickneglogsoftmax(E * state.output(),y)
-                preds.append(ypred)
-            dy.forward(preds)
-            return [-ypred.value() for ypred in preds]
+            preds       = []
+            lookups     = [dy.pick_batch(E,xcolumn) for xcolumn in X]
+            outputs     = state.transduce(lookups)
+            ypred_batch = [ dy.pickneglogsoftmax_batch(E * lstm_out,y) for lstm_out,y in zip(outputs,Y) ]
+            dy.forward(ypred_batch)
+            preds = [ (-col.npvalue()).tolist()[0] for col in ypred_batch]
+            return list(zip(*preds)) #final back transposition
         else:
             dy.renew_cg()
-            state =  self.rnn.initial_state()
+            state = self.rnn.initial_state()
             O = dy.parameter(self.output_weights)
             E = dy.parameter(self.embedding_matrix)
-            for x,y in zip(X,Y):
-                state  = state.add_input(dy.pick(E,x))
-                ypred = dy.pickneglogsoftmax(O * state.output(),y)
-                preds.append(ypred)
-            dy.forward(preds)
-            return [-ypred.value() for ypred in preds]
+            preds       = []
+            lookups     = [dy.pick_batch(E,xcolumn) for xcolumn in X]
+            outputs     = state.transduce(lookups)
+            ypred_batch = [ dy.pickneglogsoftmax_batch(O * lstm_out,y) for lstm_out,y in zip(outputs,Y) ]
+            dy.forward(ypred_batch)
+            preds = [ (-col.npvalue()).tolist()[0] for col in ypred_batch]
+            return list(zip(*preds)) #final back transposition         
     
     def predict_sentence(self,sentence,unk_flag=True,surprisal=True):
         """
@@ -202,6 +206,10 @@ class RNNLanguageModel:
         self.rnn = dy.LSTMBuilder(rnn_layers, self.embedding_size, self.hidden_size,self.model)
 
         #fitting
+        #http://phontron.com/class/nn4nlp2017/assets/slides/nn4nlp-06-rnn.pdf
+        #@see https://github.com/clab/dynet/blob/master/examples/batching/rnnlm-batch.py#L46
+        #I do not do masking (just padding)
+            
         xgen    =  training_generator.next_batch()
         trainer = dy.AdamTrainer(self.model,alpha=lr)
         min_nll = float('inf')
@@ -211,46 +219,43 @@ class RNNLanguageModel:
             N = 0
             start_t = time.time()
             for b in range(training_generator.get_num_batches()):
-                X,Y = next(xgen)
-                #TODO : manually batch this ! @see https://github.com/clab/dynet/blob/master/examples/batching/rnnlm-batch.py
-                #http://phontron.com/class/nn4nlp2017/assets/slides/nn4nlp-06-rnn.pdf
+                X,Y = next(xgen)              #all batch elts are guaranteed to have equal size.
+                time_steps = len(X[0])
+                X,Y = list(zip(*X)),list(zip(*Y))         #transposes the batch
                 if self.tied:
                     dy.renew_cg()
                     state = self.rnn.initial_state()
                     E = dy.parameter(self.embedding_matrix)
-                    preds = []
-                    for x,y in zip(X,Y):
-                        state = state.add_input(dy.pick(E,x))
-                        ypred = dy.pickneglogsoftmax(E * dy.dropout(state.output(),hidden_dropout),y)
-                        preds.append(ypred)
-                    loss = dy.esum(preds)
-                    L+= loss.value()
-                    loss.backward()
+                    losses     = []
+                    lookups    = [dy.pick_batch(E,xcolumn) for xcolumn in X]
+                    outputs    = state.transduce(lookups)
+                    losses     = [ dy.pickneglogsoftmax_batch(E * dy.dropout(lstm_out,hidden_dropout),y) for lstm_out,y in zip(outputs,Y) ]
+                    batch_loss = dy.sum_batches(dy.esum(losses))
+                    L  +=  batch_loss.value()
+                    batch_loss.backward()
                     trainer.update()
-                    N+= len(Y)
+                    N  +=  len(Y)*len(Y[0])
                 else:
                     dy.renew_cg()
                     state = self.rnn.initial_state()
                     O = dy.parameter(self.output_weights)
                     E = dy.parameter(self.embedding_matrix)
-                    preds = []
-                    for x,y in zip(X,Y):
-                        state = state.add_input(dy.pick(E,x))
-                        ypred = dy.pickneglogsoftmax(O * dy.dropout(state.output(),hidden_dropout),y)
-                        preds.append(ypred)
-                    loss = dy.esum(preds)
-                    L+= loss.value()
-                    loss.backward()
+                    losses     = []
+                    lookups    = [dy.pick_batch(E,xcolumn) for xcolumn in X]
+                    outputs    = state.transduce(lookups)
+                    losses     = [ dy.pickneglogsoftmax_batch(O * dy.dropout(lstm_out,hidden_dropout),y) for lstm_out,y in zip(outputs,Y) ]
+                    batch_loss = dy.sum_batches(dy.esum(losses))
+                    L  +=  batch_loss.value()
+                    batch_loss.backward()
                     trainer.update()
-                    N+= len(Y)
+                    N  +=  len(Y)*len(Y[0])
             end_t = time.time()
-            vgen = validation_generator.next_sentence()
-            valid_nll = 0
-            vN = 0
-            for _ in range( validation_generator.get_num_sentences()):
-                X,Y = next(vgen)
-                valid_nll -= sum(self.predict_logprobs(X,Y))
-                vN += len(X)
+            vgen = validation_generator.next_sentence_batch(batch_size=validation_generator.get_num_sentences())
+            X,Y = next(vgen)
+            X = list(X)
+            Y = list(Y)
+            valid_nll = - sum( [sum(row) for row in self.predict_logprobs(X,Y)]) 
+            vN        = len(X)*len(X[0])
             valid_ppl = exp(valid_nll/vN)
             history_log.append((e,end_t-start_t,L,exp(L/N),valid_nll,valid_ppl))
             print('Epoch %d (%.2f sec.) NLL (train) = %f, PPL (train) = %f, NLL(valid) = %f, PPL(valid) = %f'%tuple(history_log[-1]),flush=True)
@@ -354,18 +359,17 @@ class RNNLanguageModel:
     
         self.model.save(os.path.join(dirname,'model.prm')) 
 
-
-    
+            
 if __name__ == '__main__':
 
     #read penn treebank
     ttreebank =  ptb_reader('ptb/ptb_train_50w.txt')
     dtreebank =  ptb_reader('ptb/ptb_valid.txt')
-    
-    lm = RNNLanguageModel(hidden_size=300,embedding_size=300,tiedIO=True)
-    lm.train_rnn_lm(ttreebank,dtreebank,lr=0.1,hidden_dropout=0.3,batch_size=512,max_epochs=200,glove_file='glove/glove.6B.300d.txt')
+
+    lm = RNNLanguageModel(hidden_size=300,embedding_size=300,tiedIO=False)
+    lm.train_rnn_lm(ttreebank[:10],dtreebank[:10],lr=0.001,hidden_dropout=0.01,batch_size=32,max_epochs=200,glove_file='glove/glove.6B.300d.txt')
     #lm.save_model('final_model')
-    for s in ttreebank[:3]:
-        print(lm.predict_sentence(s))
-    for _ in range(10):
-        print(' '.join(lm.sample_sentence()))
+    #for s in ttreebank[:3]:
+    #    print(lm.predict_sentence(s))
+    #for _ in range(10):
+    #    print(' '.join(lm.sample_sentence()))

@@ -134,14 +134,16 @@ class NNLanguageModel:
         return NNLMGenerator(X,Y,self.word_codes[NNLanguageModel.UNKNOWN_TOKEN],batch_size)
 
     
-    def predict_logprobs(self,X,Y):
+    def predict_logprobs(self,X,Y,hidden_out=False):
         """
         Returns the log probabilities of the predictions for this model (batched version).
 
         @param X: the input indexes from which to predict (each xdatum is expected to be an iterable of integers) 
-        @param Y: a list of references indexes for which to extract the prob. 
+        @param Y: a list of references indexes for which to extract the prob.
+        @param hidden_out: outputs an additional list of hidden dimension vectors
         @return the list of predicted logprobabilities for each of the provided ref y in Y
         """
+        #TODO: implement the hidden_out output
         assert(len(X) == len(Y))
         assert(all(len(x) == self.input_length for x in X))
 
@@ -154,7 +156,7 @@ class NNLanguageModel:
             for x,y in zip(X,Y):
                 embeddings = [dy.pick(E, widx) for widx in x]
                 xdense     = dy.concatenate(embeddings)
-                ypred     = dy.pickneglogsoftmax(E * dy.tanh( W * xdense ),y)
+                ypred      = dy.pickneglogsoftmax(E * dy.tanh( W * xdense ),y)
                 preds.append(ypred)
             dy.forward(preds)
             return [-ypred.value()  for ypred in preds]
@@ -291,7 +293,7 @@ class NNLanguageModel:
             self.output_weights =  self.model.add_parameters((self.lexicon_size,self.hidden_size))
             
         #fitting
-        xgen    =  training_generator.next_batch()
+        xgen    = training_generator.next_batch()
         trainer = dy.AdamTrainer(self.model,alpha=lr)
         min_nll = float('inf')
         history_log = []
@@ -301,7 +303,6 @@ class NNLanguageModel:
             start_t = time.time()
             for b in range(training_generator.get_num_batches()):
                 X,Y = next(xgen)
-                
                 if self.tied:
                     dy.renew_cg()
                     W = dy.parameter(self.hidden_weights)
@@ -425,10 +426,11 @@ class NNLanguageModel:
     @staticmethod
     def grid_search(train,\
                     dev,\
-                    LR    = (0.01,0.001,0.0001),\
-                    HSIZE = (100,200,400),\
+                    LR    = (0.001,0.0001,0.00001),\
+                    HSIZE = (50,100,300),\
                     ESIZE = (50,100,300),\
-                    DPOUT = (0.1,0.2,0.3)):
+                    DPOUT = (0.0,0.2,0.4,0.5),
+                    tied  = True):
         """
         Performs a grid search on hyperparameters and dumps whatever.
         This function should be called with care...
@@ -443,20 +445,21 @@ class NNLanguageModel:
         for lr in LR:
             for esize in ESIZE:
                 for hsize in HSIZE:
-                    for dpout in DPOUT:
-                        lm = NNLanguageModel()
-                        lm.hidden_size    = hsize
-                        lm.embedding_size = esize
-                        df = lm.train_nn_lm(train,\
-                                            dev,\
-                                            lr=lr,\
-                                            batch_size=128,\
-                                            hidden_dropout=dpout,\
-                                            max_epochs=40,\
-                                            glove_file='glove/glove.6B.%dd.txt'%(esize))
-                        modstr = 'LM-lr=%f-esize=%d-hsize=%d-dpout=%f'%(lr,esize,hsize,dpout)
-                        global_stats.append((modstr,df['loss'].iloc[-1],lm.perplexity(train),lm.perplexity(dev)))
-                        print(global_stats[-1])
+                    if tied and esize==hize:
+                        for dpout in DPOUT:
+                            lm = NNLanguageModel()
+                            lm.hidden_size    = hsize
+                            lm.embedding_size = esize
+                            df = lm.train_nn_lm(train,\
+                                                dev,\
+                                                lr=lr,\
+                                                batch_size=128,\
+                                                hidden_dropout=dpout,\
+                                                max_epochs=40,\
+                                                glove_file='glove/glove.6B.%dd.txt'%(esize))
+                            modstr = 'LM-lr=%f-esize=%d-hsize=%d-dpout=%f'%(lr,esize,hsize,dpout)
+                            global_stats.append((modstr,df['loss'].iloc[-1],lm.perplexity(train),lm.perplexity(dev)))
+                            print(global_stats[-1])
         #dumps summary at the end
         print('modname : train-loss : ppl-train : ppl-dev')                
         print('\n'.join(['%s : %f : %f : %f'%(modname,train_loss,pplt,ppld) for (modname,train_loss,pplt,ppld) in global_stats]))
@@ -474,11 +477,9 @@ if __name__ == '__main__':
     ttreebank =  ptb_reader('ptb/ptb_train_50w.txt')
     dtreebank =  ptb_reader('ptb/ptb_valid.txt')
     
-    #search for structure
-    #NNLanguageModel.grid_search(ttreebank,dtreebank,LR=[0.001,0.0001],ESIZE=[300],HSIZE=[200,300],DPOUT=[0.1,0.2,0.3])
-    #search for smoothing
-    #NNLanguageModel.grid_search(ttreebank,dtreebank,LR=[0.001],HSIZE=[200],ESIZE=[300])    
-
+    #search for structure (realistic search on ptb data set)
+    #NNLanguageModel.grid_search(ttreebank,dtreebank,LR=[0.0001,0.00001],ESIZE=[300],HSIZE=[300],DPOUT=[0.2,0.3,0.4,0.5])
+    
     lm = NNLanguageModel(hidden_size=300,embedding_size=300,input_length=3,tiedIO=True)
     lm.train_nn_lm(ttreebank,dtreebank,lr=0.00001,hidden_dropout=0.4,batch_size=512,max_epochs=350,glove_file='glove/glove.6B.300d.txt')
     lm.save_model('final_model')
