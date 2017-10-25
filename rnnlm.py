@@ -249,8 +249,8 @@ class RNNLanguageModel:
                     state = self.rnn.initial_state()
                     O = dy.parameter(self.output_weights)
                     E = dy.parameter(self.embedding_matrix)
-                    losses     = []
-                    lookups    = [dy.pick_batch(E,xcolumn) for xcolumn in X]
+                    losses     = [ ]
+                    lookups    = [ dy.pick_batch(E,xcolumn) for xcolumn in X ]
                     outputs    = state.transduce(lookups)
                     losses     = [ dy.pickneglogsoftmax_batch(O * dy.dropout(lstm_out,hidden_dropout),y) for lstm_out,y in zip(outputs,Y) ]
                     batch_loss = dy.sum_batches(dy.esum(losses))
@@ -268,8 +268,9 @@ class RNNLanguageModel:
                 Y = list(Y)
                 preds = self.predict_logprobs(X,Y)
                 print(preds)
-                valid_nll = -sum( [sum(row) for row in preds]) 
-                vN        += sum([ len(yrow) for yrow in Y])
+                valid_nll -= sum( [sum(row) for row in preds])
+                print(valid_nll) 
+                vN        += sum( [ len(yrow) for yrow in Y] )
             valid_ppl = exp(valid_nll/vN)
             history_log.append((e,end_t-start_t,L,exp(L/N),valid_nll,valid_ppl))
             print('Epoch %d (%.2f sec.) NLL (train) = %f, PPL (train) = %f, NLL(valid) = %f, PPL(valid) = %f'%tuple(history_log[-1]),flush=True)
