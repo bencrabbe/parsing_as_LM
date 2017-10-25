@@ -58,7 +58,7 @@ class RNNLMGenerator:
             for key, values in self.buckets.items():
                 X = [self.X_stable[idx] for idx in values]
                 Y = [self.Y_stable[idx] for idx in values]
-            yield (X,self.Y)
+            yield (X,Y)
 
                  
     def make_batches(self,max_width=40):
