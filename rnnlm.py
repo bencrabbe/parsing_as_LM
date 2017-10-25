@@ -267,8 +267,8 @@ class RNNLanguageModel:
                 X = list(X)
                 Y = list(Y)
                 preds = self.predict_logprobs(X,Y)
-                valid_nll -= sum( [sum(row) for row in preds])
-                vN        += sum( [ len(yrow) for yrow in Y] )
+                valid_nll -= sum( [sum(row) for row in preds] )
+                vN        += sum( [ len(yrow) for yrow in Y ] )
             valid_ppl = exp(valid_nll/vN)
             history_log.append((e,end_t-start_t,L,exp(L/N),valid_nll,valid_ppl))
             print('Epoch %d (%.2f sec.) NLL (train) = %f, PPL (train) = %f, NLL(valid) = %f, PPL(valid) = %f'%tuple(history_log[-1]),flush=True)
@@ -380,7 +380,7 @@ if __name__ == '__main__':
     dtreebank =  ptb_reader('ptb/ptb_valid.txt')
 
     lm = RNNLanguageModel(hidden_size=300,embedding_size=300,tiedIO=False)
-    lm.train_rnn_lm(ttreebank,dtreebank,lr=0.001,hidden_dropout=0.1,batch_size=128,max_epochs=50,glove_file='glove/glove.6B.300d.txt')
+    lm.train_rnn_lm(ttreebank,dtreebank,lr=0.001,hidden_dropout=0.4,batch_size=128,max_epochs=200,glove_file='glove/glove.6B.300d.txt')
     #lm.save_model('final_model')
     #for s in ttreebank[:3]:
     #    print(lm.predict_sentence(s))
