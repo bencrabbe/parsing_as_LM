@@ -13,7 +13,6 @@ from numpy.random import choice,rand
 from lm_utils import RNNLMGenerator
 from dataset_utils import ptb_reader,UDtreebank_reader
 
-
 class RNNLanguageModel:
     """
     A simple RNNLM a la Mikolov 2010.
@@ -23,7 +22,7 @@ class RNNLanguageModel:
     #Undefined and unknown symbols
     UNKNOWN_TOKEN = "<unk>"
     EOS_TOKEN     = "__EOS__" #end  sentence
-    IOS_TOKEN   = "__IOS__"   #init sentence 
+    IOS_TOKEN     = "__IOS__"   #init sentence 
     
     def __init__(self,embedding_size=300,hidden_size=300,tiedIO = True):
         """
