@@ -25,6 +25,9 @@ class RNNLMGenerator:
         self.batch_width            = batch_width
         self.make_batches(max_width=batch_width)
         self.make_exact_batches()
+
+    def get_num_sentences(self):
+        return len(self.X_stable)
         
     def make_exact_batches(self):
         """
@@ -37,7 +40,7 @@ class RNNLMGenerator:
         #Bucketing
         self.buckets = {}
         for idx in idxes:
-            L = len(self.X[idx])
+            L = len(self.X_stable[idx])
             if L in self.buckets:
                 self.buckets[L].append(idx)
             else:
