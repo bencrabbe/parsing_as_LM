@@ -116,8 +116,8 @@ class RNNLanguageModel:
         X = zip(*X) #transposes the batch
         Y = zip(*Y) #transposes the batch
 
-        print(X)
-        print(Y)
+        print(list(X))
+        print(list(Y))
         
         if self.tied:
             dy.renew_cg()
