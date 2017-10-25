@@ -250,13 +250,16 @@ class RNNLanguageModel:
                     trainer.update()
                     N  +=  len(Y)*len(Y[0])
             end_t = time.time()
-            vgen = validation_generator.next_sentence_batch(batch_size=validation_generator.get_num_sentences())
-            X,Y = next(vgen)
-            X = list(X)
-            Y = list(Y)
-            #as it stands the following metrics are biased because the extra padding symbols are counted (and should not be)
-            valid_nll = - sum( [sum(row) for row in self.predict_logprobs(X,Y)]) 
-            vN        = len(X)*len(X[0])
+
+            vgen = validation_generator.next_exact_batch()
+            valid_nll = 0
+            vN        = 0
+            for _ in range(get_num_exact_batches()):
+                X,Y = next(vgen)
+                X = list(X)
+                Y = list(Y)
+                valid_nll = - sum( [sum(row) for row in self.predict_logprobs(X,Y)]) 
+                vN        += [ len(y) for yrow in Y]
             valid_ppl = exp(valid_nll/vN)
             history_log.append((e,end_t-start_t,L,exp(L/N),valid_nll,valid_ppl))
             print('Epoch %d (%.2f sec.) NLL (train) = %f, PPL (train) = %f, NLL(valid) = %f, PPL(valid) = %f'%tuple(history_log[-1]),flush=True)
@@ -368,7 +371,7 @@ if __name__ == '__main__':
     dtreebank =  ptb_reader('ptb/ptb_valid.txt')
 
     lm = RNNLanguageModel(hidden_size=300,embedding_size=300,tiedIO=True)
-    lm.train_rnn_lm(ttreebank,dtreebank,lr=0.001,hidden_dropout=0.01,batch_size=32,max_epochs=50,glove_file='glove/glove.6B.300d.txt')
+    lm.train_rnn_lm(ttreebank,dtreebank,lr=0.001,hidden_dropout=0.1,batch_size=128,max_epochs=50,glove_file='glove/glove.6B.300d.txt')
     #lm.save_model('final_model')
     #for s in ttreebank[:3]:
     #    print(lm.predict_sentence(s))

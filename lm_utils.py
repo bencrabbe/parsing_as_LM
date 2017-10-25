@@ -24,7 +24,40 @@ class RNNLMGenerator:
         self.batch_size             = batch_size
         self.batch_width            = batch_width
         self.make_batches(max_width=batch_width)
-         
+        self.make_exact_batches()
+        
+    def make_exact_batches(self):
+        """
+        Makes variable size batches based on exact sentences.
+        Leads to inefficient excecution and/or memory blowup,
+        but useful for computing exact metrics.
+        """
+        idxes = range(len(self.X_stable))
+        
+        #Bucketing
+        self.buckets = {}
+        for idx in idxes:
+            L = len(self.X[idx])
+            if L in buckets:
+                self.buckets[L].append(idx)
+            else:
+                self.buckets[L] = [idx]
+
+    def get_num_exact_batches(self):
+        return len(self.buckets)
+    
+    def next_exact_batch(self):
+        """
+        A data generator called by the fitting or predict functions.
+        @yield a sentence as a couple (X,Y) in the natural order of the corpus
+        """
+        while True:
+            for key, values in self.buckets:
+                X = [self.X_stable[idx] for idx in values]
+                Y = [self.Y_stable[idx] for idx in values]
+            yield (X,self.Y)
+
+                 
     def make_batches(self,max_width=40):
         """
         Makes batches for truncated backprop through time (TBTT)
@@ -116,20 +149,7 @@ class RNNLMGenerator:
             yield (X,Y)
             _idx += 1
             
-    def get_num_sentences(self):
-        return len(self.X_stable)
     
-    def next_sentence_batch(self,batch_size=1):
-        """
-        A data generator called by the fitting or predict functions
-        @yield a sentence as a couple (X,Y) in the natural order of the corpus
-        """
-        idx = 0
-        while True:
-            if idx == self.get_num_sentences():
-                idx = 0
-            yield (self.X_stable[idx:idx+batch_size],self.Y_stable[idx:idx+batch_size])
-            idx += batch_size
             
 class NNLMGenerator:
     """
