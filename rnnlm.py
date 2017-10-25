@@ -111,9 +111,14 @@ class RNNLanguageModel:
         as a numpy array
         """
         assert(len(X) == len(Y))
+        assert(all([len(x) == len(y) for x,y in zip(X,Y)]))
 
         X = zip(*X) #transposes the batch
         Y = zip(*Y) #transposes the batch
+
+        print(X)
+        print(Y)
+        
         if self.tied:
             dy.renew_cg()
             state = self.rnn.initial_state()
