@@ -178,7 +178,6 @@ class RNNLanguageModel:
         @param surprisals: also outputs -log2(p)
         @return a pandas DataFrame
         """
-
         tokens    = [RNNLanguageModel.IOS_TOKEN]+sentence
         unk_token = self.word_codes[RNNLanguageModel.UNKNOWN_TOKEN]
 
@@ -409,7 +408,7 @@ if __name__ == '__main__':
     dtreebank =  ptb_reader('ptb/ptb_valid.txt')
 
     lm = RNNLanguageModel(hidden_size=300,embedding_size=300,tiedIO=True)
-    lm.train_rnn_lm(ttreebank[:48],dtreebank[:48],lr=0.001,hidden_dropout=0.2,batch_size=12,max_epochs=35,glove_file='glove/glove.6B.300d.txt')
+    lm.train_rnn_lm(ttreebank,dtreebank,lr=0.0001,hidden_dropout=0.4,batch_size=64,max_epochs=350,glove_file='glove/glove.6B.300d.txt')
 
     test_treebank =  ptb_reader('ptb/ptb_test.txt')
     #lm.save_model('final_model')
