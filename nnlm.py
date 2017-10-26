@@ -406,7 +406,7 @@ class NNLanguageModel:
                   'embedding_size':self.embedding_size,\
                   'hidden_size':self.hidden_size,\
                   'tied':self.tied}
-        if epoch > 0:
+        if epoch >= 0:
             params['epoch'] = epoch
                   
         ostream = open(os.path.join(dirname,'params.pkl'),'wb')

@@ -145,7 +145,31 @@ class RNNLanguageModel:
             else:
                 preds = [ (-col.npvalue()).tolist() for col in ypred_batch]
             return list(zip(*preds)) #final back transposition
+
+            
+    def eval_dataset(self,sentences):
+        """
+        A relatively inefficient but exact method for evaluating a data set.
+
+        @TODO minor bug when successive calls: adds a few tokens (???)
         
+        @param sentences : a list of list of words
+        @return : a couple (negative log likelihood,perplexity) 
+        """
+        data_generator = self.make_data_generator(sentences,64)
+        vgen      = data_generator.next_exact_batch()
+        nll       = 0
+        N         = 0
+        for _ in range(data_generator.get_num_exact_batches()):
+            X,Y = next(vgen)
+            X,Y = list(X),list(Y)
+            preds      = self.predict_logprobs(X,Y)
+            nll       -= sum( [ sum(row)  for row in preds ] )
+            N         += sum( [ len(row)  for row in Y     ] )
+        print(N)
+        return (nll,exp(nll/N))
+        
+            
     def predict_sentence(self,sentence,unk_flag=True,surprisal=True):
         """
         Outputs a sentence together with its predicted transitions probs as a pandas data frame
@@ -182,7 +206,7 @@ class RNNLanguageModel:
                     validation_sentences,\
                     lr=0.001,\
                     hidden_dropout=0.1,\
-                    rnn_layers=1,\
+                    num_rnn_layers=1,\
                     batch_size=100,\
                     max_epochs=100,\
                     glove_file=None):
@@ -211,7 +235,8 @@ class RNNLanguageModel:
             self.embedding_matrix = self.model.parameters_from_numpy(self.read_glove_embeddings(glove_file))
         if not self.tied:
             self.output_weights =  self.model.add_parameters((self.lexicon_size,self.hidden_size))
-        self.rnn = dy.LSTMBuilder(rnn_layers, self.embedding_size, self.hidden_size,self.model)
+        self.num_rnn_layers = num_rnn_layers
+        self.rnn = dy.LSTMBuilder(self.num_rnn_layers, self.embedding_size, self.hidden_size,self.model)
 
         #fitting
         #http://phontron.com/class/nn4nlp2017/assets/slides/nn4nlp-06-rnn.pdf
@@ -263,17 +288,17 @@ class RNNLanguageModel:
             vN        = 0
             for _ in range(validation_generator.get_num_exact_batches()):
                 X,Y = next(vgen)
-                X = list(X)
-                Y = list(Y)
+                X,Y = list(X),list(Y)
                 preds = self.predict_logprobs(X,Y)
-                valid_nll -= sum( [sum(row) for row in preds] )
-                vN        += sum( [ len(yrow) for yrow in Y ] )
+                valid_nll -= sum( [ sum(row) for row in preds] )
+                vN        += sum( [ len(yrow) for yrow in Y  ] )
             valid_ppl = exp(valid_nll/vN)
             history_log.append((e,end_t-start_t,L,exp(L/N),valid_nll,valid_ppl))
             print('Epoch %d (%.2f sec.) NLL (train) = %f, PPL (train) = %f, NLL(valid) = %f, PPL(valid) = %f'%tuple(history_log[-1]),flush=True)
             if valid_nll == min(valid_nll,min_nll):
                 min_nll = valid_nll
-                #self.save_model('best_model_dump',epoch=e)
+                lc = pd.DataFrame(history_log,columns=['epoch','wall_time','NLL(train)','PPL(train)','NLL(dev)','PPL(dev)'])
+                self.save_model('best_model_dump',epoch=e,learning_curve=lc)
         return pd.DataFrame(history_log,columns=['epoch','wall_time','NLL(train)','PPL(train)','NLL(dev)','PPL(dev)'])
 
 
@@ -318,14 +343,11 @@ class RNNLanguageModel:
     @staticmethod
     def load_model(dirname):
 
-        #TODO: forgot to store refs to embedding_matrix and weights
-        
         istream = open(os.path.join(dirname,'params.pkl'),'rb')
         params = pickle.load(istream)
         istream.close()
-        
-        g = RNNLanguageModel(input_length=params['input_length'],\
-                            embedding_size=params['embedding_size'],\
+                        
+        g = RNNLanguageModel(embedding_size=params['embedding_size'],\
                             hidden_size=params['hidden_size'],
                             tiedIO=params['tied'])
 
@@ -339,26 +361,29 @@ class RNNLanguageModel:
         for w,idx  in g.word_codes.items():
             g.rev_word_codes[idx] = w
 
-        g.model = dy.populate(os.path.join(dirname,'model.prm'))
+        g.model              = dy.ParameterCollection()
+        g.embedding_matrix   = g.model.add_parameters((g.lexicon_size,g.embedding_size))
+        if not g.tied:
+            g.output_weights =  g.model.add_parameters((g.lexicon_size,g.hidden_size))
+        g.rnn                =  dy.LSTMBuilder(params['num_rnn_layers'], g.embedding_size, g.hidden_size,g.model)
+  
+        g.model.populate(os.path.join(dirname,'model.prm'))
         return g
 
     
-    def save_model(self,dirname,epoch= -1):
+    def save_model(self,dirname,epoch= -1,learning_curve=None):
         """
         @param dirname:the name of a directory (existing or to create) where to save the model.
         @param epoch: if positive; stores the epoch at which this model was generated.
+        @param learning_curve: if not None, dumps a pandas Dataframe with the model learning curve
         """
-        
-        if not os.path.exists(dirname):
-            os.mkdir(dirname)
-
         #select parameters to save
-        params = {'input_length':self.input_length,\
-                  'lexicon_size':self.lexicon_size,\
+        params = {'lexicon_size':self.lexicon_size,\
                   'embedding_size':self.embedding_size,\
                   'hidden_size':self.hidden_size,\
-                  'tied':self.tied}
-        if epoch > 0:
+                  'tied':self.tied,\
+                  'num_rnn_layers':self.num_rnn_layers}
+        if epoch >= 0:
             params['epoch'] = epoch
                   
         ostream = open(os.path.join(dirname,'params.pkl'),'wb')
@@ -370,7 +395,8 @@ class RNNLanguageModel:
         ostream.close()
     
         self.model.save(os.path.join(dirname,'model.prm')) 
-
+        if learning_curve is not None:
+            learning_curve.to_csv(os.path.join(dirname,'learning_curve.csv'),index=False)
             
 if __name__ == '__main__':
 
@@ -378,10 +404,12 @@ if __name__ == '__main__':
     ttreebank =  ptb_reader('ptb/ptb_train_50w.txt')
     dtreebank =  ptb_reader('ptb/ptb_valid.txt')
 
-    lm = RNNLanguageModel(hidden_size=300,embedding_size=300,tiedIO=True)
-    lm.train_rnn_lm(ttreebank,dtreebank,lr=0.0001,hidden_dropout=0.4,batch_size=64,max_epochs=200,glove_file='glove/glove.6B.300d.txt')
+    lm = RNNLanguageModel(hidden_size=300,embedding_size=300,tiedIO=False)
+    lm.train_rnn_lm(ttreebank,dtreebank,lr=0.0001,hidden_dropout=0.4,batch_size=64,max_epochs=20,glove_file='glove/glove.6B.300d.txt')
 
-    #lm.save_model('final_model')
+    test_treebank =  ptb_reader('ptb/ptb_test.txt')
+    lm.save_model('final_model')
+    
     #for s in ttreebank[:3]:
     #    print(lm.predict_sentence(s))
     #for _ in range(10):
