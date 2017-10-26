@@ -172,17 +172,20 @@ class RNNLanguageModel:
             
     def predict_sentence(self,sentence,unk_flag=True,surprisal=True):
         """
-        Outputs a sentence together with its predicted transitions probs as a pandas data frame
+        Outputs a single sentence together with its predicted transitions probs as a pandas data frame
         @param sententce : a list of strings (words)
         @param unk_flag  : flags if this word is UNK TOKEN
         @param surprisals: also outputs -log2(p)
         @return a pandas DataFrame
         """
-        tokens = [RNNLanguageModel.IOS_TOKEN]+sentence
-        X = [self.word_codes[elt] for elt in tokens[:-1]]
-        Y = [self.word_codes[elt] for elt in tokens[1:]]
+
+        tokens    = [RNNLanguageModel.IOS_TOKEN]+sentence
+        unk_token = self.word_codes[RNNLanguageModel.UNKNOWN_TOKEN]
+
+        X = [self.word_codes.get(elt,unk_token) for elt in tokens[:-1]]
+        Y = [self.word_codes.get(elt,unk_token) for elt in tokens[1:]]
         
-        preds = self.predict_logprobs(X,Y)
+        preds = self.predict_logprobs([X],[Y])[0]
 
         records = []
         cols = ['token','cond_prob']
@@ -190,7 +193,7 @@ class RNNLanguageModel:
             cols.append('unk_word')
         if surprisal:
             cols.append('surprisal')
-          
+    
         for word,logpred in zip(sentence,preds):
             r = [ word, exp(logpred) ]
             if unk_flag:
@@ -406,12 +409,12 @@ if __name__ == '__main__':
     dtreebank =  ptb_reader('ptb/ptb_valid.txt')
 
     lm = RNNLanguageModel(hidden_size=300,embedding_size=300,tiedIO=True)
-    lm.train_rnn_lm(ttreebank,dtreebank,lr=0.00001,hidden_dropout=0.4,batch_size=64,max_epochs=350,glove_file='glove/glove.6B.300d.txt')
+    lm.train_rnn_lm(ttreebank[:48],dtreebank[:48],lr=0.001,hidden_dropout=0.2,batch_size=12,max_epochs=35,glove_file='glove/glove.6B.300d.txt')
 
     test_treebank =  ptb_reader('ptb/ptb_test.txt')
-    lm.save_model('final_model')
-    
-    #for s in ttreebank[:3]:
-    #    print(lm.predict_sentence(s))
+    #lm.save_model('final_model')
+    #lm = RNNLanguageModel.load_model('final_model')
+    for s in test_treebank[:20]:
+        print(lm.predict_sentence(s))
     #for _ in range(10):
     #    print(' '.join(lm.sample_sentence()))
