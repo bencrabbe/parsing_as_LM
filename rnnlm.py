@@ -378,7 +378,7 @@ if __name__ == '__main__':
     ttreebank =  ptb_reader('ptb/ptb_train_50w.txt')
     dtreebank =  ptb_reader('ptb/ptb_valid.txt')
 
-    lm = RNNLanguageModel(hidden_size=300,embedding_size=300,tiedIO=False)
+    lm = RNNLanguageModel(hidden_size=300,embedding_size=300,tiedIO=True)
     lm.train_rnn_lm(ttreebank,dtreebank,lr=0.0001,hidden_dropout=0.4,batch_size=64,max_epochs=200,glove_file='glove/glove.6B.300d.txt')
 
     #lm.save_model('final_model')
