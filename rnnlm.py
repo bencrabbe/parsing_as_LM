@@ -379,7 +379,7 @@ if __name__ == '__main__':
     dtreebank =  ptb_reader('ptb/ptb_valid.txt')
 
     lm = RNNLanguageModel(hidden_size=300,embedding_size=300,tiedIO=False)
-    lm.train_rnn_lm(ttreebank,dtreebank,lr=0.0001,hidden_dropout=0.5,batch_size=128,max_epochs=200,glove_file='glove/glove.6B.300d.txt')
+    lm.train_rnn_lm(ttreebank,dtreebank,lr=0.0001,hidden_dropout=0.6,batch_size=64,max_epochs=200,glove_file='glove/glove.6B.300d.txt')
     #lm.save_model('final_model')
     #for s in ttreebank[:3]:
     #    print(lm.predict_sentence(s))
