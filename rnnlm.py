@@ -8,7 +8,7 @@ dynet_config.set_gpu()
 import dynet as dy
 import time
 
-from math import log2,exp
+from math import exp
 from numpy.random import choice,rand
 from lm_utils import RNNLMGenerator
 from dataset_utils import ptb_reader,UDtreebank_reader
@@ -302,7 +302,7 @@ class RNNLanguageModel:
         return pd.DataFrame(history_log,columns=['epoch','wall_time','NLL(train)','PPL(train)','NLL(dev)','PPL(dev)'])
 
 
-    def sample_sentence(self,cutoff=40):
+    def sample_sentence(self,cutoff=100):
         """
         Randomly samples a sentence from the conditional distribution.
         @param cutoff ; max size of generated strings
@@ -397,6 +397,7 @@ class RNNLanguageModel:
         self.model.save(os.path.join(dirname,'model.prm')) 
         if learning_curve is not None:
             learning_curve.to_csv(os.path.join(dirname,'learning_curve.csv'),index=False)
+
             
 if __name__ == '__main__':
 
@@ -405,7 +406,7 @@ if __name__ == '__main__':
     dtreebank =  ptb_reader('ptb/ptb_valid.txt')
 
     lm = RNNLanguageModel(hidden_size=300,embedding_size=300,tiedIO=True)
-    lm.train_rnn_lm(ttreebank,dtreebank,lr=0.0001,hidden_dropout=0.3,batch_size=64,max_epochs=200,glove_file='glove/glove.6B.300d.txt')
+    lm.train_rnn_lm(ttreebank,dtreebank,lr=0.00001,hidden_dropout=0.4,batch_size=64,max_epochs=350,glove_file='glove/glove.6B.300d.txt')
 
     test_treebank =  ptb_reader('ptb/ptb_test.txt')
     lm.save_model('final_model')
