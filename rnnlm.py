@@ -13,6 +13,7 @@ from numpy.random import choice,rand
 from lm_utils import RNNLMGenerator
 from dataset_utils import ptb_reader,UDtreebank_reader
 
+
 class RNNLanguageModel:
     """
     A simple RNNLM a la Mikolov 2010.
@@ -410,7 +411,7 @@ if __name__ == '__main__':
     dtreebank =  ptb_reader('ptb/ptb_valid.txt')
 
     lm = RNNLanguageModel(hidden_size=300,embedding_size=300,tiedIO=False)
-    lm.train_rnn_lm(ttreebank,dtreebank,lr=0.0001,hidden_dropout=0.5,batch_size=64,max_epochs=200,glove_file='glove/glove.6B.300d.txt')
+    lm.train_rnn_lm(ttreebank,dtreebank,lr=0.0001,hidden_dropout=0.3,batch_size=64,max_epochs=200,glove_file='glove/glove.6B.300d.txt')
     lm.save_model('final_model')
 
     test_treebank =  ptb_reader('ptb/ptb_test.txt')
