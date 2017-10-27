@@ -408,12 +408,13 @@ if __name__ == '__main__':
     dtreebank =  ptb_reader('ptb/ptb_valid.txt')
 
     lm = RNNLanguageModel(hidden_size=300,embedding_size=300,tiedIO=True)
-    lm.train_rnn_lm(ttreebank,dtreebank,lr=0.0001,hidden_dropout=0.4,batch_size=64,max_epochs=350,glove_file='glove/glove.6B.300d.txt')
+    lm.train_rnn_lm(ttreebank,dtreebank,lr=0.0001,hidden_dropout=0.4,batch_size=64,max_epochs=200,glove_file='glove/glove.6B.300d.txt')
 
     test_treebank =  ptb_reader('ptb/ptb_test.txt')
-    #lm.save_model('final_model')
+    lm.eval_dataset(test_treebank)
+    lm.save_model('final_model')
     #lm = RNNLanguageModel.load_model('final_model')
-    for s in test_treebank[:20]:
-        print(lm.predict_sentence(s))
+    #for s in test_treebank[:20]:
+    #    print(lm.predict_sentence(s))
     #for _ in range(10):
     #    print(' '.join(lm.sample_sentence()))
