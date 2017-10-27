@@ -166,7 +166,6 @@ class RNNLanguageModel:
             preds      = self.predict_logprobs(X,Y)
             nll       -= sum( [ sum(row)  for row in preds ] )
             N         += sum( [ len(row)  for row in Y     ] )
-        print(N)
         return (nll,exp(nll/N))
         
             
@@ -407,11 +406,11 @@ if __name__ == '__main__':
     ttreebank =  ptb_reader('ptb/ptb_train_50w.txt')
     dtreebank =  ptb_reader('ptb/ptb_valid.txt')
 
-    lm = RNNLanguageModel(hidden_size=300,embedding_size=300,tiedIO=True)
-    lm.train_rnn_lm(ttreebank,dtreebank,lr=0.0001,hidden_dropout=0.4,batch_size=64,max_epochs=200,glove_file='glove/glove.6B.300d.txt')
+    lm = RNNLanguageModel(hidden_size=300,embedding_size=300,tiedIO=False)
+    lm.train_rnn_lm(ttreebank,dtreebank,lr=0.0001,hidden_dropout=0.5,batch_size=64,max_epochs=200,glove_file='glove/glove.6B.300d.txt')
 
     test_treebank =  ptb_reader('ptb/ptb_test.txt')
-    lm.eval_dataset(test_treebank)
+    print(lm.eval_dataset(test_treebank))
     lm.save_model('final_model')
     #lm = RNNLanguageModel.load_model('final_model')
     #for s in test_treebank[:20]:
