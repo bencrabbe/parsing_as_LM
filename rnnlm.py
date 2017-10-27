@@ -378,6 +378,9 @@ class RNNLanguageModel:
         @param epoch: if positive; stores the epoch at which this model was generated.
         @param learning_curve: if not None, dumps a pandas Dataframe with the model learning curve
         """
+        if not os.path.exists(dirname):
+            os.mkdir(dirname)
+        
         #select parameters to save
         params = {'lexicon_size':self.lexicon_size,\
                   'embedding_size':self.embedding_size,\
@@ -408,10 +411,10 @@ if __name__ == '__main__':
 
     lm = RNNLanguageModel(hidden_size=300,embedding_size=300,tiedIO=False)
     lm.train_rnn_lm(ttreebank,dtreebank,lr=0.0001,hidden_dropout=0.5,batch_size=64,max_epochs=200,glove_file='glove/glove.6B.300d.txt')
+    lm.save_model('final_model')
 
     test_treebank =  ptb_reader('ptb/ptb_test.txt')
     print(lm.eval_dataset(test_treebank))
-    lm.save_model('final_model')
     #lm = RNNLanguageModel.load_model('final_model')
     #for s in test_treebank[:20]:
     #    print(lm.predict_sentence(s))
