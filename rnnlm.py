@@ -400,7 +400,7 @@ class RNNLanguageModel:
         if learning_curve is not None:
             learning_curve.to_csv(os.path.join(dirname,'learning_curve.csv'),index=False)
 
-            
+             
 if __name__ == '__main__':
 
     #read penn treebank
