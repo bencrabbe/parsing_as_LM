@@ -400,6 +400,31 @@ class ArcEagerGenerativeParser:
         struct_generator = NNLMGenerator(X_struct,Y_struct,batch_size)
         return ( lex_generator , struct_generator )
 
+    def struct_accurracy(self,treebank):
+        """
+        Temp debug method
+        """
+        N = 0
+        c = 0
+        for dtree in treebank:
+            Deriv = self.static_oracle_derivation(dtree)
+            for (config,action,sentence) in Deriv:
+                if type(action) != tuple:
+                    x,y    = self.make_representation(config,action,sentence,structural=False)
+                    dy.renew_cg()
+                    W = dy.parameter(self.hidden_weights)
+                    E = dy.parameter(self.input_embeddings)
+                    A = dy.parameter(self.action_weights)
+                    embeddings = [dy.pick(E, xidx) for xidx in x]
+                    xdense     = dy.concatenate(embeddings)
+                    pred       = dy.softmax(A * dy.tanh( W * xdense )).npvalue()
+                    ypred = np.argmax(pred)
+                    N+=1
+                    if action == self.rev_action_codes[ypred]:
+                        c += 1
+                    else:
+                        print(self.pprint_configuration(config,sentence),'=',action, '=pred=>',self.rev_action_codes[ypred])
+        print(c/N)
 
     def predict_logprobs(self,X,Y,structural=True,hidden_out=False):
         """
@@ -439,7 +464,7 @@ class ArcEagerGenerativeParser:
             
             else:
                 dy.renew_cg()
-                O = dy.parameter(self.output_weights)
+                O = dy.parameter(self.output_embeddings)
                 W = dy.parameter(self.hidden_weights)
                 E = dy.parameter(self.input_embeddings)
                 batched_X  = zip(*X) #transposes the X matrix
@@ -476,7 +501,7 @@ class ArcEagerGenerativeParser:
 
         #(2) encode data sets
         lex_train_gen , struct_train_gen  = self.make_data_generators(train_treebank,batch_size)
-        lex_dev_gen   , struct_dev_gen    = self.make_data_generators(train_treebank,batch_size)
+        lex_dev_gen   , struct_dev_gen    = self.make_data_generators(validation_treebank,batch_size)
         
         print(self)
         print("structural training examples  [N] = %d\nlexical training examples  [N] = %d\nBatch size = %d\nDropout = %f\nlearning rate = %f"%(struct_train_gen.N,lex_train_gen.N,batch_size,hidden_dropout,lr))
@@ -517,7 +542,7 @@ class ArcEagerGenerativeParser:
                 W = dy.parameter(self.hidden_weights)
                 E = dy.parameter(self.input_embeddings)
                 A = dy.parameter(self.action_weights)
-                batched_X        = list(zip(*X_struct))  #transposes the X matrix                           
+                batched_X        = zip(*X_struct)  #transposes the X matrix                           
                 lookups          = [dy.pick_batch(E,xcolumn) for xcolumn in batched_X]
                 xdense           = dy.concatenate(lookups)
                 ybatch_preds     = dy.pickneglogsoftmax_batch(A * dy.dropout(dy.tanh( W * xdense ),hidden_dropout),Y_struct)
@@ -527,30 +552,31 @@ class ArcEagerGenerativeParser:
                 loss.backward()
                 trainer.update()
                 #lex
-                X_lex,Y_lex = next(lex_gen)
-                if self.tied:
-                    dy.renew_cg()
-                    W = dy.parameter(self.hidden_weights)
-                    E = dy.parameter(self.input_embeddings)
-                    batched_X        = zip(*X_lex) #transposes the X matrix
-                    lookups          = [dy.pick_batch(E,xcolumn) for xcolumn in batched_X]
-                    xdense           = dy.concatenate(lookups)
-                    ybatch_preds     = dy.pickneglogsoftmax_batch(E * dy.dropout(dy.tanh( W * xdense ),hidden_dropout),Y_lex)
-                    loss             = dy.sum_batches(ybatch_preds)
-                else:
-                    dy.renew_cg()
-                    W = dy.parameter(self.hidden_weights)
-                    E = dy.parameter(self.input_embeddings)
-                    O = dy.parameter(self.output_embeddings)
-                    batched_X        = zip(*X_lex) #transposes the X matrix
-                    lookups          = [dy.pick_batch(E,xcolumn) for xcolumn in batched_X]
-                    xdense           = dy.concatenate(lookups)
-                    ybatch_preds     = dy.pickneglogsoftmax_batch(O * dy.dropout(dy.tanh( W * xdense ),hidden_dropout),Y_lex)
-                    loss             = dy.sum_batches(ybatch_preds)
-                lex_N            += len(Y_lex)
-                lex_loss         += loss.value()
-                loss.backward()
-                trainer.update()
+                if b < lex_train_gen.get_num_batches():
+                    X_lex,Y_lex = next(lex_gen)
+                    if self.tied:
+                        dy.renew_cg()
+                        W = dy.parameter(self.hidden_weights)
+                        E = dy.parameter(self.input_embeddings)
+                        batched_X        = zip(*X_lex) #transposes the X matrix
+                        lookups          = [dy.pick_batch(E,xcolumn) for xcolumn in batched_X]
+                        xdense           = dy.concatenate(lookups)
+                        ybatch_preds     = dy.pickneglogsoftmax_batch(E * dy.dropout(dy.tanh( W * xdense ),hidden_dropout),Y_lex)
+                        loss             = dy.sum_batches(ybatch_preds)
+                    else:
+                        dy.renew_cg()
+                        W = dy.parameter(self.hidden_weights)
+                        E = dy.parameter(self.input_embeddings)
+                        O = dy.parameter(self.output_embeddings)
+                        batched_X        = zip(*X_lex) #transposes the X matrix
+                        lookups          = [dy.pick_batch(E,xcolumn) for xcolumn in batched_X]
+                        xdense           = dy.concatenate(lookups)
+                        ybatch_preds     = dy.pickneglogsoftmax_batch(O * dy.dropout(dy.tanh( W * xdense ),hidden_dropout),Y_lex)
+                        loss             = dy.sum_batches(ybatch_preds)
+                    lex_N            += len(Y_lex)
+                    lex_loss         += loss.value()
+                    loss.backward()
+                    trainer.update()
             end_t = time.time()
             # (5) validation
             X_lex_valid,Y_lex_valid       = lex_dev_gen.batch_all()
@@ -775,9 +801,12 @@ class ArcEagerGenerativeParser:
 
 if __name__ == '__main__':
     
-        
     train_treebank = UDtreebank_reader('ptb/ptb_deps.train',tokens_only=False)
     dev_treebank = UDtreebank_reader('ptb/ptb_deps.dev',tokens_only=False)
     
-    eagerp = ArcEagerGenerativeParser()
-    eagerp.static_train(train_treebank[:20],dev_treebank[:20],lr=0.0001,glove_file='glove/glove.6B.300d.txt')
+    eagerp = ArcEagerGenerativeParser( tied_embeddings=True)
+    eagerp.static_train(train_treebank[:10],dev_treebank[:10],lr=0.001,max_epochs=100,glove_file='glove/glove.6B.300d.txt')
+    #print('dev')
+    #eagerp.struct_accurracy(dev_treebank[:20])
+    print('train')
+    eagerp.struct_accurracy(train_treebank[:10])
