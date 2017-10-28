@@ -129,7 +129,7 @@ class ArcEagerGenerativeParser:
 
         
     def __str__(self):
-        s = ['Stack size        : %d'%(self.input_length),\
+        s = ['Stack size        : %d'%(self.stack_length),\
             'Node size         : %d'%(self.node_size),\
             'Embedding size    : %d'%(self.embedding_size),\
             'Hidden layer size : %d'%(self.hidden_size),\
@@ -332,6 +332,11 @@ class ArcEagerGenerativeParser:
         Ns = len(S)
         unk_token = self.word_codes[ArcEagerGenerativeParser.UNKNOWN_TOKEN]
 
+        if type(action)==tuple:#lexical actions -> want the the word
+            assert(not structural)
+            a,word = action
+            action = word
+        
         if F is not None: X[0] = self.word_codes.get(sentence[F.root],unk_token)
         if Ns > 0 :       X[1] = self.word_codes.get(sentence[S[-1].root],unk_token)  
         if Ns > 1 :       X[2] = self.word_codes.get(sentence[S[-2].root],unk_token)  
@@ -387,7 +392,7 @@ class ArcEagerGenerativeParser:
         for dtree in treebank:
             Deriv = self.static_oracle_derivation(dtree)
             for (config,action,sentence) in Deriv:
-                if type(action) == tuple: #lexical action                    
+                if type(action) == tuple: #lexical action
                     x,y    = self.make_representation(config,action,sentence,structural=False)
                     X_lex.append(x)
                     Y_lex.append(y)
@@ -423,9 +428,38 @@ class ArcEagerGenerativeParser:
                     if action == self.rev_action_codes[ypred]:
                         c += 1
                     else:
-                        print(self.pprint_configuration(config,sentence),'=',action, '=pred=>',self.rev_action_codes[ypred])
+                        print(self.pprint_configuration(config,sentence),'=',action, '=pred=>',self.rev_action_codes[ypred], 'with p=',pred[ypred])
         print(c/N)
 
+    def lex_accurracy(self,treebank):
+        """
+        Temp debug method
+        """
+        N = 0
+        c = 0
+        for dtree in treebank:
+            Deriv = self.static_oracle_derivation(dtree)
+            for (config,action,sentence) in Deriv:
+                if type(action) == tuple:
+                    action, ref_word = action
+                    x,y    = self.make_representation(config,action,sentence,structural=False)
+                    dy.renew_cg()
+                    W = dy.parameter(self.hidden_weights)
+                    E = dy.parameter(self.input_embeddings)
+                    embeddings = [dy.pick(E, xidx) for xidx in x]
+                    xdense     = dy.concatenate(embeddings)
+                    pred       = dy.softmax(E * dy.tanh( W * xdense )).npvalue()
+                    ypred = np.argmax(pred)
+                    N+=1
+
+                    if ref_word not in self.word_codes:
+                        ref_word == ArcEagerGenerativeParser.UNKNOWN_TOKEN
+                    if ref_word == self.rev_word_codes[ypred]:
+                        c += 1
+                    else:
+                        print(self.pprint_configuration(config,sentence),'=',ref_word, '=pred=>',self.rev_word_codes[ypred], 'with p=',pred[ypred])
+        print(c/N)
+        
     def predict_logprobs(self,X,Y,structural=True,hidden_out=False):
         """
         Returns the log probabilities of the predictions for this model (batched version).
@@ -461,7 +495,6 @@ class ArcEagerGenerativeParser:
                 xdense     = dy.concatenate(embeddings)
                 preds      = dy.pickneglogsoftmax_batch(E * dy.tanh( W * xdense ),Y).value()
                 return [-ypred  for ypred in preds]
-            
             else:
                 dy.renew_cg()
                 O = dy.parameter(self.output_embeddings)
@@ -552,31 +585,30 @@ class ArcEagerGenerativeParser:
                 loss.backward()
                 trainer.update()
                 #lex
-                if b < lex_train_gen.get_num_batches():
-                    X_lex,Y_lex = next(lex_gen)
-                    if self.tied:
-                        dy.renew_cg()
-                        W = dy.parameter(self.hidden_weights)
-                        E = dy.parameter(self.input_embeddings)
-                        batched_X        = zip(*X_lex) #transposes the X matrix
-                        lookups          = [dy.pick_batch(E,xcolumn) for xcolumn in batched_X]
-                        xdense           = dy.concatenate(lookups)
-                        ybatch_preds     = dy.pickneglogsoftmax_batch(E * dy.dropout(dy.tanh( W * xdense ),hidden_dropout),Y_lex)
-                        loss             = dy.sum_batches(ybatch_preds)
-                    else:
-                        dy.renew_cg()
-                        W = dy.parameter(self.hidden_weights)
-                        E = dy.parameter(self.input_embeddings)
-                        O = dy.parameter(self.output_embeddings)
-                        batched_X        = zip(*X_lex) #transposes the X matrix
-                        lookups          = [dy.pick_batch(E,xcolumn) for xcolumn in batched_X]
-                        xdense           = dy.concatenate(lookups)
-                        ybatch_preds     = dy.pickneglogsoftmax_batch(O * dy.dropout(dy.tanh( W * xdense ),hidden_dropout),Y_lex)
-                        loss             = dy.sum_batches(ybatch_preds)
-                    lex_N            += len(Y_lex)
-                    lex_loss         += loss.value()
-                    loss.backward()
-                    trainer.update()
+                X_lex,Y_lex = next(lex_gen)
+                if self.tied:
+                    dy.renew_cg()
+                    W = dy.parameter(self.hidden_weights)
+                    E = dy.parameter(self.input_embeddings)
+                    batched_X        = zip(*X_lex) #transposes the X matrix
+                    lookups          = [dy.pick_batch(E,xcolumn) for xcolumn in batched_X]
+                    xdense           = dy.concatenate(lookups)
+                    ybatch_preds     = dy.pickneglogsoftmax_batch(E * dy.dropout(dy.tanh( W * xdense ),hidden_dropout),Y_lex)
+                    loss             = dy.sum_batches(ybatch_preds)
+                else:
+                    dy.renew_cg()
+                    W = dy.parameter(self.hidden_weights)
+                    E = dy.parameter(self.input_embeddings)
+                    O = dy.parameter(self.output_embeddings)
+                    batched_X        = zip(*X_lex) #transposes the X matrix
+                    lookups          = [dy.pick_batch(E,xcolumn) for xcolumn in batched_X]
+                    xdense           = dy.concatenate(lookups)
+                    ybatch_preds     = dy.pickneglogsoftmax_batch(O * dy.dropout(dy.tanh( W * xdense ),hidden_dropout),Y_lex)
+                    loss             = dy.sum_batches(ybatch_preds)
+                lex_N            += len(Y_lex)
+                lex_loss         += loss.value()
+                loss.backward()
+                trainer.update()
             end_t = time.time()
             # (5) validation
             X_lex_valid,Y_lex_valid       = lex_dev_gen.batch_all()
@@ -802,11 +834,11 @@ class ArcEagerGenerativeParser:
 if __name__ == '__main__':
     
     train_treebank = UDtreebank_reader('ptb/ptb_deps.train',tokens_only=False)
-    dev_treebank = UDtreebank_reader('ptb/ptb_deps.dev',tokens_only=False)
+    dev_treebank   = UDtreebank_reader('ptb/ptb_deps.dev',tokens_only=False)
     
-    eagerp = ArcEagerGenerativeParser( tied_embeddings=True)
-    eagerp.static_train(train_treebank[:10],dev_treebank[:10],lr=0.001,max_epochs=100,glove_file='glove/glove.6B.300d.txt')
+    eagerp = ArcEagerGenerativeParser( tied_embeddings=True,parser_class='basic')
+    eagerp.static_train(train_treebank[:20],dev_treebank[:20],lr=0.001,max_epochs=200,glove_file='glove/glove.6B.300d.txt')
     #print('dev')
     #eagerp.struct_accurracy(dev_treebank[:20])
     print('train')
-    eagerp.struct_accurracy(train_treebank[:10])
+    eagerp.lex_accurracy(train_treebank[:20])
