@@ -569,7 +569,7 @@ class ArcEagerGenerativeParser:
             for b in range(max_batches):
                 #struct
                 X_struct,Y_struct = next(struct_gen)
-                #question of proportions : should struct and gen be evenly sampled or not (??):
+                #question of proportions : should struct and lex be evenly sampled or not (??):
                 #here the parity oversamples approx twice the lexical actions
                 dy.renew_cg()
                 W = dy.parameter(self.hidden_weights)
@@ -685,54 +685,7 @@ class ArcEagerGenerativeParser:
         ostream.close()
         
         self.model.save(os.path.join(dirname,'model.prm')) 
-        
-
-    #SELF-TESTS and eval
-    def test_and_print(self,treebank):
-        """
-        Performs local tests and pretty prints cases of failure
-        """
-        for dtree in treebank:
-            Deriv = self.static_oracle_derivation(dtree)
-            for (config,action,sentence) in Deriv:
-                self.predict_and_print(config,action,sentence)
-                
-    
-    def predict_and_print(self,configuration,ref_action,sentence):
-        """
-        Compares the argmax prediction from configuration with ref_action.
-        pretty prints incorrect cases.
-        @return True if agreement, false otherwise
-        """
-        X = np.array([self.make_representation(configuration,None,sentence)])
-        Y = self.model.predict(X,batch_size=1)[0]
-        pred_action = self.rev_action_codes[np.argmax(Y)]
-        pred_prob = Y[self.actions_codes[pred_action]]
-        ref_prob  = Y[self.actions_codes[ref_action]]
-        
-        if pred_action != ref_action:
-            S,F,B,A,score = configuration
-            Ns = len(S)  
-            s2 = sentence[S[-3].root] if Ns > 2 else  ArcEagerGenerativeParser.UNDEF_TOKEN
-            s1 = sentence[S[-2].root] if Ns > 1 else  ArcEagerGenerativeParser.UNDEF_TOKEN
-            s0 = sentence[S[-1].root] if Ns > 0 else  ArcEagerGenerativeParser.UNDEF_TOKEN
-            fr = sentence[F.root]     if F is not None else ArcEagerGenerativeParser.UNDEF_TOKEN
-            fl = sentence[F.ilc]      if F is not None else ArcEagerGenerativeParser.UNDEF_TOKEN
-            frt = sentence[F.irc]      if F is not None else ArcEagerGenerativeParser.UNDEF_TOKEN
-            print('ERROR:%s : %s with p=%10.9f is predicted as %s with p=%10.9f'%(self.pprint_configuration(configuration,sentence),ref_action,ref_prob,pred_action,pred_prob))
-            return False
-        else:
-            S,F,B,A,score = configuration
-            Ns = len(S)
-            s2 = sentence[S[-3].root] if Ns > 2 else  ArcEagerGenerativeParser.UNDEF_TOKEN
-            s1 = sentence[S[-2].root] if Ns > 1 else  ArcEagerGenerativeParser.UNDEF_TOKEN
-            s0 = sentence[S[-1].root] if Ns > 0 else  ArcEagerGenerativeParser.UNDEF_TOKEN
-            fr = sentence[F.root]     if F is not None else ArcEagerGenerativeParser.UNDEF_TOKEN
-            fl = sentence[F.ilc]      if F is not None else ArcEagerGenerativeParser.UNDEF_TOKEN
-            frt = sentence[F.irc]     if F is not None else ArcEagerGenerativeParser.UNDEF_TOKEN
-            print('CORRECT:%s : %s with p=%10.9f is predicted correctly.'%(self.pprint_configuration(configuration,sentence),ref_action,ref_prob))
-            return True
-        
+            
     
     # def generate_sentence(self,max_len=2000,lex_stats=False):
     #     """
