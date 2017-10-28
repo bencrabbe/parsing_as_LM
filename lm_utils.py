@@ -157,12 +157,11 @@ class RNNLMGenerator:
 class NNLMGenerator:
     """
     This class wraps the coded data management for an NNLM (unstructured model)
-    Each datum has the form (x1,x2,x3),y and is coded on integers.
+    Each datum has the form < (x1,x2,x3), y > and is coded on integers.
     """
-    def __init__(self,X,Y,unk_word_code,batch_size=1):
+    def __init__(self,X,Y,batch_size=1):
         """
         @param X,Y the encoded X,Y values as lists (of lists for both X and Y)
-        @param unk_word_code : the integer xcode for unknwown words
         @param batch_size:size of generated data batches
         """
         assert(len(X)==len(Y))
@@ -171,7 +170,6 @@ class NNLMGenerator:
         self.idxes = list(range(self.N)) 
         self.batch_size = batch_size     #number of tokens in a batch
         self.start_idx = 0               #token indexing
-        self.unk_x_code = unk_word_code
   
     def select_indexes(self,random_restart=True):
         """
@@ -227,6 +225,7 @@ class NNLMGenerator:
             yield (X,Y)
 
 
+            
 if __name__ == '__main__':
     #Exemple usage (basic autoencoder)
     #TODO

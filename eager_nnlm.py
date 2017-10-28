@@ -10,16 +10,17 @@ import os.path
 import pickle
 import numpy as np
 import pandas as pd
+import dynet_config
+dynet_config.set_gpu()
+import dynet as dy
 
 from math import log,exp
 from random import shuffle
+from collections import Counter
 from numpy.random import choice,rand
-from keras.models import Sequential,load_model
-from keras.layers import Dense, Activation, Embedding,Flatten, Dropout
-from keras.optimizers import RMSprop
 
 class DependencyTree:
-
+   
     def __init__(self,tokens=None, edges=None):
         self.edges  = [] if edges is None else edges   #couples (gov_idx,dep_idx)
         self.tokens = ['#ROOT#'] if tokens is None else tokens #list of wordforms
@@ -111,6 +112,7 @@ class DependencyTree:
         """
         return self.tokens[idx]
 
+    
 class StackNode(object):
     """
     This is a class for storing structured nodes in the parser's stack 
@@ -165,51 +167,14 @@ class StackNode(object):
         return str(self.root)
 
 
-class NumericDataGenerator:
-    """
-    Stores an encoded treebank and provides it with a python generator interface
-    """
-    #TODO : add validation set + unk word sampling for train 
-    def __init__(self,X,Y,batch_size,nclasses):
-        """
-        @param X,Y the encoded X,Y values as lists
-        @param batch_size:size of generated data batches
-        @param nclasses: number of Y classes
-        """
-        assert(len(X)==len(Y))
-        self.X,self.Y = np.array(X),Y
-        self.nclasses = nclasses
-        self.N = len(Y)
-        self.idxes = list(range(self.N))
 
-        self.batch_size = batch_size
-        self.start_idx = 0
-        
-    def select_indexes(self):
-        end_idx = self.start_idx+self.batch_size
-        if end_idx >= self.N:
-            shuffle(self.idxes)
-            self.start_idx = 0
-            end_idx = self.batch_size
-
-        sidx = self.start_idx
-        self.start_idx = end_idx
-        return (sidx,end_idx)
-            
-    def generate(self):
-        """
-        The generator called by the fitting function.
-        """
-        while True:
-            start_idx,end_idx = self.select_indexes()
-            Y = np.zeros((self.batch_size,self.nclasses))
-            yvals = self.Y[start_idx:end_idx]
-            X     = self.X[start_idx:end_idx]
-            for i,y in enumerate(yvals):
-                Y[i,y] = 1.0
-            yield (X,Y)
-    
 class ArcEagerGenerativeParser:
+
+    """
+    An arc eager language model with local training.
+
+    Designed to run on a GPU.
+    """
 
     #actions
     LEFTARC  = "L"
@@ -222,29 +187,46 @@ class ArcEagerGenerativeParser:
     TERMINATE = "E"
 
     #Undefined and unknown symbols
-    UNDEF_TOKEN   = "__UNDEF__"
+    IOS_TOKEN     = "__IOS__"
+    EOS_TOKEN     = "__EOS__"
     UNKNOWN_TOKEN = "__UNK__"
 
-    def __init__(self):
+    def __init__(self,embedding_size,hidden_size,tied_embeddings=True,parser_class='basic'):
+
+        assert(parser_class in ['basic','extended','star-extended'])
+
         #sets default generic params
         self.model            = None
-        self.stack_size       = 3
-        self.node_size        = 5                                #number of x-values per stack node
-        self.input_size       = 18                               #num symbols fed to the network for predictions
-        self.embedding_size   = 100
-        self.hidden_size      = 1200
-        self.word_codes       = None  #TBD at train time or at param loading
-        self.actions_codes    = None  #TBD at train time or at param loading
-        self.rev_action_codes = None #TBD at train time or at param loading
-        self.actions_size     = 0  #TBD at train time or at param loading
-        self.lexicon_size     = 0  #TBD at train time or at param loading
+        self.stack_length     = 3
+        self.parser_class     = parser_class
+        if self.parser_class == 'basic'
+            self.node_size        = 1                                #number of x-values per stack node
+        elif self.parser_class == 'extended':
+            self.node_size        = 3 
+        elif self.parser_class == 'star-extended':
+            self.node_size        = 5
+            
+        self.input_length     = (self.stack_length+1)*self.node_size # stack (+1 = focus node)
+        self.tied             = tied_embeddings
+
+        self.actions_size     = 0 
+        self.lexicon_size     = 0 
+        self.embedding_size   = embedding_size
+        self.hidden_size      = hidden_size
+
+        self.word_codes       = None  
+        self.actions_codes    = None 
+        self.rev_action_codes = None
+
         
     def __str__(self):
-        s = ['INPUT SIZE : %d'%(self.input_size),\
-            'EMBEDDING_SIZE : %d'%(self.embedding_size),\
-            'HIDDEN_LAYER_SIZE : %d'%(self.hidden_size),\
-            'ACTIONS_SIZE : %d'%(self.actions_size),\
-            'LEXICON_SIZE : %d'%(self.lexicon_size)]
+        s = ['Stack size       : %d'%(self.input_length),\
+            'Node  size        : %d'%(self.node_size),\
+            'Embedding size    : %d'%(self.embedding_size),\
+            'Hidden layer size : %d'%(self.hidden_size),\
+            'Actions size      : %d'%(self.actions_size),\
+            'Lexicon size      : %d'%(self.lexicon_size),\
+            'Tied Embeddings   : %r'%(self.tied)]
         return '\n'.join(s)
             
     #TRANSITION SYSTEM
@@ -345,14 +327,37 @@ class ArcEagerGenerativeParser:
         derivation.append((C,action,sentence))
         return derivation
 
-    
     #CODING & SCORING SYSTEM
-    def score(self,configuration,sentence,next_word=None,logp=False):
+    def code_symbols(self,treebank,lexicon_size=9998):
         """
-        Scores all actions and returns the first legal action.
+        Codes lexicon (x-data) and the list of action (y-data)
+        on integers.
+        @param treebank    : the treebank where to extract the data from
+        @param lexicon_size: caps the lexicon to some vocabulary size (default = mikolov size)
         """
-        X = self.make_representation(config,None,sentence)
-        action = self.model.predict(X,batch_size=1)
+        #lexical coding
+        lexicon = [ArcEagerGenerativeParser.IOS_TOKEN,\
+                   ArcEagerGenerativeParser.EOS_TOKEN,\
+                   ArcEagerGenerativeParser.UNKNOWN_TOKEN]
+        lex_counts = Counter()
+        for dtree in treebank:
+            counter.update(dtree.tokens)
+        self.lexicon = [w for w,c in lex_counts.most_common(9998-3)]+lexicon
+        self.rev_word_codes = list(lexicon)
+        self.lexicon_size = len(lexicon)
+        self.word_codes = dict([(s,idx) for (idx,s) in enumerate(self.rev_word_codes)])
+        
+        #structural coding
+        actions = [ArcEagerGenerativeParser.LEFTARC,\
+                   ArcEagerGenerativeParser.RIGHTARC,\
+                   ArcEagerGenerativeParser.PUSH,\
+                   ArcEagerGenerativeParser.REDUCE,\
+                   ArcEagerGenerativeParser.TERMINATE]
+                   #Generate action is implied
+                   
+        self.rev_action_codes = actions                   
+        self.actions_codes = dict([(s,idx) for (idx,s) in enumerate(actions)])
+        self.actions_size  = len(actions) 
         
 
     def read_glove_embeddings(self,glove_filename):
@@ -364,7 +369,7 @@ class ArcEagerGenerativeParser:
         """
         print('Reading embeddings from %s ...'%glove_filename)
 
-        embedding_matrix = (rand(self.lexicon_size,self.embedding_size) - 0.5)/10.0 #like a Keras uniform initializer 
+        embedding_matrix = (rand(self.lexicon_size,self.embedding_size) - 0.5)/10.0 #uniform init [-0.05,0.05]
 
         istream = open(glove_filename)
         for line in istream:
@@ -397,73 +402,56 @@ class ArcEagerGenerativeParser:
             focus = sentence[F.root] if not verbose else '(%s %s %s)' %(sentence[F.root],sentence[F.ilc],sentence[F.irc])
 
         return '(%s,%s,_,_)'%(stack,focus)
-        
-    def make_representation(self,config,action,sentence):
+
+            
+    def make_representation(self,config,action,sentence,structural=True):
         """
-        Turns a configuration into a couple of vectors (X,Y) data and
-        outputs the coded configuration as a tuple of vectors suitable
-        for Keras.
+        Turns a configuration into a couple of vectors (X,Y) and
+        outputs the coded configuration as a tuple of index vectors.
         @param configuration: a parser configuration
-        @param action: the action code or None if the action is not known
+        @param action: the ref action code (as a string) or None if the ref action is not known
+        @param structural : bool, switch between structural action (True) and lexical action (False)
         @param sentence: a list of tokens (strings)
         @return a couple (X,Y) or just X if no action is given as param
         """        
         S,F,B,A,score = config
-        X  = [None] * self.input_size
+        X  = [ArcEagerGenerativeParser.IOS_TOKEN] * self.input_length
         Ns = len(S)
-        
-        X[0] = self.word_codes[sentence[F.root]]      if F is not None else self.word_codes[ArcEagerGenerativeParser.UNDEF_TOKEN]
-        X[1] = self.word_codes[sentence[F.ilc]]       if F is not None else self.word_codes[ArcEagerGenerativeParser.UNDEF_TOKEN]
-        X[2] = self.word_codes[sentence[F.irc]]       if F is not None else self.word_codes[ArcEagerGenerativeParser.UNDEF_TOKEN]
-        X[3] = self.word_codes[sentence[F.starlc]]    if F is not None else self.word_codes[ArcEagerGenerativeParser.UNDEF_TOKEN]
-        X[4] = self.word_codes[sentence[F.starrc()]]  if F is not None else self.word_codes[ArcEagerGenerativeParser.UNDEF_TOKEN]
+        unk_token = self.word_codes[ArcEagerGenerativeParser.UNKNOWN_TOKEN]
 
-        X[5] = self.word_codes[sentence[S[-1].root]]     if Ns > 0 else self.word_codes[ArcEagerGenerativeParser.UNDEF_TOKEN]
-        X[6] = self.word_codes[sentence[S[-1].ilc]]      if Ns > 0 else self.word_codes[ArcEagerGenerativeParser.UNDEF_TOKEN]
-        X[7] = self.word_codes[sentence[S[-1].irc]]      if Ns > 0 else self.word_codes[ArcEagerGenerativeParser.UNDEF_TOKEN]
-        X[8] = self.word_codes[sentence[S[-1].starlc]]   if Ns > 0 else self.word_codes[ArcEagerGenerativeParser.UNDEF_TOKEN]
-        X[9] = self.word_codes[sentence[S[-1].starrc()]] if Ns > 0 else self.word_codes[ArcEagerGenerativeParser.UNDEF_TOKEN]
+        
+        X[0] = self.word_codes.get(sentence[F.root],unk_token)      if F is not None
+        X[1] = self.word_codes.get(sentence[S[-1].root],unk_token)  if Ns > 0
+        X[2] = self.word_codes.get(sentence[S[-2].root],unk_token)  if Ns > 1
+        X[3] = self.word_codes.get(sentence[S[-3].root],unk_token)  if Ns > 3 
 
-        X[10] = self.word_codes[sentence[S[-2].root]]     if Ns > 1 else self.word_codes[ArcEagerGenerativeParser.UNDEF_TOKEN]
-        X[11] = self.word_codes[sentence[S[-2].ilc]]      if Ns > 1 else self.word_codes[ArcEagerGenerativeParser.UNDEF_TOKEN]
-        X[12] = self.word_codes[sentence[S[-2].irc]]      if Ns > 1 else self.word_codes[ArcEagerGenerativeParser.UNDEF_TOKEN]
-        X[13] = self.word_codes[sentence[S[-2].starlc]]   if Ns > 1 else self.word_codes[ArcEagerGenerativeParser.UNDEF_TOKEN]
-        X[14] = self.word_codes[sentence[S[-2].starrc()]] if Ns > 1 else self.word_codes[ArcEagerGenerativeParser.UNDEF_TOKEN]
-    
-        X[15] = self.word_codes[sentence[S[-3].root]]     if Ns > 2 else self.word_codes[ArcEagerGenerativeParser.UNDEF_TOKEN]
-        X[16] = self.word_codes[sentence[S[-3].ilc]]      if Ns > 2 else self.word_codes[ArcEagerGenerativeParser.UNDEF_TOKEN]
-        X[17] = self.word_codes[sentence[S[-3].irc]]      if Ns > 2 else self.word_codes[ArcEagerGenerativeParser.UNDEF_TOKEN]
-        
-        
+        if self.node_size > 1:
+            X[4] = self.word_codes.get(sentence[F.ilc],unk_token)       if F is not None
+            X[5] = self.word_codes.get(sentence[F.irc],unk_token)       if F is not None
+            X[6] = self.word_codes.get(sentence[S[-1].ilc],unk_token)   if Ns > 0
+            X[7] = self.word_codes.get(sentence[S[-1].irc],unk_token)   if Ns > 0
+            X[8] = self.word_codes.get(sentence[S[-2].ilc],unk_token)   if Ns > 1
+            X[9] = self.word_codes.get(sentence[S[-2].irc],unk_token)   if Ns > 1
+            X[10] = self.word_codes.get(sentence[S[-3].ilc],unk_token)  if Ns > 2
+            X[11] = self.word_codes.get(sentence[S[-3].irc],unk_token)  if Ns > 2
+            
+        if self.node_size > 3:
+            X[12] = self.word_codes.get(sentence[F.starlc],unk_token)        if F is not None 
+            X[13] = self.word_codes.get(sentence[F.starrc()],unk_token)      if F is not None
+            X[14] = self.word_codes.get(sentence[S[-1].starlc],unk_token)    if Ns > 0
+            X[15] = self.word_codes.get(sentence[S[-1].starrc()],unk_token)  if Ns > 0
+            X[16] = self.word_codes.get(sentence[S[-2].starlc],unk_token)    if Ns > 1
+            X[17] = self.word_codes.get(sentence[S[-2].starrc()],unk_token)  if Ns > 1
+            X[18] = self.word_codes.get(sentence[S[-3].starlc],unk_token)    if Ns > 2
+            X[19] = self.word_codes.get(sentence[S[-3].starrc()],unk_token)  if Ns > 2
+
         if action is None:
             return X
         else:
-            Y = self.actions_codes[action]         
+            Y = self.actions_codes[action] if structural else self.word_codes.get(action,unk_token)        
             return (X,Y)
 
-    def code_symbols(self,treebank):
-        """
-        Codes lexicon (x-data) and the list of action (y-data)
-        on integers.
-        @param treebank: the treebank where to extract the data from
-        """
-        #lexical coding
-        lexicon = set([ArcEagerGenerativeParser.UNKNOWN_TOKEN, ArcEagerGenerativeParser.UNDEF_TOKEN])
-        for dtree in treebank:
-            lexicon.update(dtree.tokens)
-        self.lexicon_size = len(lexicon)
-        self.word_codes = dict([(s,idx) for (idx,s) in enumerate(lexicon)])
-
-        actions = [ArcEagerGenerativeParser.LEFTARC,\
-                   ArcEagerGenerativeParser.RIGHTARC,\
-                   ArcEagerGenerativeParser.PUSH,\
-                   ArcEagerGenerativeParser.REDUCE,\
-                   ArcEagerGenerativeParser.TERMINATE]
-        actions.extend([(ArcEagerGenerativeParser.GENERATE,w)  for w in lexicon])
-        self.actions_codes = dict([(s,idx) for (idx,s) in enumerate(actions)])
-        self.rev_action_codes = actions
-        self.actions_size  = len(actions) 
-        
+   
     def static_nn_train(self,treebank,lr=0.001,hidden_dropout=0.1,batch_size=100,max_epochs=100,glove_file=None):
         """
         Locally trains a model with a static oracle
@@ -626,242 +614,106 @@ class ArcEagerGenerativeParser:
             print('CORRECT:%s : %s with p=%10.9f is predicted correctly.'%(self.pprint_configuration(configuration,sentence),ref_action,ref_prob))
             return True
         
-        
-class ArcEagerGenerator:
-    """
-    This is a stochastic language generator for the language models built by
-    this module. 
-    """
-    #actions
-    LEFTARC  = "L"
-    RIGHTARC = "R"
-    GENERATE = "G"
-    PUSH     = "P"
-    REDUCE   = "RD"
     
-    #end of sentence (TERMINATE ACTION)
-    TERMINATE = "E"
-
-    #Undefined and unknown symbols
-    UNDEF_TOKEN   = "__UNDEF__"
-    UNKNOWN_TOKEN = "__UNK__"
-
-    def __init__(self):
-        
-        self.model             = None
-        self.stack_size        = 3
-        self.node_size         = 5
-        self.input_size        = 18
-        self.word_codes        = None  
-        self.actions_codes     = None  #TBD at train time or at param loading
-        self.rev_action_codes  = None #TBD at train time or at param loading
-        self.actions_size      = 0  #TBD at train time or at param loading
-        self.lexicon_size      = 0  #TBD
-
-    #TRANSITION SYSTEM
-    def init_configuration(self,local_score = 1.0):
-        """
-        Generates the init configuration 
-        """
-        #init config: S, None,empty terminals, empty arcs,score=0
-        return ([StackNode(0)],None,('#ROOT#',),[],log(local_score))
-
-    def push(self,configuration,local_score=0.0):
-        """
-        Performs the push action and returns a new configuration
-        """
-        S,F,T,A,prefix_score = configuration
-        return (S + [F], None,T,A,prefix_score+log(local_score)) 
-
-    def leftarc(self,configuration,local_score=0.0):
-        """
-        Performs the left arc action and returns a new configuration
-        """
-        S,F,B,A,prefix_score = configuration
-        i,j = S[-1].root,F.root
-        return (S[:-1],F.copy_left_arc(),B,A + [(j,i)],prefix_score+log(local_score)) 
-
-    def rightarc(self,configuration,local_score=0.0):
-        S,F,B,A,prefix_score = configuration
-        i,j = S[-1].root,F.root
-        S[-1] = S[-1].copy_right_arc(F)
-        return (S+[F],None, B, A + [(i,j)],prefix_score+log(local_score)) 
-
-    def reduce_config(self,configuration,local_score=0.0):
-        S,F,B,A,prefix_score = configuration
-        return (S[:-1],F,B,A,prefix_score+log(local_score))
-    
-    def generate(self,configuration,wordform,local_score=0.0):
-        """
-        Pseudo-Generates the next word (for parsing)
-        """
-        S,F,T,A,prefix_score = configuration
-        return (S,StackNode(len(T)),T+(wordform,),A,prefix_score+log(local_score)) 
-        
-    def generate_sentence(self,max_len=2000,lex_stats=False):
-        """
-        @param lex_stats: generate a table with word,log(prefix_prob),log(local_prob),num_actions
-        """
-        C = self.init_configuration()
-        derivation = [C]
-        action,score =  self.stochastic_oracle(C,is_first_action=True)
-        stats = []
-        while action != ArcEagerGenerator.TERMINATE and len(derivation) < max_len:
+    # def generate_sentence(self,max_len=2000,lex_stats=False):
+    #     """
+    #     @param lex_stats: generate a table with word,log(prefix_prob),log(local_prob),num_actions
+    #     """
+    #     C = self.init_configuration()
+    #     derivation = [C]
+    #     action,score =  self.stochastic_oracle(C,is_first_action=True)
+    #     stats = []
+    #     while action != ArcEagerGenerator.TERMINATE and len(derivation) < max_len:
             
-            if action == ArcEagerGenerator.LEFTARC:
-                C = self.leftarc(C,score)
-            elif action == ArcEagerGenerator.RIGHTARC:
-                C = self.rightarc(C,score)
-            elif action == ArcEagerGenerator.REDUCE:
-                C = self.reduce_config(C,score)
-            elif action == ArcEagerGenerator.PUSH:
-                C = self.push(C,score)
-            else:
-                action, w = action
-                assert(action == ArcEagerGenerator.GENERATE)
-                C = self.generate(C,w,score)
-                stats.append((w,C[4],log(score),len(derivation)))
-            derivation.append(C)
+    #         if action == ArcEagerGenerator.LEFTARC:
+    #             C = self.leftarc(C,score)
+    #         elif action == ArcEagerGenerator.RIGHTARC:
+    #             C = self.rightarc(C,score)
+    #         elif action == ArcEagerGenerator.REDUCE:
+    #             C = self.reduce_config(C,score)
+    #         elif action == ArcEagerGenerator.PUSH:
+    #             C = self.push(C,score)
+    #         else:
+    #             action, w = action
+    #             assert(action == ArcEagerGenerator.GENERATE)
+    #             C = self.generate(C,w,score)
+    #             stats.append((w,C[4],log(score),len(derivation)))
+    #         derivation.append(C)
 
-            action,score = self.stochastic_oracle(C)
+    #         action,score = self.stochastic_oracle(C)
             
-        if lex_stats:
-            df = pd.DataFrame(stats,columns=['word','log(P(deriv_prefix))','log(P(local))','nActions'])
-            return df
-        else:
-            return derivation
+    #     if lex_stats:
+    #         df = pd.DataFrame(stats,columns=['word','log(P(deriv_prefix))','log(P(local))','nActions'])
+    #         return df
+    #     else:
+    #         return derivation
 
     
-    #CODING & SCORING
-    def stochastic_oracle(self,configuration,is_first_action=False):
-        S,F,terminals,A,score = configuration
-        X = np.array([self.make_representation(configuration)])
-        Y = self.model.predict(X,batch_size=1)[0]
+    # #CODING & SCORING
+    # def stochastic_oracle(self,configuration,is_first_action=False):
+    #     S,F,terminals,A,score = configuration
+    #     X = np.array([self.make_representation(configuration)])
+    #     Y = self.model.predict(X,batch_size=1)[0]
         
-        def has_governor(node_idx,arc_list):
-            """
-            Checks if a node has a governor
-            @param node_idx: the index of the node
-            @arc_list: an iterable over arc tuples
-            @return a boolean
-            """
-            return any(node_idx  == didx for (gidx,didx) in arc_list)
+    #     def has_governor(node_idx,arc_list):
+    #         """
+    #         Checks if a node has a governor
+    #         @param node_idx: the index of the node
+    #         @arc_list: an iterable over arc tuples
+    #         @return a boolean
+    #         """
+    #         return any(node_idx  == didx for (gidx,didx) in arc_list)
         
-        if is_first_action:#otherwise predicts terminate with p=1.0 because init config is also the config right before calling terminate
-            while True:
-                action_code = choice(self.actions_size)#uniform draw
-                action_score = 1.0/self.actions_size
-                action = self.rev_action_codes[action_code]
-                if type(action) == tuple:#this is a generate action
-                    return (action,action_score)            
-        if not S or F is None or S[-1].root == 0 or not has_governor(S[-1].root,A):
-            Y[self.actions_codes[ArcEagerGenerator.LEFTARC]] = 0.0
-        if not S or F is None:
-            Y[self.actions_codes[ArcEagerGenerator.RIGHTARC]] = 0.0
-        if F is None or not S or not has_governor(S[-1].root,A):
-            Y[self.actions_codes[ArcEagerGenerator.REDUCE]] = 0.0
-        if F is None:
-            Y[self.actions_codes[ArcEagerGenerator.PUSH]] = 0.0
-        if F is not None:
-            la = Y[self.actions_codes[ArcEagerGenerator.LEFTARC]]
-            ra = Y[self.actions_codes[ArcEagerGenerator.RIGHTARC]]
-            r  = Y[self.actions_codes[ArcEagerGenerator.REDUCE]]
-            p  = Y[self.actions_codes[ArcEagerGenerator.PUSH]]
-            t  = Y[self.actions_codes[ArcEagerGenerator.TERMINATE]]
+    #     if is_first_action:#otherwise predicts terminate with p=1.0 because init config is also the config right before calling terminate
+    #         while True:
+    #             action_code = choice(self.actions_size)#uniform draw
+    #             action_score = 1.0/self.actions_size
+    #             action = self.rev_action_codes[action_code]
+    #             if type(action) == tuple:#this is a generate action
+    #                 return (action,action_score)            
+    #     if not S or F is None or S[-1].root == 0 or not has_governor(S[-1].root,A):
+    #         Y[self.actions_codes[ArcEagerGenerator.LEFTARC]] = 0.0
+    #     if not S or F is None:
+    #         Y[self.actions_codes[ArcEagerGenerator.RIGHTARC]] = 0.0
+    #     if F is None or not S or not has_governor(S[-1].root,A):
+    #         Y[self.actions_codes[ArcEagerGenerator.REDUCE]] = 0.0
+    #     if F is None:
+    #         Y[self.actions_codes[ArcEagerGenerator.PUSH]] = 0.0
+    #     if F is not None:
+    #         la = Y[self.actions_codes[ArcEagerGenerator.LEFTARC]]
+    #         ra = Y[self.actions_codes[ArcEagerGenerator.RIGHTARC]]
+    #         r  = Y[self.actions_codes[ArcEagerGenerator.REDUCE]]
+    #         p  = Y[self.actions_codes[ArcEagerGenerator.PUSH]]
+    #         t  = Y[self.actions_codes[ArcEagerGenerator.TERMINATE]]
             
-            Y = np.zeros(self.actions_size)
+    #         Y = np.zeros(self.actions_size)
             
-            Y[self.actions_codes[ArcEagerGenerator.LEFTARC]]   = la
-            Y[self.actions_codes[ArcEagerGenerator.RIGHTARC]]  = ra
-            Y[self.actions_codes[ArcEagerGenerator.REDUCE]]    = r
-            Y[self.actions_codes[ArcEagerGenerator.PUSH]]      = p
-            Y[self.actions_codes[ArcEagerGenerator.TERMINATE]] = t
+    #         Y[self.actions_codes[ArcEagerGenerator.LEFTARC]]   = la
+    #         Y[self.actions_codes[ArcEagerGenerator.RIGHTARC]]  = ra
+    #         Y[self.actions_codes[ArcEagerGenerator.REDUCE]]    = r
+    #         Y[self.actions_codes[ArcEagerGenerator.PUSH]]      = p
+    #         Y[self.actions_codes[ArcEagerGenerator.TERMINATE]] = t
             
-        Z = Y.sum()
-        if Z == 0.0:#no action possible, trapped in dead-end, abort.
-            return (ArcEagerGenerator.TERMINATE,np.finfo(float).eps)
+    #     Z = Y.sum()
+    #     if Z == 0.0:#no action possible, trapped in dead-end, abort.
+    #         return (ArcEagerGenerator.TERMINATE,np.finfo(float).eps)
             
-        Y /= Z
-        action_code = choice(self.actions_size,p=Y)
-        action_score = Y[action_code]
-        action = self.rev_action_codes[action_code]
+    #     Y /= Z
+    #     action_code = choice(self.actions_size,p=Y)
+    #     action_score = Y[action_code]
+    #     action = self.rev_action_codes[action_code]
 
-        #print distribution:
-        #print ('kbest')
-        #kbest = sorted([(p,idx) for (idx,p) in enumerate(Y)],reverse=True)[:20]
-        #for p,idx in kbest:
-        #    print(idx,self.rev_action_codes[idx],p)
+    #     #print distribution:
+    #     #print ('kbest')
+    #     #kbest = sorted([(p,idx) for (idx,p) in enumerate(Y)],reverse=True)[:20]
+    #     #for p,idx in kbest:
+    #     #    print(idx,self.rev_action_codes[idx],p)
                 
-        return (action,action_score)
+    #     return (action,action_score)
 
 
      
-    def make_representation(self,config):
-        """
-        Turns a configuration into a vector of X  data and
-        outputs a list of actions sorted by decreasing score.
-        @param configuration: a parser configuration
-        @return a list X of predictors.
-        """        
-        S,F,sentence,A,score = config
-        X  = [None] * self.input_size
-        Ns = len(S)
-        
-        X[0] = self.word_codes[sentence[F.root]]      if F is not None else self.word_codes[ArcEagerGenerativeParser.UNDEF_TOKEN]
-        X[1] = self.word_codes[sentence[F.ilc]]       if F is not None else self.word_codes[ArcEagerGenerativeParser.UNDEF_TOKEN]
-        X[2] = self.word_codes[sentence[F.irc]]       if F is not None else self.word_codes[ArcEagerGenerativeParser.UNDEF_TOKEN]
-        X[3] = self.word_codes[sentence[F.starlc]]    if F is not None else self.word_codes[ArcEagerGenerativeParser.UNDEF_TOKEN]
-        X[4] = self.word_codes[sentence[F.starrc()]]  if F is not None else self.word_codes[ArcEagerGenerativeParser.UNDEF_TOKEN]
-
-        X[5] = self.word_codes[sentence[S[-1].root]]     if Ns > 0 else self.word_codes[ArcEagerGenerativeParser.UNDEF_TOKEN]
-        X[6] = self.word_codes[sentence[S[-1].ilc]]      if Ns > 0 else self.word_codes[ArcEagerGenerativeParser.UNDEF_TOKEN]
-        X[7] = self.word_codes[sentence[S[-1].irc]]      if Ns > 0 else self.word_codes[ArcEagerGenerativeParser.UNDEF_TOKEN]
-        X[8] = self.word_codes[sentence[S[-1].starlc]]   if Ns > 0 else self.word_codes[ArcEagerGenerativeParser.UNDEF_TOKEN]
-        X[9] = self.word_codes[sentence[S[-1].starrc()]] if Ns > 0 else self.word_codes[ArcEagerGenerativeParser.UNDEF_TOKEN]
-
-        X[10] = self.word_codes[sentence[S[-2].root]]     if Ns > 1 else self.word_codes[ArcEagerGenerativeParser.UNDEF_TOKEN]
-        X[11] = self.word_codes[sentence[S[-2].ilc]]      if Ns > 1 else self.word_codes[ArcEagerGenerativeParser.UNDEF_TOKEN]
-        X[12] = self.word_codes[sentence[S[-2].irc]]      if Ns > 1 else self.word_codes[ArcEagerGenerativeParser.UNDEF_TOKEN]
-        X[13] = self.word_codes[sentence[S[-2].starlc]]   if Ns > 1 else self.word_codes[ArcEagerGenerativeParser.UNDEF_TOKEN]
-        X[14] = self.word_codes[sentence[S[-2].starrc()]] if Ns > 1 else self.word_codes[ArcEagerGenerativeParser.UNDEF_TOKEN]
-
-        X[15] = self.word_codes[sentence[S[-3].root]]     if Ns > 2 else self.word_codes[ArcEagerGenerativeParser.UNDEF_TOKEN]
-        X[16] = self.word_codes[sentence[S[-3].ilc]]      if Ns > 2 else self.word_codes[ArcEagerGenerativeParser.UNDEF_TOKEN]
-        X[17] = self.word_codes[sentence[S[-3].irc]]      if Ns > 2 else self.word_codes[ArcEagerGenerativeParser.UNDEF_TOKEN]
-        
-        return X
-
-           
-    @staticmethod
-    def load_generator(dirname):
-        
-        g = ArcEagerGenerator()
-                
-        istream = open(os.path.join(dirname,'params.pkl'),'rb')
-        params = pickle.load(istream)
-        istream.close()
-        
-        g.stack_size = params['stack_size']
-        g.node_size  = params['node_size']
-        g.input_size = params['input_size']
-
-        istream = open(os.path.join(dirname,'words.pkl'),'rb')
-        g.word_codes = pickle.load(istream)
-        istream.close()
-    
-        istream = open(os.path.join(dirname,'actions.pkl'),'rb')
-        g.actions_codes = pickle.load(istream)
-        istream.close()
-        
-        g.rev_action_codes = ['']*len(g.actions_codes)
-        for A,idx  in g.actions_codes.items():
-            g.rev_action_codes[idx] = A
-        g.actions_size   = len(g.actions_codes)  
-        g.lexicon_size   = len(g.word_codes)
-
-        g.model = load_model(os.path.join(dirname,'model.prm'))
-        return g
-        
+   
             
 if __name__ == '__main__':
     

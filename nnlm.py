@@ -131,7 +131,7 @@ class NNLanguageModel:
                 x,y    = self.make_representation([w3,w2,w1],wy)
                 X.append(x)
                 Y.append(y)
-        return NNLMGenerator(X,Y,self.word_codes[NNLanguageModel.UNKNOWN_TOKEN],batch_size)
+        return NNLMGenerator(X,Y,batch_size)
 
     
     def predict_logprobs(self,X,Y,hidden_out=False):
