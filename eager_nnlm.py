@@ -4,6 +4,7 @@
 import os
 import os.path
 import pickle
+import time
 import numpy as np
 import pandas as pd
 import dynet_config
@@ -76,7 +77,7 @@ class ArcEagerGenerativeParser:
     """
     An arc eager language model with local training.
 
-    Designed to run on a GPU.
+    Designed to run on a GPU (at least for training). 
     """
 
     #actions
@@ -128,8 +129,8 @@ class ArcEagerGenerativeParser:
 
         
     def __str__(self):
-        s = ['Stack size       : %d'%(self.input_length),\
-            'Node  size        : %d'%(self.node_size),\
+        s = ['Stack size        : %d'%(self.input_length),\
+            'Node size         : %d'%(self.node_size),\
             'Embedding size    : %d'%(self.embedding_size),\
             'Hidden layer size : %d'%(self.hidden_size),\
             'Actions size      : %d'%(self.actions_size),\
@@ -253,8 +254,8 @@ class ArcEagerGenerativeParser:
                    ArcEagerGenerativeParser.UNKNOWN_TOKEN]
         lex_counts = Counter()
         for dtree in treebank:
-            counter.update(dtree.tokens)
-        self.lexicon = [w for w,c in lex_counts.most_common(9998-3)]+lexicon
+            lex_counts.update(dtree.tokens)
+        lexicon = [w for w,c in lex_counts.most_common(9998-3)]+lexicon
         self.rev_word_codes = list(lexicon)
         self.lexicon_size = len(lexicon)
         self.word_codes = dict([(s,idx) for (idx,s) in enumerate(self.rev_word_codes)])
@@ -327,12 +328,11 @@ class ArcEagerGenerativeParser:
         @return a couple (X,Y) or just X if no action is given as param
         """        
         S,F,B,A,score = config
-        X  = [ArcEagerGenerativeParser.IOS_TOKEN] * self.input_length
+        X  = [self.word_codes[ArcEagerGenerativeParser.IOS_TOKEN]] * self.input_length
         Ns = len(S)
         unk_token = self.word_codes[ArcEagerGenerativeParser.UNKNOWN_TOKEN]
 
-        
-        if F is not None: X[0] = self.word_codes.get(sentence[F.root],unk_token)      
+        if F is not None: X[0] = self.word_codes.get(sentence[F.root],unk_token)
         if Ns > 0 :       X[1] = self.word_codes.get(sentence[S[-1].root],unk_token)  
         if Ns > 1 :       X[2] = self.word_codes.get(sentence[S[-2].root],unk_token)  
         if Ns > 2 :       X[3] = self.word_codes.get(sentence[S[-3].root],unk_token)  
@@ -364,7 +364,7 @@ class ArcEagerGenerativeParser:
             if Ns > 2 :
                 X[18] = self.word_codes.get(sentence[S[-3].starlc],unk_token)  
                 X[19] = self.word_codes.get(sentence[S[-3].starrc()],unk_token)  
-
+                
         if action is None:
             return X
         else:
@@ -421,43 +421,41 @@ class ArcEagerGenerativeParser:
             A = dy.parameter(self.action_weights)
             
             batched_X  = zip(*X) #transposes the X matrix
-            embeddings = [dy.pick(E, xcolumn) for xcolumn in batched_X]
+            embeddings = [dy.pick_batch(E, xcolumn) for xcolumn in batched_X]
             xdense     = dy.concatenate(embeddings)
-            preds      = dy.pickneglogsoftmax(A * dy.tanh( W * xdense ),Y)
-            dy.forward(preds)
-            return [-ypred.value()  for ypred in preds]
+            preds      = dy.pickneglogsoftmax_batch(A * dy.tanh( W * xdense ),Y).value()
+            return [-ypred  for ypred in preds]
 
         else:#lexical
             if self.tied:
                 dy.renew_cg()
                 W = dy.parameter(self.hidden_weights)
-                E = dy.parameter(self.embedding_matrix)
+                E = dy.parameter(self.input_embeddings)
                 batched_X  = zip(*X) #transposes the X matrix
-                embeddings = [dy.pick(E, xcolumn) for xcolumn in X]
+                embeddings = [dy.pick_batch(E, xcolumn) for xcolumn in batched_X]
                 xdense     = dy.concatenate(embeddings)
-                preds      = dy.pickneglogsoftmax(E * dy.tanh( W * xdense ),Y)
-                dy.forward(preds)
-                return [-ypred.value()  for ypred in preds]
+                preds      = dy.pickneglogsoftmax_batch(E * dy.tanh( W * xdense ),Y).value()
+                return [-ypred  for ypred in preds]
+            
             else:
                 dy.renew_cg()
                 O = dy.parameter(self.output_weights)
                 W = dy.parameter(self.hidden_weights)
-                E = dy.parameter(self.embedding_matrix)
+                E = dy.parameter(self.input_embeddings)
                 batched_X  = zip(*X) #transposes the X matrix
-                embeddings = [dy.pick(E, xcolumn) for xcolumn in X]
+                embeddings = [dy.pick_batch(E, xcolumn) for xcolumn in batched_X]
                 xdense     = dy.concatenate(embeddings)
-                preds      = dy.pickneglogsoftmax(O * dy.tanh( W * xdense ),Y)
-                dy.forward(preds)
-                return [-ypred.value()  for ypred in preds]
+                preds      = dy.pickneglogsoftmax_batch(O * dy.tanh( W * xdense ),Y).value()
+                return [-ypred  for ypred in preds]
 
     
     def static_train(self,\
                     train_treebank,\
                     validation_treebank,\
                     lr=0.001,\
-                    hidden_dropout=0.1,\
+                    hidden_dropout=0.01,\
                     batch_size=64,\
-                    max_epochs=100,\
+                    max_epochs=200,\
                     max_lexicon_size=9998,\
                     glove_file=None):
         """
@@ -481,7 +479,7 @@ class ArcEagerGenerativeParser:
         lex_dev_gen   , struct_dev_gen    = self.make_data_generators(train_treebank,batch_size)
         
         print(self)
-        print("training examples [N] = %d\nBatch size = %d\nDropout = %f\nlearning rate = %f"%(len(Y),batch_size,hidden_dropout,lr))
+        print("structural training examples  [N] = %d\nlexical training examples  [N] = %d\nBatch size = %d\nDropout = %f\nlearning rate = %f"%(struct_train_gen.N,lex_train_gen.N,batch_size,hidden_dropout,lr))
 
         #(3) make network
         self.model = dy.ParameterCollection()
@@ -497,8 +495,9 @@ class ArcEagerGenerativeParser:
         #(4) fitting
         lex_gen       = lex_train_gen.next_batch()
         struct_gen    = struct_train_gen.next_batch()
-        max_batches = max( lex_gen.get_num_batches(), struct_gen.get_num_batches() )
-
+        max_batches = max( lex_train_gen.get_num_batches(), struct_train_gen.get_num_batches() )
+        print(lex_train_gen.get_num_batches(), struct_train_gen.get_num_batches())
+        
         lex_valid_gen       = lex_dev_gen.next_batch()
         struct_valid_gen    = struct_dev_gen.next_batch()
         
@@ -512,17 +511,18 @@ class ArcEagerGenerativeParser:
             for b in range(max_batches):
                 #struct
                 X_struct,Y_struct = next(struct_gen)
-                #question of proportions : should struct and gen be evenly sampled or not (??)
+                #question of proportions : should struct and gen be evenly sampled or not (??):
+                #here the parity oversamples approx twice the lexical actions
                 dy.renew_cg()
                 W = dy.parameter(self.hidden_weights)
                 E = dy.parameter(self.input_embeddings)
                 A = dy.parameter(self.action_weights)
-                batched_X        = zip(*X_struct)  #transposes the X matrix
+                batched_X        = list(zip(*X_struct))  #transposes the X matrix                           
                 lookups          = [dy.pick_batch(E,xcolumn) for xcolumn in batched_X]
                 xdense           = dy.concatenate(lookups)
-                ybatch_preds     = dy.pickneglogsoftmax_batch(A * dy.dropout(dy.tanh( W * xdense ),hidden_dropout),Y)
+                ybatch_preds     = dy.pickneglogsoftmax_batch(A * dy.dropout(dy.tanh( W * xdense ),hidden_dropout),Y_struct)
                 loss             = dy.sum_batches(ybatch_preds)
-                struct_N         +=len(Y_struct)
+                struct_N         += len(Y_struct)
                 struct_loss      += loss.value()
                 loss.backward()
                 trainer.update()
@@ -535,7 +535,7 @@ class ArcEagerGenerativeParser:
                     batched_X        = zip(*X_lex) #transposes the X matrix
                     lookups          = [dy.pick_batch(E,xcolumn) for xcolumn in batched_X]
                     xdense           = dy.concatenate(lookups)
-                    ybatch_preds     = dy.pickneglogsoftmax_batch(E * dy.dropout(dy.tanh( W * xdense ),hidden_dropout),Y)
+                    ybatch_preds     = dy.pickneglogsoftmax_batch(E * dy.dropout(dy.tanh( W * xdense ),hidden_dropout),Y_lex)
                     loss             = dy.sum_batches(ybatch_preds)
                 else:
                     dy.renew_cg()
@@ -545,18 +545,18 @@ class ArcEagerGenerativeParser:
                     batched_X        = zip(*X_lex) #transposes the X matrix
                     lookups          = [dy.pick_batch(E,xcolumn) for xcolumn in batched_X]
                     xdense           = dy.concatenate(lookups)
-                    ybatch_preds     = dy.pickneglogsoftmax_batch(O * dy.dropout(dy.tanh( W * xdense ),hidden_dropout),Y)
+                    ybatch_preds     = dy.pickneglogsoftmax_batch(O * dy.dropout(dy.tanh( W * xdense ),hidden_dropout),Y_lex)
                     loss             = dy.sum_batches(ybatch_preds)
-                lex_N            +=len(Y_lex)
+                lex_N            += len(Y_lex)
                 lex_loss         += loss.value()
                 loss.backward()
                 trainer.update()
             end_t = time.time()
             # (5) validation
-            X_lex_valid,Y_lex_valid       = lex_valid_gen.batch_all()
+            X_lex_valid,Y_lex_valid       = lex_dev_gen.batch_all()
             lex_valid_nll = -sum(self.predict_logprobs(X_lex_valid,Y_lex_valid,structural=False))
             
-            X_struct_valid,Y_struct_valid = struct_valid_gen.batch_all()
+            X_struct_valid,Y_struct_valid = struct_dev_gen.batch_all()
             struct_valid_nll = -sum(self.predict_logprobs(X_struct_valid,Y_struct_valid,structural=True))
             
             history_log.append((e,end_t-start_t,lex_loss,struct_loss,lex_valid_nll,struct_valid_nll,lex_valid_nll+struct_valid_nll))
@@ -780,4 +780,4 @@ if __name__ == '__main__':
     dev_treebank = UDtreebank_reader('ptb/ptb_deps.dev',tokens_only=False)
     
     eagerp = ArcEagerGenerativeParser()
-    eagerp.static_train(train_treebank[:20],dev_treebank[:20],glove_file='glove/glove.6B.300d.txt')
+    eagerp.static_train(train_treebank[:20],dev_treebank[:20],lr=0.0001,glove_file='glove/glove.6B.300d.txt')
