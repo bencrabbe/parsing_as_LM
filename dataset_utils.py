@@ -93,13 +93,18 @@ class DependencyTree:
         
 
 #reads UD style treebanks cleaned up data sets
-def UDtreebank_reader(filename):
+def UDtreebank_reader(filename,tokens_only=True):
     treebank = []
     istream = open(filename)
     dtree = DependencyTree.read_tree(istream)
     while dtree != None:
         if dtree.is_projective():
-            treebank.append(dtree.tokens)
+            if tokens_only:
+                treebank.append(dtree.tokens)
+            else:
+                treebank.append(dtree)
+        else:
+            print("Skipped non projective tree")
         dtree = DependencyTree.read_tree(istream)
     istream.close()
     return treebank

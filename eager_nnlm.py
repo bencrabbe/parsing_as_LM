@@ -16,102 +16,10 @@ import dynet as dy
 
 from math import log,exp
 from random import shuffle
-from collections import Counter
 from numpy.random import choice,rand
-
-class DependencyTree:
-   
-    def __init__(self,tokens=None, edges=None):
-        self.edges  = [] if edges is None else edges   #couples (gov_idx,dep_idx)
-        self.tokens = ['#ROOT#'] if tokens is None else tokens #list of wordforms
-    
-    def __str__(self):
-        gdict = dict([(d,g) for (g,d) in self.edges])
-        return '\n'.join(['\t'.join([str(idx+1),tok,str(gdict[idx+1])]) for idx,tok in enumerate(self.tokens[1:])])
-
-    def is_projective(self,root=0,ideps=None):
-        """
-        Tests if a dependency tree is projective.
-        @param root : the index of the root node
-        @param ideps: a dict index -> list of immediate dependants.
-        @return: (a boolean stating if the root is projective , a list
-        of children idxes)
-        """
-        if ideps is None:#builds dict if not existing
-            ideps = {}
-            for gov,dep in self.edges:
-                if gov in ideps:
-                    ideps[gov].append(dep)
-                else:
-                    ideps[gov] = [dep]
-        
-        allc = [root]                              #reflexive
-        if root not in ideps:                      #we have a leaf
-            return (True,allc)
-        for child in ideps[root]:
-            proj,children = self.is_projective(child,ideps)
-            if not proj:
-                return (proj,None)
-            allc.extend(children)                   #transitivity
-
-        allc.sort()                                 #checks projectivity
-        for _prev,_next in zip(allc,allc[1:]):
-            if _next != _prev+1:
-                return (False,None)
-        return (True, allc)
-    
-    @staticmethod
-    def read_tree(istream):
-        """
-        Reads a tree from an input stream in CONLL-U format.
-        Currently ignores empty nodes and compound spans.
-        
-        @param istream: the stream where to read from
-        @return: a DependencyTree instance 
-        """
-        deptree = DependencyTree()
-        bfr = istream.readline()
-        while bfr:
-            if bfr[0] == '#':
-                bfr = istream.readline()
-            elif (bfr.isspace() or bfr == ''):
-                if deptree.N() > 0:
-                    return deptree
-                else:
-                    bfr = istream.readline()
-            else:
-                line_fields = bfr.split()
-                idx, word, governor_idx = line_fields[0],line_fields[1],line_fields[6]
-                if not '.' in idx: #empty nodes have a dot (and are discarded here)
-                    deptree.tokens.append(word)
-                    deptree.edges.append((int(governor_idx),int(idx)))
-                bfr = istream.readline()
-        return None
-
-    
-    def accurracy(self,other):
-        """
-        Compares this dep tree with another by computing their UAS.
-        Assumes this tree is the reference tree
-        @param other: other dep tree
-        @return : the UAS as a float
-        """
-        S1 = set(self.edges)
-        S2 = set(other.edges)
-        return len(S1.intersection(S2)) / len(S1)
-    
-    def N(self):
-        """
-        Returns the length of the input
-        """
-        return len(self.tokens)
-    
-    def __getitem__(self,idx):
-        """
-        Returns the token at index idx
-        """
-        return self.tokens[idx]
-
+from collections import Counter
+from lm_utils import NNLMGenerator
+from dataset_utils import DependencyTree,UDtreebank_reader
     
 class StackNode(object):
     """
@@ -167,7 +75,6 @@ class StackNode(object):
         return str(self.root)
 
 
-
 class ArcEagerGenerativeParser:
 
     """
@@ -191,15 +98,20 @@ class ArcEagerGenerativeParser:
     EOS_TOKEN     = "__EOS__"
     UNKNOWN_TOKEN = "__UNK__"
 
-    def __init__(self,embedding_size,hidden_size,tied_embeddings=True,parser_class='basic'):
-
+    def __init__(self,embedding_size=300,hidden_size=300,tied_embeddings=True,parser_class='basic'):
+        """
+        @param embedding_size: size of the embeddings
+        @param hidden_size: size of the hidden layer
+        @param tied_embeddings: uses weight tying for input and output embedding matrices
+        @param parser_class {'basic','extended','star-extended'} controls the number of sensors
+        """
         assert(parser_class in ['basic','extended','star-extended'])
 
         #sets default generic params
         self.model            = None
         self.stack_length     = 3
         self.parser_class     = parser_class
-        if self.parser_class == 'basic'
+        if self.parser_class == 'basic':
             self.node_size        = 1                                #number of x-values per stack node
         elif self.parser_class == 'extended':
             self.node_size        = 3 
@@ -228,6 +140,8 @@ class ArcEagerGenerativeParser:
             'Lexicon size      : %d'%(self.lexicon_size),\
             'Tied Embeddings   : %r'%(self.tied)]
         return '\n'.join(s)
+
+
             
     #TRANSITION SYSTEM
     def init_configuration(self,tokens):
@@ -309,6 +223,7 @@ class ArcEagerGenerativeParser:
         derivation = []
         
         while action != ArcEagerGenerativeParser.TERMINATE :
+            
             derivation.append((C,action,sentence))
             if   action ==  ArcEagerGenerativeParser.PUSH:
                 C = self.push(C)
@@ -322,6 +237,7 @@ class ArcEagerGenerativeParser:
                 action, w = action
                 assert(action ==  ArcEagerGenerativeParser.GENERATE)
                 C = self.generate(C)
+                
             action = self.static_oracle(C,dtree)
             
         derivation.append((C,action,sentence))
@@ -420,30 +336,38 @@ class ArcEagerGenerativeParser:
         unk_token = self.word_codes[ArcEagerGenerativeParser.UNKNOWN_TOKEN]
 
         
-        X[0] = self.word_codes.get(sentence[F.root],unk_token)      if F is not None
-        X[1] = self.word_codes.get(sentence[S[-1].root],unk_token)  if Ns > 0
-        X[2] = self.word_codes.get(sentence[S[-2].root],unk_token)  if Ns > 1
-        X[3] = self.word_codes.get(sentence[S[-3].root],unk_token)  if Ns > 3 
+        if F is not None: X[0] = self.word_codes.get(sentence[F.root],unk_token)      
+        if Ns > 0 :       X[1] = self.word_codes.get(sentence[S[-1].root],unk_token)  
+        if Ns > 1 :       X[2] = self.word_codes.get(sentence[S[-2].root],unk_token)  
+        if Ns > 2 :       X[3] = self.word_codes.get(sentence[S[-3].root],unk_token)  
 
-        if self.node_size > 1:
-            X[4] = self.word_codes.get(sentence[F.ilc],unk_token)       if F is not None
-            X[5] = self.word_codes.get(sentence[F.irc],unk_token)       if F is not None
-            X[6] = self.word_codes.get(sentence[S[-1].ilc],unk_token)   if Ns > 0
-            X[7] = self.word_codes.get(sentence[S[-1].irc],unk_token)   if Ns > 0
-            X[8] = self.word_codes.get(sentence[S[-2].ilc],unk_token)   if Ns > 1
-            X[9] = self.word_codes.get(sentence[S[-2].irc],unk_token)   if Ns > 1
-            X[10] = self.word_codes.get(sentence[S[-3].ilc],unk_token)  if Ns > 2
-            X[11] = self.word_codes.get(sentence[S[-3].irc],unk_token)  if Ns > 2
+        if self.node_size > 1 :
+            if F is not None :
+                X[4] = self.word_codes.get(sentence[F.ilc],unk_token)      
+                X[5] = self.word_codes.get(sentence[F.irc],unk_token)
+            if Ns > 0 :   
+                X[6] = self.word_codes.get(sentence[S[-1].ilc],unk_token)   
+                X[7] = self.word_codes.get(sentence[S[-1].irc],unk_token)
+            if Ns > 1 :
+                X[8] = self.word_codes.get(sentence[S[-2].ilc],unk_token)  
+                X[9] = self.word_codes.get(sentence[S[-2].irc],unk_token)
+            if Ns > 2 :  
+                X[10] = self.word_codes.get(sentence[S[-3].ilc],unk_token)  
+                X[11] = self.word_codes.get(sentence[S[-3].irc],unk_token)
             
         if self.node_size > 3:
-            X[12] = self.word_codes.get(sentence[F.starlc],unk_token)        if F is not None 
-            X[13] = self.word_codes.get(sentence[F.starrc()],unk_token)      if F is not None
-            X[14] = self.word_codes.get(sentence[S[-1].starlc],unk_token)    if Ns > 0
-            X[15] = self.word_codes.get(sentence[S[-1].starrc()],unk_token)  if Ns > 0
-            X[16] = self.word_codes.get(sentence[S[-2].starlc],unk_token)    if Ns > 1
-            X[17] = self.word_codes.get(sentence[S[-2].starrc()],unk_token)  if Ns > 1
-            X[18] = self.word_codes.get(sentence[S[-3].starlc],unk_token)    if Ns > 2
-            X[19] = self.word_codes.get(sentence[S[-3].starrc()],unk_token)  if Ns > 2
+            if F is not None :
+                X[12] = self.word_codes.get(sentence[F.starlc],unk_token)
+                X[13] = self.word_codes.get(sentence[F.starrc()],unk_token)   
+            if Ns > 0 :
+                X[14] = self.word_codes.get(sentence[S[-1].starlc],unk_token)    
+                X[15] = self.word_codes.get(sentence[S[-1].starrc()],unk_token)
+            if Ns > 1 :
+                X[16] = self.word_codes.get(sentence[S[-2].starlc],unk_token)   
+                X[17] = self.word_codes.get(sentence[S[-2].starrc()],unk_token)
+            if Ns > 2 :
+                X[18] = self.word_codes.get(sentence[S[-3].starlc],unk_token)  
+                X[19] = self.word_codes.get(sentence[S[-3].starrc()],unk_token)  
 
         if action is None:
             return X
@@ -451,58 +375,199 @@ class ArcEagerGenerativeParser:
             Y = self.actions_codes[action] if structural else self.word_codes.get(action,unk_token)        
             return (X,Y)
 
-   
-    def static_nn_train(self,treebank,lr=0.001,hidden_dropout=0.1,batch_size=100,max_epochs=100,glove_file=None):
+    def make_data_generators(self,treebank,batch_size):
         """
-        Locally trains a model with a static oracle
-        and a standard feedforward NN.  
-        @param treebank : a list of dependency trees
+        This returns two data generators suitable for use with dynet.
+        One for the lexical submodel and one for the structural submodel
+        @param treebank: the treebank (list of sentences) to encode
+        @param batch_size: the size of the batches yielded by the generators
+        @return (lexical generator, structural generator) as NNLM generator objects
         """
-        #(1) build dictionaries
-        self.code_symbols(treebank) 
-
-        print("Dictionaries built.")
-        print("Encoding dataset from %d trees."%len(treebank))
-        
-        #(2) read off treebank and build keras data set
-        Y    = []
-        X    = []
-                
+        X_lex    = []
+        Y_lex    = []
+        X_struct = []
+        Y_struct = []
+       
         for dtree in treebank:
             Deriv = self.static_oracle_derivation(dtree)
             for (config,action,sentence) in Deriv:
-                x,y    = self.make_representation(config,action,sentence)
-                X.append(x)
-                Y.append(y)
-                
-        training_generator =  NumericDataGenerator(X,Y,batch_size,self.actions_size).generate()
-                
-        #(3) make network
+                if type(action) == tuple: #lexical action                    
+                    x,y    = self.make_representation(config,action,sentence,structural=False)
+                    X_lex.append(x)
+                    Y_lex.append(y)
+                else:                     #structural action
+                    x,y    = self.make_representation(config,action,sentence,structural=True)
+                    X_struct.append(x)
+                    Y_struct.append(y)
+                    
+        lex_generator    = NNLMGenerator(X_lex,Y_lex,batch_size)
+        struct_generator = NNLMGenerator(X_struct,Y_struct,batch_size)
+        return ( lex_generator , struct_generator )
+
+
+    def predict_logprobs(self,X,Y,structural=True,hidden_out=False):
+        """
+        Returns the log probabilities of the predictions for this model (batched version).
+
+        @param X: the input indexes from which to predict (each xdatum is expected to be an iterable of integers) 
+        @param Y: a list of references indexes for which to extract the prob
+        @param structural: switches between structural and lexical logprob evaluation
+        @param hidden_out: outputs an additional list of hidden dimension vectors
+        @return the list of predicted logprobabilities for each of the provided ref y in Y
+        """
+        assert(len(X) == len(Y))
+        assert(all(len(x) == self.input_length for x in X))
+
+        if structural:
+            dy.renew_cg()
+            W = dy.parameter(self.hidden_weights)
+            E = dy.parameter(self.input_embeddings)
+            A = dy.parameter(self.action_weights)
+            
+            batched_X  = zip(*X) #transposes the X matrix
+            embeddings = [dy.pick(E, xcolumn) for xcolumn in batched_X]
+            xdense     = dy.concatenate(embeddings)
+            preds      = dy.pickneglogsoftmax(A * dy.tanh( W * xdense ),Y)
+            dy.forward(preds)
+            return [-ypred.value()  for ypred in preds]
+
+        else:#lexical
+            if self.tied:
+                dy.renew_cg()
+                W = dy.parameter(self.hidden_weights)
+                E = dy.parameter(self.embedding_matrix)
+                batched_X  = zip(*X) #transposes the X matrix
+                embeddings = [dy.pick(E, xcolumn) for xcolumn in X]
+                xdense     = dy.concatenate(embeddings)
+                preds      = dy.pickneglogsoftmax(E * dy.tanh( W * xdense ),Y)
+                dy.forward(preds)
+                return [-ypred.value()  for ypred in preds]
+            else:
+                dy.renew_cg()
+                O = dy.parameter(self.output_weights)
+                W = dy.parameter(self.hidden_weights)
+                E = dy.parameter(self.embedding_matrix)
+                batched_X  = zip(*X) #transposes the X matrix
+                embeddings = [dy.pick(E, xcolumn) for xcolumn in X]
+                xdense     = dy.concatenate(embeddings)
+                preds      = dy.pickneglogsoftmax(O * dy.tanh( W * xdense ),Y)
+                dy.forward(preds)
+                return [-ypred.value()  for ypred in preds]
+
+    
+    def static_train(self,\
+                    train_treebank,\
+                    validation_treebank,\
+                    lr=0.001,\
+                    hidden_dropout=0.1,\
+                    batch_size=64,\
+                    max_epochs=100,\
+                    max_lexicon_size=9998,\
+                    glove_file=None):
+        """
+        Locally trains a model with a static oracle and a multi-task standard feedforward NN.  
+        @param train_treebank      : a list of dependency trees
+        @param validation_treebank : a list of dependency trees
+        @param lr                  : learning rate
+        @param hidden_dropout      : dropout on hidden layer
+        @param batch_size          : size of mini batches
+        @param max_epochs          : max number of epochs
+        @param max_lexicon_size    : max number of entries in the lexicon
+        @param glove_file          : file where to find pre-trained word embeddings   
+        """
+        print("Encoding dataset from %d trees."%len(train_treebank))
+
+        #(1) build dictionaries
+        self.code_symbols(train_treebank,lexicon_size = max_lexicon_size)
+
+        #(2) encode data sets
+        lex_train_gen , struct_train_gen  = self.make_data_generators(train_treebank,batch_size)
+        lex_dev_gen   , struct_dev_gen    = self.make_data_generators(train_treebank,batch_size)
+        
         print(self)
         print("training examples [N] = %d\nBatch size = %d\nDropout = %f\nlearning rate = %f"%(len(Y),batch_size,hidden_dropout,lr))
-        self.model = Sequential()
-        
-        if glove_file == None:
-            self.model.add(Embedding(self.lexicon_size,self.embedding_size,input_length=self.input_size))
+
+        #(3) make network
+        self.model = dy.ParameterCollection()
+        self.hidden_weights   = self.model.add_parameters((self.hidden_size,self.embedding_size*self.input_length))
+        self.action_weights   = self.model.add_parameters((self.actions_size,self.hidden_size))
+        if glove_file is None:
+            self.input_embeddings  = self.model.add_parameters((self.lexicon_size,self.embedding_size))
         else:
-            self.model.add(Embedding(self.lexicon_size,\
-                                     self.embedding_size,\
-                                     input_length=self.input_size,\
-                                     weights=[self.read_glove_embeddings(glove_file)]))
+            self.input_embeddings  = self.model.parameters_from_numpy(self.read_glove_embeddings(glove_file))
+        if not self.tied:
+            self.output_embeddings = self.model.add_parameters((self.lexicon_size,self.hidden_size))
 
-        self.model.add(Flatten())        #concatenates the embeddings layers
-        self.model.add(Dense(self.hidden_size))
-        self.model.add(Activation('tanh'))
-        self.model.add(Dropout(hidden_dropout))
-        self.model.add(Dense(self.actions_size))
-        self.model.add(Activation('softmax'))
-        rms = RMSprop(lr=lr)
-        self.model.compile(optimizer=rms,loss='categorical_crossentropy',metrics=['accuracy'])
-        nbatches = max(1,round(len(Y)/batch_size))
-        log = self.model.fit_generator(generator = training_generator,epochs=max_epochs,steps_per_epoch = nbatches)
-        return pd.DataFrame(log.history)
+        #(4) fitting
+        lex_gen       = lex_train_gen.next_batch()
+        struct_gen    = struct_train_gen.next_batch()
+        max_batches = max( lex_gen.get_num_batches(), struct_gen.get_num_batches() )
 
+        lex_valid_gen       = lex_dev_gen.next_batch()
+        struct_valid_gen    = struct_dev_gen.next_batch()
         
+        min_nll = float('inf')
+        trainer = dy.AdamTrainer(self.model,alpha=lr)
+        history_log = []
+        for e in range(max_epochs):
+            struct_loss,lex_loss = 0,0
+            struct_N,lex_N       = 0,0
+            start_t = time.time()
+            for b in range(max_batches):
+                #struct
+                X_struct,Y_struct = next(struct_gen)
+                #question of proportions : should struct and gen be evenly sampled or not (??)
+                dy.renew_cg()
+                W = dy.parameter(self.hidden_weights)
+                E = dy.parameter(self.input_embeddings)
+                A = dy.parameter(self.action_weights)
+                batched_X        = zip(*X_struct)  #transposes the X matrix
+                lookups          = [dy.pick_batch(E,xcolumn) for xcolumn in batched_X]
+                xdense           = dy.concatenate(lookups)
+                ybatch_preds     = dy.pickneglogsoftmax_batch(A * dy.dropout(dy.tanh( W * xdense ),hidden_dropout),Y)
+                loss             = dy.sum_batches(ybatch_preds)
+                struct_N         +=len(Y_struct)
+                struct_loss      += loss.value()
+                loss.backward()
+                trainer.update()
+                #lex
+                X_lex,Y_lex = next(lex_gen)
+                if self.tied:
+                    dy.renew_cg()
+                    W = dy.parameter(self.hidden_weights)
+                    E = dy.parameter(self.input_embeddings)
+                    batched_X        = zip(*X_lex) #transposes the X matrix
+                    lookups          = [dy.pick_batch(E,xcolumn) for xcolumn in batched_X]
+                    xdense           = dy.concatenate(lookups)
+                    ybatch_preds     = dy.pickneglogsoftmax_batch(E * dy.dropout(dy.tanh( W * xdense ),hidden_dropout),Y)
+                    loss             = dy.sum_batches(ybatch_preds)
+                else:
+                    dy.renew_cg()
+                    W = dy.parameter(self.hidden_weights)
+                    E = dy.parameter(self.input_embeddings)
+                    O = dy.parameter(self.output_embeddings)
+                    batched_X        = zip(*X_lex) #transposes the X matrix
+                    lookups          = [dy.pick_batch(E,xcolumn) for xcolumn in batched_X]
+                    xdense           = dy.concatenate(lookups)
+                    ybatch_preds     = dy.pickneglogsoftmax_batch(O * dy.dropout(dy.tanh( W * xdense ),hidden_dropout),Y)
+                    loss             = dy.sum_batches(ybatch_preds)
+                lex_N            +=len(Y_lex)
+                lex_loss         += loss.value()
+                loss.backward()
+                trainer.update()
+            end_t = time.time()
+            # (5) validation
+            X_lex_valid,Y_lex_valid       = lex_valid_gen.batch_all()
+            lex_valid_nll = -sum(self.predict_logprobs(X_lex_valid,Y_lex_valid,structural=False))
+            
+            X_struct_valid,Y_struct_valid = struct_valid_gen.batch_all()
+            struct_valid_nll = -sum(self.predict_logprobs(X_struct_valid,Y_struct_valid,structural=True))
+            
+            history_log.append((e,end_t-start_t,lex_loss,struct_loss,lex_valid_nll,struct_valid_nll,lex_valid_nll+struct_valid_nll))
+            print('Epoch %d (%.2f sec.) NLL_lex (train) = %f, NLL_struct (train) = %f, NLL_lex (valid) = %f, NLL_struct (valid) = %f, NLL_all (valid) = %f'%tuple(history_log[-1]),flush=True)
+            if  lex_valid_nll+struct_valid_nll < min_nll:
+                pass #auto-save model
+            
     #PERSISTENCE
     @staticmethod
     def load_parser(dirname):
@@ -712,32 +777,11 @@ class ArcEagerGenerativeParser:
     #     return (action,action_score)
 
 
-     
-   
-            
 if __name__ == '__main__':
     
-    eagerp = ArcEagerGenerativeParser()
         
-    treebank = []
-    istream = open('UD_English/en-ud-train.conllu')
-    dtree = DependencyTree.read_tree(istream)
-    idx = 0
-    while dtree != None:
-        if dtree.is_projective():
-            treebank.append(dtree)
-            idx += 1
-            if idx > 30:
-                break
-        dtree = DependencyTree.read_tree(istream)
-    istream.close()
-    df = eagerp.static_nn_train(treebank,max_epochs=100,lr=0005,hidden_dropout=0.3,glove_file='glove/glove.6B.100d.txt')
-    #print(df)
-    eagerp.save_parser('test')
-    eagerp = ArcEagerGenerativeParser.load_parser('test')
-    eagerp.test_and_print(treebank)
-    eagerg = ArcEagerGenerator.load_generator('test')
-    for _ in range(10):
-        df = eagerg.generate_sentence(lex_stats=True)
-        print(df)
+    train_treebank = UDtreebank_reader('ptb/ptb_deps.train',tokens_only=False)
+    dev_treebank = UDtreebank_reader('ptb/ptb_deps.dev',tokens_only=False)
     
+    eagerp = ArcEagerGenerativeParser()
+    eagerp.static_train(train_treebank[:20],dev_treebank[:20],glove_file='glove/glove.6B.300d.txt')
