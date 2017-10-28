@@ -1,9 +1,5 @@
 #! /usr/bin/env python
 
-#DATA REPRESENTATION
-#TODO : Exclude non projective structures ? (almost done)
-#TODO : termination is crap, maybe put the dummy root at the end...
-#TODO : what to do with pos tags ?
 
 import os
 import os.path
