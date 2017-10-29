@@ -667,8 +667,8 @@ class ArcEagerGenerativeParser:
         lex_train_gen , struct_train_gen  = self.make_data_generators(train_treebank,batch_size)
         lex_dev_gen   , struct_dev_gen    = self.make_data_generators(validation_treebank,batch_size)
         
-        print(self)
-        print("structural training examples  [N] = %d\nlexical training examples  [N] = %d\nBatch size = %d\nDropout = %f\nlearning rate = %f"%(struct_train_gen.N,lex_train_gen.N,batch_size,hidden_dropout,lr))
+        print(self,flush=True)
+        print("structural training examples  [N] = %d\nlexical training examples  [N] = %d\nBatch size = %d\nDropout = %f\nlearning rate = %f"%(struct_train_gen.N,lex_train_gen.N,batch_size,hidden_dropout,lr),flush=True)
 
         #(3) make network
         self.model = dy.ParameterCollection()
