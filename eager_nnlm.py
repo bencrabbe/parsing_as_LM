@@ -685,7 +685,7 @@ class ArcEagerGenerativeParser:
         lex_gen       = lex_train_gen.next_batch()
         struct_gen    = struct_train_gen.next_batch()
         max_batches = max( lex_train_gen.get_num_batches(), struct_train_gen.get_num_batches() )
-        print(lex_train_gen.get_num_batches(), struct_train_gen.get_num_batches())
+        print(lex_train_gen.get_num_batches(), struct_train_gen.get_num_batches(),flush=True)
         
         lex_valid_gen       = lex_dev_gen.next_batch()
         struct_valid_gen    = struct_dev_gen.next_batch()
@@ -921,7 +921,7 @@ if __name__ == '__main__':
     dev_treebank   = UDtreebank_reader('ptb/ptb_deps.dev',tokens_only=False)
     
     eagerp = ArcEagerGenerativeParser(tied_embeddings=True,parser_class='basic')
-    eagerp.static_train(train_treebank,dev_treebank,lr=0.0001,hidden_dropout=0.1,max_epochs=70,glove_file='glove/glove.6B.300d.txt')
+    eagerp.static_train(train_treebank,dev_treebank,lr=0.0001,hidden_dropout=0.1,batch_size=512,max_epochs=70,glove_file='glove/glove.6B.300d.txt')
     print('PPL = %s ; UAS = %f'%eagerp.eval_lm(dev_treebank,uas=True,ppl=True))
 
 
