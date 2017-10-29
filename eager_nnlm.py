@@ -748,8 +748,13 @@ class ArcEagerGenerativeParser:
             X_struct_valid,Y_struct_valid = struct_dev_gen.batch_all()
             struct_valid_nll = -sum(self.predict_logprobs(X_struct_valid,Y_struct_valid,structural=True))
             
-            history_log.append((e,end_t-start_t,lex_loss,struct_loss,lex_valid_nll,struct_valid_nll,lex_valid_nll+struct_valid_nll))
-            print('Epoch %d (%.2f sec.) NLL_lex (train) = %f, NLL_struct (train) = %f, NLL_lex (valid) = %f, NLL_struct (valid) = %f, NLL_all (valid) = %f'%tuple(history_log[-1]),flush=True)
+            history_log.append((e,end_t-start_t,\
+                                exp(lex_loss/lex_N),\
+                                exp(struct_loss/struct_N),\
+                                exp(lex_valid_nll/lex_dev_gen.N),\
+                                exp(struct_valid_nll/struct_dev_gen.N),\
+                                exp((lex_valid_nll+struct_valid_nll) /(struct_dev_gen.N+lex_dev_gen.N))))
+            print('Epoch %d (%.2f sec.) TRAIN:: PPL_lex = %f, PPL_struct = %f / VALID:: PPL_lex = %f, PPL_struct = %f, PPL_all = %f'%tuple(history_log[-1]),flush=True)
             if  lex_valid_nll+struct_valid_nll < min_nll:
                 pass #auto-save model
             
@@ -921,9 +926,10 @@ if __name__ == '__main__':
     dev_treebank   = UDtreebank_reader('ptb/ptb_deps.dev',tokens_only=False)
     
     eagerp = ArcEagerGenerativeParser(tied_embeddings=True,parser_class='basic')
-    eagerp.static_train(train_treebank,dev_treebank,lr=0.0001,hidden_dropout=0.1,batch_size=512,max_epochs=70,glove_file='glove/glove.6B.300d.txt')
+    eagerp.static_train(train_treebank,dev_treebank,lr=0.0001,hidden_dropout=0.4,batch_size=512,max_epochs=150,glove_file='glove/glove.6B.300d.txt')
+    print('PPL = %s ; UAS = %f'%eagerp.eval_lm(train_treebank,uas=True,ppl=True))
     print('PPL = %s ; UAS = %f'%eagerp.eval_lm(dev_treebank,uas=True,ppl=True))
+    
 
-
-    for s in dev_treebank[:15]:
-        print(eagerp.parse_sentence(s.tokens,stats=True,kbest=1))        
+    #for s in dev_treebank[:15]:
+    #   print(eagerp.parse_sentence(s.tokens,stats=True,kbest=1))        

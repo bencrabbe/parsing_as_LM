@@ -151,8 +151,7 @@ class RNNLMGenerator:
             Y = [self.Y[sidx] for sidx in sent_idxes]
             yield (X,Y)
             _idx += 1
-            
-    
+
             
 class NNLMGenerator:
     """
