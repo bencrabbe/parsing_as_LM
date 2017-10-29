@@ -169,6 +169,10 @@ class ArcEagerGenerativeParser:
         S[-1] = S[-1].copy_right_arc(F)
         return (S+[F],None, B, A + [(i,j)],prefix_score+local_score) 
 
+    def terminate(self,configuration,local_score=0.0):
+        S,F,B,A,prefix_score = configuration
+        return (S,F,B,A,prefix_score+local_score)
+    
     def reduce_config(self,configuration,local_score=0.0):
         S,F,B,A,prefix_score = configuration
         return (S[:-1],F,B,A,prefix_score+local_score)
@@ -240,6 +244,190 @@ class ArcEagerGenerativeParser:
         derivation.append((C,action,sentence))
         return derivation
 
+    
+    #PARSING
+    def predict_next_best_action(self,config,sentence):
+        """
+        Predicts the next best couple (configuration,action)
+        @param config: the current configuration
+        @param sentence: the sentence to parse
+        @return a couple (next_config, action_taken)
+        """
+        S,F,B,A,prefix_score = config
+        if F is None and len(B) > 0 : #lexical action
+            unk_token = self.word_codes[ArcEagerGenerativeParser.UNKNOWN_TOKEN]
+            next_word = self.word_codes.get(sentence[B[0]],unk_token)
+            X = self.make_representation(config,None,sentence,structural=False)
+            if self.tied:
+                dy.renew_cg()
+                W = dy.parameter(self.hidden_weights)
+                E = dy.parameter(self.input_embeddings)
+                embeddings = [dy.pick(E, xidx) for xidx in X]
+                xdense     = dy.concatenate(embeddings)
+                pred       = dy.pickneglogsoftmax(E * dy.tanh( W * xdense ),next_word)
+                C = self.generate(config,local_score= -pred.value())
+                action =  (ArcEagerGenerativeParser.GENERATE,sentence[B[0]])
+                return (C,action)
+            else:    
+                dy.renew_cg()
+                W = dy.parameter(self.hidden_weights)
+                E = dy.parameter(self.input_embeddings)
+                O = dy.parameter(self.output_embeddings)
+                embeddings = [dy.pick(E, xidx) for xidx in X]
+                xdense     = dy.concatenate(embeddings)
+                pred       = dy.pickneglogsoftmax(O * dy.tanh( W * xdense ),next_word)
+                C = self.generate(config,local_score= -pred.value())
+                action = (ArcEagerGenerativeParser.GENERATE,sentence[B[0]])
+                return (C,action)
+        else:  #structural action
+            X = self.make_representation(config,None,sentence,structural=True) 
+            dy.renew_cg()
+            W = dy.parameter(self.hidden_weights)
+            E = dy.parameter(self.input_embeddings)
+            A = dy.parameter(self.action_weights)
+            embeddings = [dy.pick(E, xidx) for xidx in X]
+            xdense     = dy.concatenate(embeddings)
+            preds      = dy.softmax(A * dy.tanh( W * xdense )).npvalue()
+            action_mask = self.mask_actions(config,len(sentence))
+            max_idx = np.argmax(preds*action_mask)
+            score = log(preds[max_idx])
+            C = self.actions[max_idx](config,local_score=score) #this just execs the predicted action..
+            action = self.rev_action_codes[max_idx]
+            return (C,action)
+
+    def mask_actions(self,config,N):
+        """
+        Return a boolean vector of dims = sizeof(action set)
+        being a categorical mask for forbidden actions given some config.
+        @param config: the current configuration
+        @param N: sentence length
+        """
+        S,F,B,A,prefix_score = config
+        mask = np.ones(self.actions_size)
+
+        if len(B) > 0:
+            mask[self.actions_codes[ArcEagerGenerativeParser.TERMINATE]] = 0
+        if F is None:
+            mask[self.actions_codes[ArcEagerGenerativeParser.RIGHTARC]] = 0
+            mask[self.actions_codes[ArcEagerGenerativeParser.PUSH]]     = 0
+            mask[self.actions_codes[ArcEagerGenerativeParser.LEFTARC]]  = 0
+        if len(S) == 0:
+            mask[self.actions_codes[ArcEagerGenerativeParser.REDUCE]] = 0
+            mask[self.actions_codes[ArcEagerGenerativeParser.RIGHTARC]] = 0
+            mask[self.actions_codes[ArcEagerGenerativeParser.LEFTARC]] = 0
+        else:
+            s1_has_governor = any( (k, S[-1].root) in A for k in range(N))
+            if s1_has_governor: #do not create cycles
+                 mask[self.actions_codes[ArcEagerGenerativeParser.LEFTARC]] = 0
+            else:               #do not omit words
+                 mask[self.actions_codes[ArcEagerGenerativeParser.REDUCE]]  = 0
+        return mask
+
+    def K_best_actions(self,config,sentence):
+        pass
+            
+    def greedy_parse(self,sentence):
+        """
+        Standard greedy parsing method for baseline.
+        @param sentence : the sentence to parse (list of strings)
+        @param df: boolean: outputs a pandas dataframe for analysis rather than the dependency tree
+        @return a DependencyTree object
+        """
+        derivation = []
+        C = self.init_configuration(sentence)
+        C,action = self.predict_next_best_action(C,sentence)
+        while action != ArcEagerGenerativeParser.TERMINATE:
+            derivation.append((C,action,sentence))
+            C,action = self.predict_next_best_action(C,sentence)
+        return derivation
+    
+    def predict_lex_probs(self,derivation):
+        """
+        Computes the probability P(W1 ... Wn) of this sentence
+        as the product Prod_{i=1}^n P(Wi | Wi-1, Wi-2 ... )
+        @param : a parse derivation (or a tree structured beam *TODO*) as returned by a parser
+        @return a list of P(Wi | ...) for each i as log probabilities
+        """
+        #TODO make it work for beam.            
+        logprobs = []
+        last_score = 0
+        for C,action,sentence in derivation:
+            if type(action) == tuple:
+                _,word = action 
+                S,F,B,A,prefix_score = C
+                logprobs.append(prefix_score-last_score) #P(w_i+1|w_i) = P(w_i,w_i+1)/P(w_i) in log space
+                last_score = prefix_score
+        return  logprobs
+    
+    def parse_sentence(self,sentence,stats=False,kbest=1):
+        """
+        @param sentence : the sentence to parse (list of strings)
+        @param stats: boolean: outputs a pandas dataframe for analysis rather than the dependency tree
+        @return a DependencyTree object
+        """
+        assert(kbest >= 1)
+
+        if kbest == 1:
+            deriv = self.greedy_parse(sentence)
+            S,F,B,A,prefix_score = deriv[-1][0]
+            deptree = DependencyTree(edges=list(A),tokens=sentence)
+
+            if not stats:
+                return deptree
+
+            governors   = [-1]*(len(sentence))
+            for (g,d) in deptree.edges:
+                governors[d] = g #temporary index shift (recovered by DF constructor)
+            surprisals = [0.0] + [-lp for lp in self.predict_lex_probs(deriv)] #0 for init dummy token
+            unk_words = [w not in self.word_codes for w in sentence]
+
+            
+            if len(surprisals) > len(sentence):
+                print('truncate!')
+                surprisals = surprisals[:len(sentence)]
+            if len(sentence) > len(surprisals):
+                surprisals.extend([0.0]*(len(sentence)-len(surprisals)))
+            
+            return pd.DataFrame({'token':sentence[1:],'surprisal':surprisals[1:],'governor':governors[1:],'unk_word':unk_words[1:]},index=range(1,len(sentence)))
+        else:
+            #todo...
+            pass
+    
+
+    def eval_lm(self,treebank,uas=True,ppl=True,kbest=1):
+        """
+        @param treebank: an evaluation treebank
+        @param uas: output unlabelled accurracy
+        @param ppl: output perplexity
+        """
+        assert(kbest == 1)
+        
+        nll       = 0
+        uas_val   = 0
+        Ntoks     = 0 
+        for sent in treebank:
+
+            deriv = self.greedy_parse(sent.tokens)            
+            if ppl:
+                nll   -= sum(self.predict_lex_probs(deriv))
+                Ntoks += len(sent.tokens)
+            if uas:
+                S,F,B,A,prefix_score = deriv[-1][0]
+                pred_tree            = DependencyTree(edges=list(A),tokens=sent.tokens)
+                uas_val             += sent.accurracy(pred_tree)
+                
+        if ppl and not uas:
+            return exp(nll/Ntoks)
+        if uas and not ppl:
+            uas_val /=len(treebank)
+            return uas_val
+        if uas and ppl:
+            ppl_val  = exp(nll/Ntoks)
+            uas_val /= len(treebank)
+            return (ppl_val,uas_val)
+
+
+        
     #CODING & SCORING SYSTEM
     def code_symbols(self,treebank,lexicon_size=9998):
         """
@@ -267,7 +455,7 @@ class ArcEagerGenerativeParser:
                    ArcEagerGenerativeParser.REDUCE,\
                    ArcEagerGenerativeParser.TERMINATE]
                    #Generate action is implied
-                   
+        self.actions = [self.leftarc,self.rightarc,self.push,self.reduce_config,self.terminate]
         self.rev_action_codes = actions                   
         self.actions_codes = dict([(s,idx) for (idx,s) in enumerate(actions)])
         self.actions_size  = len(actions) 
@@ -314,9 +502,8 @@ class ArcEagerGenerativeParser:
         if F is not None:
             focus = sentence[F.root] if not verbose else '(%s %s %s)' %(sentence[F.root],sentence[F.ilc],sentence[F.irc])
 
-        return '(%s,%s,_,_)'%(stack,focus)
+        return '(%s,%s,_,_):%f'%(stack,focus,score)
 
-            
     def make_representation(self,config,action,sentence,structural=True):
         """
         Turns a configuration into a couple of vectors (X,Y) and
@@ -404,61 +591,6 @@ class ArcEagerGenerativeParser:
         lex_generator    = NNLMGenerator(X_lex,Y_lex,batch_size)
         struct_generator = NNLMGenerator(X_struct,Y_struct,batch_size)
         return ( lex_generator , struct_generator )
-
-    def struct_accurracy(self,treebank):
-        """
-        Temp debug method
-        """
-        N = 0
-        c = 0
-        for dtree in treebank:
-            Deriv = self.static_oracle_derivation(dtree)
-            for (config,action,sentence) in Deriv:
-                if type(action) != tuple:
-                    x,y    = self.make_representation(config,action,sentence,structural=False)
-                    dy.renew_cg()
-                    W = dy.parameter(self.hidden_weights)
-                    E = dy.parameter(self.input_embeddings)
-                    A = dy.parameter(self.action_weights)
-                    embeddings = [dy.pick(E, xidx) for xidx in x]
-                    xdense     = dy.concatenate(embeddings)
-                    pred       = dy.softmax(A * dy.tanh( W * xdense )).npvalue()
-                    ypred = np.argmax(pred)
-                    N+=1
-                    if action == self.rev_action_codes[ypred]:
-                        c += 1
-                    else:
-                        print(self.pprint_configuration(config,sentence),'=',action, '=pred=>',self.rev_action_codes[ypred], 'with p=',pred[ypred])
-        print(c/N)
-
-    def lex_accurracy(self,treebank):
-        """
-        Temp debug method
-        """
-        N = 0
-        c = 0
-        for dtree in treebank:
-            Deriv = self.static_oracle_derivation(dtree)
-            for (config,action,sentence) in Deriv:
-                if type(action) == tuple:
-                    action, ref_word = action
-                    x,y    = self.make_representation(config,action,sentence,structural=False)
-                    dy.renew_cg()
-                    W = dy.parameter(self.hidden_weights)
-                    E = dy.parameter(self.input_embeddings)
-                    embeddings = [dy.pick(E, xidx) for xidx in x]
-                    xdense     = dy.concatenate(embeddings)
-                    pred       = dy.softmax(E * dy.tanh( W * xdense )).npvalue()
-                    ypred = np.argmax(pred)
-                    N+=1
-
-                    if ref_word not in self.word_codes:
-                        ref_word == ArcEagerGenerativeParser.UNKNOWN_TOKEN
-                    if ref_word == self.rev_word_codes[ypred]:
-                        c += 1
-                    else:
-                        print(self.pprint_configuration(config,sentence),'=',ref_word, '=pred=>',self.rev_word_codes[ypred], 'with p=',pred[ypred])
-        print(c/N)
         
     def predict_logprobs(self,X,Y,structural=True,hidden_out=False):
         """
@@ -505,7 +637,6 @@ class ArcEagerGenerativeParser:
                 xdense     = dy.concatenate(embeddings)
                 preds      = dy.pickneglogsoftmax_batch(O * dy.tanh( W * xdense ),Y).value()
                 return [-ypred  for ypred in preds]
-
     
     def static_train(self,\
                     train_treebank,\
@@ -789,9 +920,10 @@ if __name__ == '__main__':
     train_treebank = UDtreebank_reader('ptb/ptb_deps.train',tokens_only=False)
     dev_treebank   = UDtreebank_reader('ptb/ptb_deps.dev',tokens_only=False)
     
-    eagerp = ArcEagerGenerativeParser( tied_embeddings=True,parser_class='basic')
-    eagerp.static_train(train_treebank[:20],dev_treebank[:20],lr=0.001,max_epochs=200,glove_file='glove/glove.6B.300d.txt')
-    #print('dev')
-    #eagerp.struct_accurracy(dev_treebank[:20])
-    print('train')
-    eagerp.lex_accurracy(train_treebank[:20])
+    eagerp = ArcEagerGenerativeParser(tied_embeddings=True,parser_class='basic')
+    eagerp.static_train(train_treebank,dev_treebank,lr=0.0001,hidden_dropout=0.1,max_epochs=70,glove_file='glove/glove.6B.300d.txt')
+    print('PPL = %s ; UAS = %f'%eagerp.eval_lm(dev_treebank,uas=True,ppl=True))
+
+
+    for s in dev_treebank[:15]:
+        print(eagerp.parse_sentence(s.tokens,stats=True,kbest=1))        

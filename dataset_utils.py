@@ -1,6 +1,7 @@
 class DependencyTree:
 
     def __init__(self,tokens=None, edges=None):
+        #pb ensure there is one and only one root at init
         self.edges  = [] if edges is None else edges   #couples (gov_idx,dep_idx)
         self.tokens = ['#ROOT#'] if tokens is None else tokens #list of wordforms
     
