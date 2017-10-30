@@ -118,16 +118,94 @@ class ArcEagerGenerativeParser:
         self.input_length     = (self.stack_length+1)*self.node_size # stack (+1 = focus node)
         self.tied             = tied_embeddings
 
-        self.actions_size     = 0 
-        self.lexicon_size     = 0 
+
         self.embedding_size   = embedding_size
         self.hidden_size      = hidden_size
 
+        #lexical coding
         self.word_codes       = None  
-        self.actions_codes    = None 
         self.rev_action_codes = None
+        self.lexicon_size     = 0 
+
+        #structural coding
+        self.actions = [self.leftarc,self.rightarc,self.push,self.reduce_config,self.terminate]
+        actions = [ArcEagerGenerativeParser.LEFTARC,\
+                   ArcEagerGenerativeParser.RIGHTARC,\
+                   ArcEagerGenerativeParser.PUSH,\
+                   ArcEagerGenerativeParser.REDUCE,\
+                   ArcEagerGenerativeParser.TERMINATE]
+                   #Generate action is implied
+        self.rev_action_codes = actions                   
+        self.actions_codes = dict([(s,idx) for (idx,s) in enumerate(actions)])
+        self.actions_size  = len(actions) 
+        
+       
+
+
+    @staticmethod
+    def load_model(dirname):
+
+        istream = open(os.path.join(dirname,'params.pkl'),'rb')
+        params = pickle.load(istream)
+        istream.close()
+        
+        g = ArcEagerGenerativeParser(embedding_size=params['embedding_size'],\
+                                    hidden_size=params['hidden_size'],\
+                                    tied_embeddings=params['tied'],\
+                                    parser_class=params['parser_class'])
+
+        if g.parser_class == 'basic':
+            g.node_size        = 1                             
+        elif g.parser_class == 'extended':
+            g.node_size        = 3 
+        elif g.parser_class == 'star-extended':
+            g.node_size        = 5
+        g.input_length         = (g.stack_length+1) * g.node_size 
+
+        istream = open(os.path.join(dirname,'words.pkl'),'rb')
+        g.word_codes = pickle.load(istream)
+        istream.close()
+        g.rev_word_codes = [0]*len(g.word_codes)
+        for word,idx in g.word_codes.items():
+             g.rev_word_codes[idx] = word
+        g.lexicon_size = len(g.rev_word_codes)
+
+        g.model = dy.ParameterCollection()
+        g.hidden_weights   = g.model.add_parameters((g.hidden_size,g.embedding_size*g.input_length))
+        g.action_weights   = g.model.add_parameters((g.actions_size,g.hidden_size))
+        g.input_embeddings = g.model.add_parameters((g.lexicon_size,g.embedding_size))
+        if not g.tied:
+            g.output_embeddings = g.model.add_parameters((g.lexicon_size,g.hidden_size))
+        g.model.populate(os.path.join(dirname,'model.prm'))
+        return g
 
         
+    def save_model(self,dirname,epoch= -1,learning_curve=None):
+        
+        if not os.path.exists(dirname):
+            os.mkdir(dirname)
+
+        #select parameters to save
+        params = {'parser_class':self.parser_class,\
+                  'embedding_size':self.embedding_size,\
+                  'hidden_size':self.hidden_size,\
+                  'lexicon_size':self.lexicon_size,\
+                  'tied':self.tied,\
+                  'epoch':str(epoch)}
+
+        ostream = open(os.path.join(dirname,'params.pkl'),'wb')
+        pickle.dump(params,ostream)
+        ostream.close()
+
+        ostream = open(os.path.join(dirname,'words.pkl'),'wb')
+        pickle.dump(self.word_codes,ostream)
+        ostream.close()
+    
+        self.model.save(os.path.join(dirname,'model.prm')) 
+
+        if learning_curve is not None:
+            learning_curve.to_csv(os.path.join(dirname,'learning_curve.csv'),index=False)
+
     def __str__(self):
         s = ['Stack size        : %d'%(self.stack_length),\
             'Node size         : %d'%(self.node_size),\
@@ -448,18 +526,6 @@ class ArcEagerGenerativeParser:
         self.lexicon_size = len(lexicon)
         self.word_codes = dict([(s,idx) for (idx,s) in enumerate(self.rev_word_codes)])
         
-        #structural coding
-        actions = [ArcEagerGenerativeParser.LEFTARC,\
-                   ArcEagerGenerativeParser.RIGHTARC,\
-                   ArcEagerGenerativeParser.PUSH,\
-                   ArcEagerGenerativeParser.REDUCE,\
-                   ArcEagerGenerativeParser.TERMINATE]
-                   #Generate action is implied
-        self.actions = [self.leftarc,self.rightarc,self.push,self.reduce_config,self.terminate]
-        self.rev_action_codes = actions                   
-        self.actions_codes = dict([(s,idx) for (idx,s) in enumerate(actions)])
-        self.actions_size  = len(actions) 
-        
 
     def read_glove_embeddings(self,glove_filename):
         """
@@ -668,7 +734,7 @@ class ArcEagerGenerativeParser:
         lex_dev_gen   , struct_dev_gen    = self.make_data_generators(validation_treebank,batch_size)
         
         print(self,flush=True)
-        print("structural training examples  [N] = %d\nlexical training examples  [N] = %d\nBatch size = %d\nDropout = %f\nlearning rate = %f"%(struct_train_gen.N,lex_train_gen.N,batch_size,hidden_dropout,lr),flush=True)
+        print("epochs %d\nstructural training examples  [N] = %d\nlexical training examples  [N] = %d\nBatch size = %d\nDropout = %f\nlearning rate = %f"%(max_epochs,struct_train_gen.N,lex_train_gen.N,batch_size,hidden_dropout,lr),flush=True)
 
         #(3) make network
         self.model = dy.ParameterCollection()
@@ -794,35 +860,7 @@ class ArcEagerGenerativeParser:
         
         return p
         
-    def save_parser(self,dirname):
-        
-        if not os.path.exists(dirname):
-            os.mkdir(dirname)
-
-        #select parameters to save
-        params = {'stack_size':self.stack_size,\
-                  'node_size':self.node_size,\
-                  'input_size':self.input_size,\
-                  'embedding_size':self.embedding_size,\
-                  'hidden_size':self.hidden_size,\
-                  'actions_size':self.actions_size,\
-                  'lexicon_size':self.lexicon_size}
-
-        ostream = open(os.path.join(dirname,'params.pkl'),'wb')
-        pickle.dump(params,ostream)
-        ostream.close()
-
-        ostream = open(os.path.join(dirname,'words.pkl'),'wb')
-        pickle.dump(self.word_codes,ostream)
-        ostream.close()
-    
-        ostream = open(os.path.join(dirname,'actions.pkl'),'wb')
-        pickle.dump(self.actions_codes,ostream)
-        ostream.close()
-        
-        self.model.save(os.path.join(dirname,'model.prm')) 
-            
-    
+  
     # def generate_sentence(self,max_len=2000,lex_stats=False):
     #     """
     #     @param lex_stats: generate a table with word,log(prefix_prob),log(local_prob),num_actions
@@ -926,10 +964,12 @@ if __name__ == '__main__':
     dev_treebank   = UDtreebank_reader('ptb/ptb_deps.dev',tokens_only=False)
     
     eagerp = ArcEagerGenerativeParser(tied_embeddings=True,parser_class='basic')
-    eagerp.static_train(train_treebank,dev_treebank,lr=0.0001,hidden_dropout=0.7,batch_size=512,max_epochs=100,glove_file='glove/glove.6B.300d.txt')
-    print('PPL = %s ; UAS = %f'%eagerp.eval_lm(train_treebank,uas=True,ppl=True))
-    print('PPL = %s ; UAS = %f'%eagerp.eval_lm(dev_treebank,uas=True,ppl=True))
-    
+    lc = eagerp.static_train(train_treebank[:10],dev_treebank[:10],lr=0.001,hidden_dropout=0.7,batch_size=12,max_epochs=10,glove_file='glove/glove.6B.300d.txt')
+    print('PPL = %s ; UAS = %f'%eagerp.eval_lm(train_treebank[:10],uas=True,ppl=True))
+    #print('PPL = %s ; UAS = %f'%eagerp.eval_lm(dev_treebank,uas=True,ppl=True))
+    eagerp.save_model('final_model')
+    eagerp = ArcEagerGenerativeParser.load_model('final_model')
+    print('PPL = %s ; UAS = %f'%eagerp.eval_lm(train_treebank[:10],uas=True,ppl=True))
 
     #for s in dev_treebank[:15]:
     #   print(eagerp.parse_sentence(s.tokens,stats=True,kbest=1))        
