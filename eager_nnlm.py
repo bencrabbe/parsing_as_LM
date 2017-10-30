@@ -138,9 +138,6 @@ class ArcEagerGenerativeParser:
         self.rev_action_codes = actions                   
         self.actions_codes = dict([(s,idx) for (idx,s) in enumerate(actions)])
         self.actions_size  = len(actions) 
-        
-       
-
 
     @staticmethod
     def load_model(dirname):
@@ -822,45 +819,11 @@ class ArcEagerGenerativeParser:
                                 exp((lex_valid_nll+struct_valid_nll) /(struct_dev_gen.N+lex_dev_gen.N))))
             print('Epoch %d (%.2f sec.) TRAIN:: PPL_lex = %f, PPL_struct = %f / VALID:: PPL_lex = %f, PPL_struct = %f, PPL_all = %f'%tuple(history_log[-1]),flush=True)
             if  lex_valid_nll+struct_valid_nll < min_nll:
-                pass #auto-save model
+                df = pd.DataFrame(history_log,columns=['epoch','wall_time','ppl_lex_train','ppl_struct_train','ppl_lex_valid','ppl_struct_valid','ppl_all_valid'])
+                self.save_model('best_model_dump',epoch = e, learning_curve=df)
             
-    #PERSISTENCE
-    @staticmethod
-    def load_parser(dirname):
-        
-        p = ArcEagerGenerativeParser()
-                
-        istream = open(os.path.join(dirname,'params.pkl'),'rb')
-        params = pickle.load(istream)
-        istream.close()
-        
-        p.stack_size = params['stack_size']
-        p.node_size  = params['node_size']
-        p.input_size = params['input_size']
-        p.embedding_size = params['embedding_size']
-        p.hidden_size = params['hidden_size']
-        p.actions_size = params['actions_size']
-        p.lexicon_size = params['lexicon_size']
+        return pd.DataFrame(history_log,columns=['epoch','wall_time','ppl_lex_train','ppl_struct_train','ppl_lex_valid','ppl_struct_valid','ppl_all_valid'])
 
-        istream = open(os.path.join(dirname,'words.pkl'),'rb')
-        p.word_codes = pickle.load(istream)
-        istream.close()
-    
-        istream = open(os.path.join(dirname,'actions.pkl'),'rb')
-        p.actions_codes = pickle.load(istream)
-        istream.close()
-        
-        p.rev_action_codes = ['']*len(p.actions_codes)
-        for A,idx  in p.actions_codes.items():
-            p.rev_action_codes[idx] = A
-        p.actions_size   = len(p.actions_codes)  
-        p.lexicon_size   = len(p.word_codes)   
-
-        p.model = load_model(os.path.join(dirname,'model.prm'))
-        
-        return p
-        
-  
     # def generate_sentence(self,max_len=2000,lex_stats=False):
     #     """
     #     @param lex_stats: generate a table with word,log(prefix_prob),log(local_prob),num_actions
