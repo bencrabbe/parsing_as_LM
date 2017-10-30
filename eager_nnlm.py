@@ -927,7 +927,7 @@ if __name__ == '__main__':
     dev_treebank   = UDtreebank_reader('ptb/ptb_deps.dev',tokens_only=False)
     
     eagerp = ArcEagerGenerativeParser(tied_embeddings=True,parser_class='basic')
-    lc = eagerp.static_train(train_treebank,dev_treebank,lr=0.001,hidden_dropout=0.7,batch_size=12,max_epochs=10,glove_file='glove/glove.6B.300d.txt')
+    lc = eagerp.static_train(train_treebank,dev_treebank,lr=0.0001,hidden_dropout=0.7,batch_size=512,max_epochs=150,glove_file='glove/glove.6B.300d.txt')
     #print('PPL = %s ; UAS = %f'%eagerp.eval_lm(train_treebank,uas=True,ppl=True))
     #print('PPL = %s ; UAS = %f'%eagerp.eval_lm(dev_treebank,uas=True,ppl=True))
     eagerp.save_model('final_model')
