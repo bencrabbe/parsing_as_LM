@@ -1,3 +1,5 @@
+from collections import Counter
+
 class DependencyTree:
 
     def __init__(self,tokens=None, edges=None):
@@ -91,7 +93,29 @@ class DependencyTree:
         Returns the token at index idx
         """
         return self.tokens[idx]
-        
+
+    
+def treebank2unknowns(train_sentences,dev_sentences,test_sentences,lexicon_cap=9995,unk_token_code='<unk>'):
+    """
+    This function takes a list of sentences and returns the 3 corpora with low frequency words replaced by the
+    unk token code. The default setup approximates the Mikolov preprocessing of the PTB (same lexicon cap, but no preprocessing of numbers and such)
+    """
+    #Builds the dictionary
+    c = Counter()
+    for sent in train_sentences:
+        c.update(sent)
+    lexicon = set([w for w,c in c.most_common(lexicon_cap)])
+    #processes destructively the data
+    def preproc(treebank):
+        for sent in treebank :
+            for idx,word in enumerate(sent):
+                if word not in lexicon:
+                    sent[idx] = unk_token_code
+    preproc(train_sentences)
+    preproc(dev_sentences)
+    preproc(test_sentences)
+    return (train_sentences,dev_sentences,test_sentences)
+
 
 #reads UD style treebanks cleaned up data sets
 def UDtreebank_reader(filename,tokens_only=True):
@@ -101,7 +125,7 @@ def UDtreebank_reader(filename,tokens_only=True):
     while dtree != None:
         if dtree.is_projective():
             if tokens_only:
-                treebank.append(dtree.tokens)
+                treebank.append(dtree.tokens[1:])
             else:
                 treebank.append(dtree)
         else:
@@ -120,5 +144,24 @@ def ptb_reader(filename):
     return treebank
 
 if __name__ == '__main__':
-    #example code
-    pass
+    
+    #Performs the preprocessing of WSJ dependency version in a setup similar to Mikolov's
+    train = UDtreebank_reader('ptb/ptb_deps.train',tokens_only=True)
+    dev   = UDtreebank_reader('ptb/ptb_deps.dev',tokens_only=True)
+    test  = UDtreebank_reader('ptb/ptb_deps.test',tokens_only=True)
+    train,dev,test = treebank2unknowns(train,dev,test)
+
+    ostream = open('ptb/ptb_deps.train.txt','w')
+    for sent in train:
+        print(' '.join(sent),file=ostream)
+    ostream.close()
+
+    ostream = open('ptb/ptb_deps.dev.txt','w')
+    for sent in dev:
+        print(' '.join(sent),file=ostream)
+    ostream.close()
+
+    ostream = open('ptb/ptb_deps.test.txt','w')
+    for sent in test:
+        print(' '.join(sent),file=ostream)
+    ostream.close()

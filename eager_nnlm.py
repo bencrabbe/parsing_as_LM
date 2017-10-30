@@ -742,11 +742,11 @@ class ArcEagerGenerativeParser:
                 trainer.update()
             end_t = time.time()
             # (5) validation
-            X_lex_valid,Y_lex_valid       = lex_dev_gen.batch_all()
-            lex_valid_nll = -sum(self.predict_logprobs(X_lex_valid,Y_lex_valid,structural=False))
+            X_lex_valid,Y_lex_valid = lex_dev_gen.batch_all()
+            lex_valid_nll           = -sum(self.predict_logprobs(X_lex_valid,Y_lex_valid,structural=False))
             
             X_struct_valid,Y_struct_valid = struct_dev_gen.batch_all()
-            struct_valid_nll = -sum(self.predict_logprobs(X_struct_valid,Y_struct_valid,structural=True))
+            struct_valid_nll              = -sum(self.predict_logprobs(X_struct_valid,Y_struct_valid,structural=True))
             
             history_log.append((e,end_t-start_t,\
                                 exp(lex_loss/lex_N),\
@@ -926,7 +926,7 @@ if __name__ == '__main__':
     dev_treebank   = UDtreebank_reader('ptb/ptb_deps.dev',tokens_only=False)
     
     eagerp = ArcEagerGenerativeParser(tied_embeddings=True,parser_class='basic')
-    eagerp.static_train(train_treebank,dev_treebank,lr=0.0001,hidden_dropout=0.4,batch_size=512,max_epochs=150,glove_file='glove/glove.6B.300d.txt')
+    eagerp.static_train(train_treebank,dev_treebank,lr=0.0001,hidden_dropout=0.7,batch_size=512,max_epochs=100,glove_file='glove/glove.6B.300d.txt')
     print('PPL = %s ; UAS = %f'%eagerp.eval_lm(train_treebank,uas=True,ppl=True))
     print('PPL = %s ; UAS = %f'%eagerp.eval_lm(dev_treebank,uas=True,ppl=True))
     
