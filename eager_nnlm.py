@@ -652,7 +652,7 @@ class ArcEagerGenerativeParser:
                     Y_struct.append(y)
                     
         lex_generator    = NNLMGenerator(X_lex,Y_lex,batch_size)
-        struct_generator = NNLMGenerator(X_struct,Y_struct,batch_size)
+        struct_generator = NNLMGenerator(X_struct,Y_struct,batch_size*2) # (!) generally 2 times as numerous than lex batches and easier to learn
         return ( lex_generator , struct_generator )
         
     def predict_logprobs(self,X,Y,structural=True,hidden_out=False):
@@ -927,12 +927,12 @@ if __name__ == '__main__':
     dev_treebank   = UDtreebank_reader('ptb/ptb_deps.dev',tokens_only=False)
     
     eagerp = ArcEagerGenerativeParser(tied_embeddings=True,parser_class='basic')
-    lc = eagerp.static_train(train_treebank[:10],dev_treebank[:10],lr=0.001,hidden_dropout=0.7,batch_size=12,max_epochs=10,glove_file='glove/glove.6B.300d.txt')
-    print('PPL = %s ; UAS = %f'%eagerp.eval_lm(train_treebank[:10],uas=True,ppl=True))
+    lc = eagerp.static_train(train_treebank,dev_treebank,lr=0.001,hidden_dropout=0.7,batch_size=12,max_epochs=10,glove_file='glove/glove.6B.300d.txt')
+    #print('PPL = %s ; UAS = %f'%eagerp.eval_lm(train_treebank,uas=True,ppl=True))
     #print('PPL = %s ; UAS = %f'%eagerp.eval_lm(dev_treebank,uas=True,ppl=True))
     eagerp.save_model('final_model')
-    eagerp = ArcEagerGenerativeParser.load_model('final_model')
-    print('PPL = %s ; UAS = %f'%eagerp.eval_lm(train_treebank[:10],uas=True,ppl=True))
+    #eagerp = ArcEagerGenerativeParser.load_model('final_model')
+    #print('PPL = %s ; UAS = %f'%eagerp.eval_lm(dev_treebank,uas=True,ppl=True))
 
     #for s in dev_treebank[:15]:
     #   print(eagerp.parse_sentence(s.tokens,stats=True,kbest=1))        
