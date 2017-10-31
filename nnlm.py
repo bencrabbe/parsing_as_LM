@@ -9,6 +9,7 @@ import dynet as dy
 import time
 
 from math import log2,exp
+from collections import Counter
 from numpy.random import choice,rand
 from lm_utils import NNLMGenerator
 from dataset_utils import ptb_reader,UDtreebank_reader
