@@ -105,14 +105,18 @@ class NNLanguageModel:
         else:
             return X
 
-    def code_symbols(self,treebank):
+    def code_symbols(self,treebank,max_lex_size=9998):
         """
         Codes lexicon (x-data) on integers.
         @param treebank: the treebank where to extract the data from
+        @param max_lex_size: an integer capping the number of elements
+        in the lexicon.
         """
-        lexicon = set([NNLanguageModel.UNKNOWN_TOKEN,NNLanguageModel.IOS_TOKEN,NNLanguageModel.EOS_TOKEN])
+        lexicon = Counter()
         for sentence in treebank:
             lexicon.update(sentence)
+        lexicon = [word for word,count in lexicon.most_common(max_lex_size-3)] + [NNLanguageModel.UNKNOWN_TOKEN,NNLanguageModel.IOS_TOKEN,NNLanguageModel.EOS_TOKEN]
+            
         self.lexicon_size = len(lexicon)
         self.rev_word_codes = list(lexicon)
         self.word_codes = dict([(s,idx) for (idx,s) in enumerate(self.rev_word_codes)])
@@ -240,7 +244,6 @@ class NNLanguageModel:
             Ypred = np.array(ypred.value())
             Ypred /= Ypred.sum()  #fixes numerical instabilities
             return choice(self.lexicon_size,p=Ypred)
-            
         else:
             dy.renew_cg()
             O = dy.parameter(self.output_weights)
