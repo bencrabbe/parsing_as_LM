@@ -482,8 +482,8 @@ if __name__ == '__main__':
     #ttreebank =  ptb_reader('ptb/ptb_train_50w.txt')
     #dtreebank =  ptb_reader('ptb/ptb_valid.txt')
     #Regular parsing setup
-    ttreebank =  ptb_reader('ptb/ptb_deps.train')
-    dtreebank =  ptb_reader('ptb/ptb_deps.dev')
+    ttreebank =  UDtreebank_reader('ptb/ptb_deps.train')
+    dtreebank =  UDtreebank_reader('ptb/ptb_deps.dev')
     
     #search for structure (realistic search on ptb data set)
     #NNLanguageModel.grid_search(ttreebank,dtreebank,LR=[0.0001,0.00001],ESIZE=[300],HSIZE=[300],DPOUT=[0.2,0.3,0.4,0.5])
