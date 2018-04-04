@@ -453,12 +453,12 @@ class RNNGparser:
         """
         Prints the summary of the parser setup
         """
-        print('Lexicon size            :',self.lexicon_size)
-        print('Non terminals size      :',len(self.nonterminals))
-        print('Number of actions       :',len(self.actions))
-        print('Outer hidden layer size :',self.hidden_size)
-        print('Stack embedding size    :',self.stack_embedding_size)
-        print('Stack hidden size       :',self.stack_hidden_size)
+        print('Lexicon size            :',self.lexicon_size,flush=True)
+        print('Non terminals size      :',len(self.nonterminals),flush=True)
+        print('Number of actions       :',len(self.actions),flush=True)
+        print('Outer hidden layer size :',self.hidden_size,flush=True)
+        print('Stack embedding size    :',self.stack_embedding_size,flush=True)
+        print('Stack hidden size       :',self.stack_hidden_size,flush=True)
         
     
     def train_generative_model(self,max_epochs,train_bank,dev_bank,lex_embeddings_file=None,learning_rate=0.001):
