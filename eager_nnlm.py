@@ -278,7 +278,7 @@ class ArcEagerGenerativeParser:
             if (i,j) in reference_arcs:
                 return ArcEagerGenerativeParser.RIGHTARC
             
-        if S and any([(k,S[-1].root) in A for k in all_words]) \
+        if S and any ([(k,S[-1].root) in A for k in all_words]) \
              and all ([(S[-1].root,k) in A for k in all_words if (S[-1].root,k) in reference_arcs]):
                 return ArcEagerGenerativeParser.REDUCE
         if not F is None:
@@ -320,7 +320,7 @@ class ArcEagerGenerativeParser:
 
     
     #PARSING
-    def predict_next_best_action(self,config,sentence):
+    def predict_next_best_action(self,config,prev_action,sentence):
         """
         Predicts the next best couple (configuration,action)
         @param config: the current configuration
@@ -362,23 +362,30 @@ class ArcEagerGenerativeParser:
             embeddings = [dy.pick(E, xidx) for xidx in X]
             xdense     = dy.concatenate(embeddings)
             preds      = dy.softmax(A * dy.tanh( W * xdense )).npvalue()
-            action_mask = self.mask_actions(config,len(sentence))
+            action_mask = self.mask_actions(config,prev_action,len(sentence))
             max_idx = np.argmax(preds*action_mask)
             score = log(preds[max_idx])
             C = self.actions[max_idx](config,local_score=score) #this just execs the predicted action..
             action = self.rev_action_codes[max_idx]
             return (C,action)
 
-    def mask_actions(self,config,N):
+    def mask_actions(self,config,prev_action,N):
         """
         Return a boolean vector of dims = sizeof(action set)
         being a categorical mask for forbidden actions given some config.
         @param config: the current configuration
+        @param prev_action: the previous action
         @param N: sentence length
         """
         S,F,B,A,prefix_score = config
         mask = np.ones(self.actions_size)
 
+        if prev_action == ArcEagerGenerativeParser.TERMINATE:
+            mask[self.actions_codes[ArcEagerGenerativeParser.RIGHTARC]] = 0
+            mask[self.actions_codes[ArcEagerGenerativeParser.PUSH]]     = 0
+            mask[self.actions_codes[ArcEagerGenerativeParser.LEFTARC]]  = 0
+            mask[self.actions_codes[ArcEagerGenerativeParser.REDUCE]] = 0
+            return mask
         if len(B) > 0:
             mask[self.actions_codes[ArcEagerGenerativeParser.TERMINATE]] = 0
         if F is None:
@@ -399,27 +406,181 @@ class ArcEagerGenerativeParser:
 
     def K_best_actions(self,config,sentence):
         pass
-            
+
+    
     def greedy_parse(self,sentence):
         """
         Standard greedy parsing method for baseline.
         @param sentence : the sentence to parse (list of strings)
-        @param df: boolean: outputs a pandas dataframe for analysis rather than the dependency tree
-        @return a DependencyTree object
+        @return a derivation (= a list of configurations,actions)
         """
         derivation = []
         C = self.init_configuration(sentence)
-        C,action = self.predict_next_best_action(C,sentence)
+        C,action = self.predict_next_best_action(C,None,sentence)
         while action != ArcEagerGenerativeParser.TERMINATE:
             derivation.append((C,action,sentence))
-            C,action = self.predict_next_best_action(C,sentence)
+            C,action = self.predict_next_best_action(C,action,sentence)
         return derivation
+
+
+    def batch_greedy_parse(self,sentence_batch):
+        """
+        Parses greedily a batch of sentences.
+        Shorter derivations are padded with TERMINATE actions at the end.
+        @param sentence_batch : the sentences to parse (list of list of strings)
+        @return a DependencyTree object
+        """
+        B = len(sentence_batch)
+        derivation_batched = []
+        config_batched = [self.init_configuration(sentence) for sentence in sentence_batch]
+        config_batched,action_batched = self.batch_predict_next_best_action(config_batched,None,sentence_batch)
+        while not all([action == ArcEagerGenerativeParser.TERMINATE for action in action_batched]):
+            derivation_batched.append((config_batched,action_batched,sentence_batch))
+            config_batched,action_batched = self.batch_predict_next_best_action(config_batched,action_batched,sentence_batch)
+        return derivation_batched
+
+    def batch_predict_next_best_action(self,config_batched,prev_action_batched,sentence_batch):
+        """
+        Predicts greedily the next transition for a batch of configs,
+        actions leading to that config,and related sentences
+        @param config_batched: a list of configurations
+        @param prev_action_batched: a list of actions (or None if no prev actions)
+        @param sentence_batch: a list of sentences
+        @return a list of new configurations, a list of actions generating these new configs
+        """
+    
+        B = len(config_batched)
+        idxes = list(range(B))
+        new_configs = [None] * B
+        new_actions = [None] * B
+
+        if prev_action_batched is None:
+            prev_action_batched = [None]*B
+                
+        #(1) sort out the lexical and structural batches
+        def is_lexical(config):
+            S,F,B,A,prefix_score = config
+            return F is None and len(B) > 0
+
+        lexical_idxes    = [idx for idx in idxes if     is_lexical(config_batched[idx])]
+        structural_idxes = [idx for idx in idxes if not is_lexical(config_batched[idx])]
+
+        #(2) lexical predictions
+        if len(lexical_idxes) > 0:
+
+            def make_ref_lex_action(config,sentence):
+                S,F,B,A,prefix_score = config
+                return (ArcEagerGenerativeParser.GENERATE,sentence[B[0]])
+
+            X = []
+            Y = []
+            for idx in lexical_idxes:
+                x,y = self.make_representation(config_batched[idx],make_ref_lex_action(config_batched[idx],sentence_batch[idx]),sentence_batch[idx],structural=False)
+                X.append(x)
+                Y.append(y)
+
+            Xt = zip(*X)    #transpose
+        
+            if self.tied:
+                dy.renew_cg()
+                W = dy.parameter(self.hidden_weights)
+                E = dy.parameter(self.input_embeddings)
+                embeddings = [dy.pick_batch(E, xcol) for xcol in Xt]
+                xdense     = dy.concatenate(embeddings)
+                preds      = dy.pickneglogsoftmax_batch(E * dy.tanh( W * xdense ),Y).npvalue()[0]
+            else:
+                dy.renew_cg()
+                W = dy.parameter(self.hidden_weights)
+                E = dy.parameter(self.input_embeddings)
+                O = dy.parameter(self.output_embeddings)
+                embeddings = [dy.pick_batch(E, xcol) for xcol in Xt]
+                xdense     = dy.concatenate(embeddings)
+                preds      = dy.pickneglogsoftmax_batch(O * dy.tanh( W * xdense ),Y).npvalue()[0]
+
+            preds = np.atleast_1d(preds)
+                
+            for pred_score,idx in zip(preds,lexical_idxes): 
+                new_configs[idx] = self.generate(config_batched[idx],local_score= -pred_score)# execs the actions  
+                new_actions[idx] = (ArcEagerGenerativeParser.GENERATE,sentence_batch[idx][config_batched[idx][2][0]])
+
+        #(3) structural predictions
+        if len(structural_idxes) > 0 :
+            action_masks = np.array([self.mask_actions(config_batched[idx],prev_action_batched[idx],len(sentence_batch[idx])) for idx in structural_idxes])
+            X = [self.make_representation(config_batched[idx],None,sentence_batch[idx],structural=True) for idx in structural_idxes]
+            Xt = zip(*X)    #transpose
+            dy.renew_cg()
+            W = dy.parameter(self.hidden_weights)
+            E = dy.parameter(self.input_embeddings)
+            A = dy.parameter(self.action_weights)
+            embeddings = [dy.pick_batch(E, xcol) for xcol in Xt]
+            xdense     = dy.concatenate(embeddings)
+            preds      = dy.softmax(A * dy.tanh( W * xdense )).npvalue().transpose()
+
+            max_idxes      = np.argmax(preds * action_masks,axis=1) 
+            max_scores     = np.log(preds[np.arange(preds.shape[0]),max_idxes])
+            for argmax_idx,max_score,idx in zip(max_idxes,max_scores,structural_idxes): 
+                new_configs[idx] = self.actions[argmax_idx](config_batched[idx],local_score=max_score)  #execs the actions  
+                new_actions[idx] = self.rev_action_codes[argmax_idx]
+        return (new_configs, new_actions)
+
+    def batch_eval_lm(self,treebank,batch_size=64):
+        """
+        Greedily batch parses a corpus and returns eval scores.
+        """
+        #(1) make batches
+        idxes = list(range(len(treebank)))
+        buckets = {}
+        max_len = 0
+        for idx in idxes:
+            L = treebank[idx].N()
+            max_len = max(L,max_len) 
+            if L in buckets:
+                buckets[L].append(idx)
+            else:                
+                buckets[L] = [idx]
+
+        batches = []
+        current_batch = []
+        for sent_length in range(max_len):
+            if sent_length in buckets:
+                examples = buckets[sent_length]
+                while len(examples)+len(current_batch) > batch_size:
+                    split_idx = batch_size - len(current_batch)
+                    current_batch.extend(examples[:split_idx])
+                    batches.append(current_batch)
+                    current_batch = []
+                    examples = examples[split_idx:]
+                current_batch.extend(examples)
+        if len(current_batch) > 0:
+            batches.append(current_batch)
+
+        # (2) run eval
+        Ntoks     = 0
+        Nsents    = 0
+        log_probs = 0
+        uas       = 0
+        for B in batches:
+            sentences   = [treebank[idx].tokens for idx in B]
+            derivations = self.batch_greedy_parse(sentences)
+            
+            for idx,deriv in zip(B,derivations):
+                ref_tree  = treebank[idx]
+                tokens    = ref_tree.tokens
+                
+                S,F,B,A,prefix_score = deriv[-1][0]
+                pred_tree = DependencyTree(edges=list(A),tokens=sent)
+                uas       +=  ref_tree.accuracy(pred_tree)
+                log_probs +=  sum(self.predict_lex_probs(deriv))
+                Ntoks     += len(tokens)
+            Nsents += len(sentences)
+        return (exp(-log_probs/Ntoks),uas/Nsents)
+
     
     def predict_lex_probs(self,derivation):
         """
         Computes the probability P(W1 ... Wn) of this sentence
         as the product Prod_{i=1}^n P(Wi | Wi-1, Wi-2 ... )
-        @param : a parse derivation (or a tree structured beam *TODO*) as returned by a parser
+        @param : a parse derivation ( or a tree structured beam *TODO* ) as returned by a parser
         @return a list of P(Wi | ...) for each i as log probabilities
         """
         #TODO make it work for beam.            
@@ -575,7 +736,7 @@ class ArcEagerGenerativeParser:
         @param structural : bool, switch between structural action (True) and lexical action (False)
         @param sentence: a list of tokens (strings)
         @return a couple (X,Y) or just X if no action is given as param
-        """        
+        """
         S,F,B,A,score = config
         X  = [self.word_codes[ArcEagerGenerativeParser.IOS_TOKEN]] * self.input_length
         Ns = len(S)
@@ -926,12 +1087,13 @@ if __name__ == '__main__':
     dev_treebank   = UDtreebank_reader('ptb/ptb_deps.dev',tokens_only=False)
     
     eagerp = ArcEagerGenerativeParser(tied_embeddings=True,parser_class='basic')
-    lc = eagerp.static_train(train_treebank,dev_treebank,lr=0.0001,hidden_dropout=0.7,batch_size=512,max_epochs=150,glove_file='glove/glove.6B.300d.txt')
+    eagerp.static_train(train_treebank[:20],dev_treebank[:20],lr=0.001,hidden_dropout=0.2,batch_size=64,max_epochs=5,glove_file='glove/glove.6B.300d.txt')
     #print('PPL = %s ; UAS = %f'%eagerp.eval_lm(train_treebank,uas=True,ppl=True))
     #print('PPL = %s ; UAS = %f'%eagerp.eval_lm(dev_treebank,uas=True,ppl=True))
-    eagerp.save_model('final_model')
+    #eagerp.save_model('final_model')
     #eagerp = ArcEagerGenerativeParser.load_model('final_model')
-    #print('PPL = %s ; UAS = %f'%eagerp.eval_lm(dev_treebank,uas=True,ppl=True))
+    print('PPL = %s ; UAS = %f'%eagerp.eval_lm(dev_treebank[:20],uas=True,ppl=True))    
+    print('PPL = %s ; UAS = %f'%eagerp.batch_eval_lm(dev_treebank[:20]))
 
     #for s in dev_treebank[:15]:
     #   print(eagerp.parse_sentence(s.tokens,stats=True,kbest=1))        
