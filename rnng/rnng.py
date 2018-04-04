@@ -1,5 +1,6 @@
 import numpy as np
 import dynet as dy
+import getopt
 from collections import Counter
 from constree import *
 
@@ -46,20 +47,17 @@ class RNNGparser:
     def __init__(self,max_vocabulary_size=10000,
                  hidden_size = 50,
                  stack_embedding_size=50,
-                 stack_memory_size=50,
-                 hist_embedding_size=50,
-                 hist_memory_size=50):
+                 stack_memory_size=50):
         """
         @param max_vocabulary_size     : max number of words in the vocab
         @param stack_embedding_size    : size of stack lstm input 
-        @param memory_size             : size of the stack and tree lstm hidden layers
+        @param stack_memory_size       : size of the stack and tree lstm hidden layers
+        @param hidden_size             : size of the output hidden layer
         """
         self.max_vocab_size       = max_vocabulary_size
         self.stack_embedding_size = stack_embedding_size
         self.stack_hidden_size    = stack_memory_size
         self.hidden_size          = hidden_size
-        self.hist_embedding_size  = hist_embedding_size
-        self.hist_hidden_size     = hist_memory_size
 
     def oracle_derivation(self,ref_tree,root=True):
         """
@@ -184,17 +182,12 @@ class RNNGparser:
         @return a configuration
         """
         stackS = self.stack_rnn.initial_state()
-        histS  = self.hist_rnn.initial_state()
 
         word_idx = self.word_codes[RNNGparser.START_TOKEN]
         word_embedding = self.lex_embedding_matrix[word_idx]
         stackS = stackS.add_input(word_embedding)
 
-        
-        action_idx = self.action_codes[(RNNGparser.SHIFT,RNNGparser.START_TOKEN)]
-        action_embedding = self.hist_embedding_matrix[action_idx]
-        histS = histS.add_input(action_embedding)
-        return ([],tuple(range(N)),0,stackS,histS,0.0)
+        return ([],tuple(range(N)),0,stackS,0.0)
 
     def shift_action(self,configuration,sentence,local_score):
         """
@@ -204,13 +197,10 @@ class RNNGparser:
         @param local_score: the local score of the action
         @return a configuration resulting from shifting the next word into the stack 
         """
-        S,B,n,stack_state,hist_state,score = configuration
+        S,B,n,stack_state,score = configuration
         word_idx = sentence[B[0]]
         word_embedding = self.lex_embedding_matrix[word_idx]
-        action = (RNNGparser.SHIFT,self.rev_word_codes[word_idx])
-        action_idx = self.action_codes[action]
-        action_embedding = self.hist_embedding_matrix[action_idx]
-        return (S + [StackSymbol(B[0],StackSymbol.COMPLETED,word_embedding)],B[1:],n,stack_state.add_input(word_embedding),hist_state.add_input(action_embedding),local_score)
+        return (S + [StackSymbol(B[0],StackSymbol.COMPLETED,word_embedding)],B[1:],n,stack_state.add_input(word_embedding),local_score)
 
     def open_action(self,configuration,X,local_score):
         """
@@ -220,17 +210,13 @@ class RNNGparser:
         @param local_score: the local score of the action
         @return a configuration resulting from opening the X constituent
         """
-        S,B,n,stack_state,hist_state,score = configuration
+        S,B,n,stack_state,score = configuration
 
         nt_idx = self.nonterminals_codes[X]
         nonterminal_embedding = self.nt_embedding_matrix[nt_idx]
         stack_state = stack_state.add_input(nonterminal_embedding)
 
-        action = (RNNGparser.OPEN,X)
-        action_idx = self.action_codes[action]
-        action_embedding = self.hist_embedding_matrix[action_idx]
-        
-        return (S + [StackSymbol(X,StackSymbol.PREDICTED,nonterminal_embedding)],B,n+1,stack_state,hist_state.add_input(action_embedding),local_score)
+        return (S + [StackSymbol(X,StackSymbol.PREDICTED,nonterminal_embedding)],B,n+1,stack_state,local_score)
 
     def close_action(self,configuration,local_score):
         """
@@ -238,7 +224,7 @@ class RNNGparser:
         @param configuration : a configuration triple
         @return a configuration resulting from closing the current constituent
         """
-        S,B,n,stack_state,hist_state,score = configuration
+        S,B,n,stack_state,score = configuration
         assert(n > 0)
         #finds the closest predicted constituent in the stack and backtracks the stack lstm.
         midx = -1
@@ -274,12 +260,8 @@ class RNNGparser:
         x = dy.concatenate([fwd_tree_embedding,bwd_tree_embedding])
         W = dy.parameter(self.tree_rnn_out)
         tree_embedding =  dy.tanh(W * x)
-
-        #action embedding
-        action_idx = self.action_codes[RNNGparser.CLOSE]
-        action_embedding = self.hist_embedding_matrix[action_idx]
         
-        return (S[:-midx]+[root_symbol],B,n-1,stack_state.add_input(tree_embedding),hist_state.add_input(action_embedding), local_score)
+        return (S[:-midx]+[root_symbol],B,n-1,stack_state.add_input(tree_embedding), local_score)
 
     
     def next_action_mask(self,configuration,last_action,sentence):
@@ -291,7 +273,7 @@ class RNNGparser:
         @return a mask for the possible next actions
         """
         MASK = np.array([True] * len(self.actions))
-        S,B,n,stack_state,hist_state,local_score = configuration
+        S,B,n,stack_state,local_score = configuration
 
         if not B:
             MASK *= self.open_mask
@@ -320,16 +302,14 @@ class RNNGparser:
         @param configuration: the current configuration
         @param last_action  : the last action  performed by this parser
         """
-        S,B,n,stack_state,hist_state,local_score = configuration
+        S,B,n,stack_state,local_score = configuration
         #I miss the constraint on words (can generate another another word on input)
         
         Wtop = dy.parameter(self.preds_out)
         Wbot = dy.parameter(self.merge_layer)
         btop = dy.parameter(self.preds_bias)
-        bbot = dy.parameter(self.merge_bias)
-        
-        xinput = dy.concatenate([stack_state.output(),hist_state.output()])
-        probs = dy.softmax( (Wtop * dy.tanh((Wbot * xinput) + bbot)) + btop)
+        bbot = dy.parameter(self.merge_bias)        
+        probs = dy.softmax( (Wtop * dy.tanh((Wbot *stack_state.output()) + bbot)) + btop)
         return probs.npvalue() * self.next_action_mask(configuration,last_action,sentence)
 
     def train_one(self,configuration,ref_action):
@@ -339,14 +319,13 @@ class RNNGparser:
         @param ref_action  : the reference action
         @return the loss for this action
         """
-        S,B,n,stack_state,hist_state,local_score = configuration
+        S,B,n,stack_state,local_score = configuration
         
         Wtop   = dy.parameter(self.preds_out)
         Wbot   = dy.parameter(self.merge_layer)
         btop   = dy.parameter(self.preds_bias)
         bbot   = dy.parameter(self.merge_bias)
-        xinput = dy.concatenate([stack_state.output(),hist_state.output()])
-        probs  = dy.softmax( (Wtop * dy.tanh((Wbot * xinput) + bbot)) + btop)
+        probs  = dy.softmax( (Wtop * dy.tanh((Wbot * stack_state.output()) + bbot)) + btop)
         loss   = dy.pickneglogsoftmax(probs,self.action_codes[ref_action])
         loss_val = loss.value()
         loss.backward()
@@ -356,6 +335,7 @@ class RNNGparser:
     def beam_parse(self,tokens,all_beam_size,lex_beam_size):
         """
         This parses a sentence with word sync beam search.
+        The beam search assumes the number of structural actions between two words to be bounded 
         @param tokens: the sentence tokens
         @return a derivation, a ConsTree or some evaluation metrics
         """
@@ -382,11 +362,11 @@ class RNNGparser:
                     for act,logprob in zip(self.actions,probs):
                         if logprob > -np.inf:#filters illegal actions
                             if act ==  RNNGparser.TERMINATE:
-                                next_lex_beam.append(BeamItem(elt,act,None,s+logprob))
+                                next_lex_beam.append( BeamItem(elt,act,None,s+logprob) )
                             elif type(act) == tuple and act[0] == RNNGparser.SHIFT:
-                                next_lex_beam.append(BeamItem(elt,act,None,s+logprob))
+                                next_lex_beam.append( BeamItem(elt,act,None,s+logprob) )
                             else: #not a shift
-                                next_all_beam.append(BeamItem(elt,act,None,s+logprob))
+                                next_all_beam.append( BeamItem(elt,act,None,s+logprob) )
                 #prune and exec actions
                 next_all_beam.sort(key=lambda x:x.score,reverse=True)
                 next_all_beam = next_all_beam[:all_beam_size]
@@ -439,7 +419,7 @@ class RNNGparser:
         tok_codes = [ self.word_codes[t] for t in tokens ]    
         C         = self.init_configuration(len(tokens))
         pred_action = 'init'
-        S,B,n,stackS,histS,score = C
+        S,B,n,stackS,score = C
         deriv = [ ]
         #while B or len(S) > 1 or n != 0:
         while True:
@@ -456,8 +436,7 @@ class RNNGparser:
                 C = self.shift_action(C,tok_codes,score)
             elif pred_action[0] == RNNGparser.OPEN:
                 C = self.open_action(C,pred_action[1],score)
-                        
-            S,B,n,stackS,histS,score = C
+            S,B,n,stackS,score = C
             if len(deriv) > 100: #useful in case of numerical underflow
                 print(deriv)
                 exit(1)
@@ -469,9 +448,23 @@ class RNNGparser:
             return ref_tree.compare(pred_tree)
         return pred_tree
 
-    def train_generative_model(self,max_epochs,train_bank,dev_bank,lex_embeddings_file=None):
+
+    def print_summary(self):
+        """
+        Prints the summary of the parser setup
+        """
+        print('Lexicon size            :',self.lexicon_size)
+        print('Non terminals size      :',len(self.nonterminals))
+        print('Number of actions       :',len(self.actions))
+        print('Outer hidden layer size :',self.hidden_size)
+        print('Stack embedding size    :',self.stack_embedding_size)
+        print('Stack hidden size       :',self.stack_hidden_size)
+        
+    
+    def train_generative_model(self,max_epochs,train_bank,dev_bank,lex_embeddings_file=None,learning_rate=0.001):
         """
         This trains an RNNG model on a treebank
+        @param learning_rate: the learning rate for SGD
         @param max_epochs: the max number of epochs
         @param train_bank: a list of ConsTree
         @param dev_bank  : a list of ConsTree
@@ -485,31 +478,30 @@ class RNNGparser:
 
         actions_size = len(self.actions)
         nt_size      = len(self.nonterminals)
-        
+
+        self.print_summary()
         #Model structure
         self.model                 = dy.ParameterCollection()
         
         #top level MLP
         self.preds_out             = self.model.add_parameters((actions_size,self.hidden_size))                            #action output layer
         self.preds_bias            = self.model.add_parameters((actions_size))
-        self.merge_layer           = self.model.add_parameters((self.hidden_size,self.stack_hidden_size+self.hist_hidden_size))
+        self.merge_layer           = self.model.add_parameters((self.hidden_size,self.stack_hidden_size))
         self.merge_bias            = self.model.add_parameters((self.hidden_size))
         #embeddings
         self.lex_embedding_matrix  = self.model.add_lookup_parameters((self.lexicon_size,self.stack_embedding_size))       # symbols embeddings
         self.nt_embedding_matrix   = self.model.add_lookup_parameters((nt_size,self.stack_embedding_size))
-        self.hist_embedding_matrix = self.model.add_lookup_parameters((actions_size,self.hist_embedding_size))
         #stack rnn 
         self.stack_rnn             = dy.LSTMBuilder(1,self.stack_embedding_size, self.stack_hidden_size,self.model)        # main stack rnn
         #tree rnn
         self.fwd_tree_rnn          = dy.LSTMBuilder(1,self.stack_embedding_size, self.stack_hidden_size,self.model)        # bi-rnn for tree embeddings
         self.bwd_tree_rnn          = dy.LSTMBuilder(1,self.stack_embedding_size, self.stack_hidden_size,self.model)
         self.tree_rnn_out          = self.model.add_parameters((self.stack_embedding_size,self.stack_hidden_size*2))       # out layer merging the tree bi-rnn output
-        #hist rnn
-        self.hist_rnn              = dy.LSTMBuilder(1,self.hist_embedding_size, self.hist_hidden_size,self.model)          # history rnn
         
         #training
-        self.trainer = dy.AdamTrainer(self.model,alpha=0.0001)
+        self.trainer = dy.AdamTrainer(self.model,alpha=learning_rate)
         for e in range(max_epochs):
+            loss,N = 0,0
             for tree in train_bank:
                 dy.renew_cg()
                 ref_derivation  = self.oracle_derivation(tree)
@@ -517,11 +509,11 @@ class RNNGparser:
                 tokens          = [ self.word_codes[t] for t in tree.tokens(labels=True) ]
                 step, max_step  = (0,len(ref_derivation))
                 current_config  = self.init_configuration(len(tokens))
-                loss = 0
                 while step < max_step:
                     ref_action = ref_derivation[step]
                     #print(ref_action)
                     loss += self.train_one(current_config,ref_action)
+                    N    += 1
                     if ref_action == RNNGparser.CLOSE:
                         current_config = self.close_action(current_config,0.0)
                     elif ref_action[0] == RNNGparser.SHIFT:
@@ -530,26 +522,59 @@ class RNNGparser:
                         current_config = self.open_action(current_config,ref_action[1],0.0)
                     step += 1
                     #print(self.pretty_print_configuration(current_config))
-                print(loss)
-                
+            sys.stdout.write("\rEpoch %d, Mean Loss : %.5f"%(e,loss/N))
+            sys.stdout.flush()
+        print()
+        
 if __name__ == '__main__':
-    t  = ConsTree.read_tree('(S (NP Le chat ) (VP mange  (NP la souris)))')
-    t2 = ConsTree.read_tree('(S (NP Le chat ) (VP voit  (NP le chien) (PP sur (NP le paillasson))))')
-    t3 = ConsTree.read_tree('(S (NP La souris (Srel qui (VP dort (PP sur (NP le paillasson))))) (VP sera mangée (PP par (NP le chat ))))')
 
-    p = RNNGparser(hidden_size=50,stack_embedding_size=50,stack_memory_size=25,hist_embedding_size=50,hist_memory_size=25)
-    p.train_generative_model(500,[t,t2,t3],[])
+    try:
+        opts, args = getopt.getopt(sys.argv[1:],"ht:o:d:")
+    except getopt.GetoptError:
+        print ('rnng.py -t <inputfile> -d <inputfile> -o <outputfile>')
+        sys.exit(0)
+
+    train_file = ''
+    ofile = ''
+    for opt, arg in opts:
+        if opt in ['-h','--help']:
+            print ('rnng.py -t <inputfile> -o <outputfile>')
+            sys.exit(0)
+        elif opt in ['-t','--train']:
+            train_file = arg
+        elif opt in ['-d','--dev']:
+            dev_file = arg 
+        elif opt in ['-o']:
+            ofile = arg 
+
+    train_treebank = []
+    ifile = open(train_file)
+    for line in ifile:
+        train_treebank.append(ConsTree.read_tree(line))
+    print(len(train_treebank))
+        
+    p = RNNGparser(hidden_size=50,stack_embedding_size=50,stack_memory_size=25)
+    p.train_generative_model(20,train_treebank,[])
+    
+
+            
+    #t  = ConsTree.read_tree('(S (NP Le chat ) (VP mange  (NP la souris)))')
+    #t2 = ConsTree.read_tree('(S (NP Le chat ) (VP voit  (NP le chien) (PP sur (NP le paillasson))))')
+    #t3 = ConsTree.read_tree('(S (NP La souris (Srel qui (VP dort (PP sur (NP le paillasson))))) (VP sera mangée (PP par (NP le chat ))))')
+
+    #p = RNNGparser(hidden_size=50,stack_embedding_size=50,stack_memory_size=25)
+    #p.train_generative_model(500,[t,t2,t3],[])
     #D = p.oracle_derivation(t2)
     #print(D)
     #print(RNNGparser.derivation2tree(D))
-    print(p.parse_sentence(t.tokens(labels=True),ref_tree=None))
-    print(p.beam_parse(t.tokens(labels=True),all_beam_size=64,lex_beam_size=8))
+    #print(p.parse_sentence(t.tokens(labels=True),ref_tree=None))
+    #print(p.beam_parse(t.tokens(labels=True),all_beam_size=64,lex_beam_size=8))
 
-    print(p.parse_sentence(t2.tokens(labels=True),ref_tree=None))
-    print(p.beam_parse(t2.tokens(labels=True),all_beam_size=64,lex_beam_size=8))
+    #print(p.parse_sentence(t2.tokens(labels=True),ref_tree=None))
+    #print(p.beam_parse(t2.tokens(labels=True),all_beam_size=64,lex_beam_size=8))
 
-    print(p.parse_sentence(t3.tokens(labels=True),ref_tree=None))
-    print(p.beam_parse(t3.tokens(labels=True),all_beam_size=64,lex_beam_size=8))
+    #print(p.parse_sentence(t3.tokens(labels=True),ref_tree=None))
+    #print(p.beam_parse(t3.tokens(labels=True),all_beam_size=64,lex_beam_size=8))
     
     #print()
     #print(p.oracle_derivation(t2))
