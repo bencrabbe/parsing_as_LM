@@ -554,8 +554,10 @@ if __name__ == '__main__':
     print(len(train_treebank))
         
     p = RNNGparser(hidden_size=50,stack_embedding_size=50,stack_memory_size=25)
-    p.train_generative_model(20,train_treebank,[])
-    
+    p.train_generative_model(100,train_treebank,[])
+
+    for t in train_treebank:
+        print(p.parse_sentence(t.tokens(labels=True),ref_tree=None))
 
             
     #t  = ConsTree.read_tree('(S (NP Le chat ) (VP mange  (NP la souris)))')
