@@ -348,7 +348,7 @@ class PennTreebank:
                 
 if __name__ == '__main__':
     #Generates Penn TB with classical setup
-    PennTreebank.generate_standard_split('/Users/bcrabbe/Desktop/ptb/treebank_3/parsed/mrg/wsj','/Users/bcrabbe/parsing_as_LM/rnng')
+    PennTreebank.generate_standard_split('/data/Corpus/ptb/treebank_3/parsed/mrg/wsj','/home/bcrabbe/parsing_as_LM/rnng')
     
     
 
