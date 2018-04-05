@@ -30,7 +30,7 @@ class StackSymbol:
         s =  '*%s'%(self.symbol,) if self.status == StackSymbol.PREDICTED else '%s*'%(self.symbol,)
         return s
 
-    
+
 class RNNGparser:
     """
     This is RNNG with in-order tree traversal.
@@ -480,6 +480,11 @@ class RNNGparser:
         nt_size      = len(self.nonterminals)
 
         self.print_summary()
+        print('---------------------------')
+        print('num epochs          :',max_epochs)
+        print('learning rate       :',learning_rate)        
+        print('num training trees  :',len(train_bank))
+        
         #Model structure
         self.model                 = dy.ParameterCollection()
         
@@ -557,7 +562,7 @@ if __name__ == '__main__':
     p.train_generative_model(100,train_treebank,[])
 
     for t in train_treebank:
-        print(p.parse_sentence(t.tokens(labels=True),ref_tree=None))
+        print(p.beam_parse(t.tokens(labels=True),all_beam_size=64,lex_beam_size=8))
 
             
     #t  = ConsTree.read_tree('(S (NP Le chat ) (VP mange  (NP la souris)))')
