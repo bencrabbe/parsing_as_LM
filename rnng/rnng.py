@@ -465,6 +465,7 @@ class RNNGparser:
         """
         Allocates the network structure
         """
+        lexicon_size = len(self.rev_word_codes)
         actions_size = len(self.actions)
         nt_size      = len(self.nonterminals)
 
@@ -477,7 +478,7 @@ class RNNGparser:
         self.merge_layer           = self.model.add_parameters((self.hidden_size,self.stack_hidden_size))
         self.merge_bias            = self.model.add_parameters((self.hidden_size))
         #embeddings
-        self.lex_embedding_matrix  = self.model.add_lookup_parameters((self.lexicon_size,self.stack_embedding_size))       # symbols embeddings
+        self.lex_embedding_matrix  = self.model.add_lookup_parameters((lexicon_size,self.stack_embedding_size))       # symbols embeddings
         self.nt_embedding_matrix   = self.model.add_lookup_parameters((nt_size,self.stack_embedding_size))
         #stack rnn 
         self.stack_rnn             = dy.LSTMBuilder(1,self.stack_embedding_size, self.stack_hidden_size,self.model)        # main stack rnn
