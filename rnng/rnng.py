@@ -453,7 +453,7 @@ class RNNGparser:
         """
         Prints the summary of the parser setup
         """
-        print('Lexicon size            :',self.lexicon_size,flush=True)
+        print('Lexicon size            :',len(self.rev_word_codes),flush=True)
         print('Non terminals size      :',len(self.nonterminals),flush=True)
         print('Number of actions       :',len(self.actions),flush=True)
         print('Outer hidden layer size :',self.hidden_size,flush=True)
