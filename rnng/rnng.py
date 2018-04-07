@@ -1,6 +1,7 @@
 import numpy as np
 import dynet as dy
 import getopt
+import json
 from collections import Counter
 from constree import *
 
@@ -150,17 +151,17 @@ class RNNGparser:
         """
         Codes the actions on integers
         """
-        self.actions     =   [ (RNNGparser.OPEN,NT)  for NT in self.nonterminals ] 
-        self.actions.extend( [ (RNNGparser.SHIFT,LEX) for LEX in self.rev_word_codes] )
+        self.actions     =   [ (RNNGparser.SHIFT,LEX) for LEX in self.rev_word_codes] 
+        self.actions.extend( [ (RNNGparser.OPEN,NT) for NT in self.nonterminals ])
         self.actions.append( RNNGparser.CLOSE )
         self.actions.append( RNNGparser.TERMINATE )
         self.action_codes = dict([(s,idx) for (idx,s) in enumerate(self.actions)])
         
         #Masks
-        self.open_mask      =   np.array([False] * len(self.nonterminals) + [True]  * len(self.lexicon) + [True,True])
-        self.shift_mask     =   np.array([True]  * len(self.nonterminals) + [False] * len(self.lexicon) + [True,True]) 
-        self.close_mask     =   np.array([True]  * len(self.nonterminals)  + [True]  * len(self.lexicon)  + [False,True]) 
-        self.terminate_mask =   np.array([True]  * len(self.nonterminals)  + [True]  * len(self.lexicon)  + [True,False]) 
+        self.open_mask      =    np.array([True]  * len(self.lexicon) + [False] * len(self.nonterminals) +  [True,True])
+        self.shift_mask     =    np.array([False] * len(self.lexicon) + [True]  * len(self.nonterminals) +  [True,True]) 
+        self.close_mask     =    np.array([True]  * len(self.lexicon) + [True]  * len(self.nonterminals) +  [False,True]) 
+        self.terminate_mask =    np.array([True]  * len(self.lexicon) + [True]  * len(self.nonterminals) +  [True,False]) 
 
         
     #transition system
@@ -448,7 +449,6 @@ class RNNGparser:
             return ref_tree.compare(pred_tree)
         return pred_tree
 
-
     def print_summary(self):
         """
         Prints the summary of the parser setup
@@ -459,32 +459,15 @@ class RNNGparser:
         print('Outer hidden layer size :',self.hidden_size,flush=True)
         print('Stack embedding size    :',self.stack_embedding_size,flush=True)
         print('Stack hidden size       :',self.stack_hidden_size,flush=True)
-        
-    
-    def train_generative_model(self,max_epochs,train_bank,dev_bank,lex_embeddings_file=None,learning_rate=0.001):
-        """
-        This trains an RNNG model on a treebank
-        @param learning_rate: the learning rate for SGD
-        @param max_epochs: the max number of epochs
-        @param train_bank: a list of ConsTree
-        @param dev_bank  : a list of ConsTree
-        @param lex_embeddings_file: an external word embeddings filename
-        @return a dynet model
-        """
-        #Coding
-        self.code_lexicon(train_bank,self.max_vocab_size)
-        self.code_nonterminals(train_bank)
-        self.code_actions()
 
+
+    def make_structure(self):
+        """
+        Allocates the network structure
+        """
         actions_size = len(self.actions)
         nt_size      = len(self.nonterminals)
 
-        self.print_summary()
-        print('---------------------------')
-        print('num epochs          :',max_epochs)
-        print('learning rate       :',learning_rate)        
-        print('num training trees  :',len(train_bank))
-        
         #Model structure
         self.model                 = dy.ParameterCollection()
         
@@ -502,6 +485,63 @@ class RNNGparser:
         self.fwd_tree_rnn          = dy.LSTMBuilder(1,self.stack_embedding_size, self.stack_hidden_size,self.model)        # bi-rnn for tree embeddings
         self.bwd_tree_rnn          = dy.LSTMBuilder(1,self.stack_embedding_size, self.stack_hidden_size,self.model)
         self.tree_rnn_out          = self.model.add_parameters((self.stack_embedding_size,self.stack_hidden_size*2))       # out layer merging the tree bi-rnn output
+
+    @staticmethod
+    def load_model(model_name):
+        """
+        Loads the whole shebang and returns a parser.
+        """
+        struct = json.loads(open(model_name+'.json').read())
+        parser = RNNGparser(max_vocabulary_size=struct['max_vocabulary_size'],
+                 hidden_size = struct['hidden_size'],
+                 stack_embedding_size = struct['stack_embedding_size'],
+                 stack_memory_size= struct['stack_memory_size'])
+        parser.rev_word_codes     = struct['rev_word_codes']
+        parser.nonterminals       = struct['nonterminals']
+        parser.nonterminals_codes = dict([(sym,idx) for (idx,sym) in enumerate(self.nonterminals)])
+        parser.word_codes         = dict([(s,idx) for (idx,s) in enumerate(self.rev_word_codes)])
+        parser.code_actions()
+        parser.make_structure()
+        parser.model.populate(model_name+".prm")
+        return parser
+
+    
+    def save_model(self,model_name):
+        """
+        Saves the whole shebang.
+        """
+        jfile = open(model_name+'.json','w')
+        jfile.write(json.dumps({'max_vocabulary_size':self.max_vocab_size,\
+                                'stack_embedding_size':self.stack_embedding_size,\
+                                'stack_hidden_size':self.stack_hidden_size,\
+                                'hidden_size':self.hidden_size,
+                                'nonterminals': self.nonterminals,
+                                'rev_word_codes':self.rev_word_codes}))
+        model.save(model_name+'.prm')
+
+            
+    def train_generative_model(self,max_epochs,train_bank,dev_bank,lex_embeddings_file=None,learning_rate=0.001):
+        """
+        This trains an RNNG model on a treebank
+        @param learning_rate: the learning rate for SGD
+        @param max_epochs: the max number of epochs
+        @param train_bank: a list of ConsTree
+        @param dev_bank  : a list of ConsTree
+        @param lex_embeddings_file: an external word embeddings filename
+        @return a dynet model
+        """
+        #Coding
+        self.code_lexicon(train_bank,self.max_vocab_size)
+        self.code_nonterminals(train_bank)
+        self.code_actions()
+
+        self.print_summary()
+        print('---------------------------')
+        print('num epochs          :',max_epochs)
+        print('learning rate       :',learning_rate)        
+        print('num training trees  :',len(train_bank))
+
+        self.make_structure()
         
         #training
         self.trainer = dy.AdamTrainer(self.model,alpha=learning_rate)
@@ -534,36 +574,49 @@ class RNNGparser:
 if __name__ == '__main__':
 
     try:
-        opts, args = getopt.getopt(sys.argv[1:],"ht:o:d:")
+        opts, args = getopt.getopt(sys.argv[1:],"ht:o:d:r:m:")
     except getopt.GetoptError:
-        print ('rnng.py -t <inputfile> -d <inputfile> -o <outputfile>')
+        print ('rnng.py -t <inputfile> -d <inputfile> -r <inputfile> -o <outputfile> -m <model_file>')
         sys.exit(0)
 
     train_file = ''
-    ofile = ''
+    out_file   = ''
+    model_name = ''
+    raw_file   = ''
+    
     for opt, arg in opts:
         if opt in ['-h','--help']:
-            print ('rnng.py -t <inputfile> -o <outputfile>')
+            print ('rnng.py -t <inputfile> -d <inputfile> -r <inputfile> -o <outputfile> -m <model_name>')
             sys.exit(0)
         elif opt in ['-t','--train']:
             train_file = arg
         elif opt in ['-d','--dev']:
-            dev_file = arg 
-        elif opt in ['-o']:
-            ofile = arg 
-
+            dev_file = arg
+        elif opt in ['-r','--raw']:
+            raw_file = arg
+        elif opt in ['-m','--model']:
+            model_name = opt
+        elif opt in ['-o','--output']:
+            out_file = arg
+            
     train_treebank = []
-    ifile = open(train_file)
-    for line in ifile:
-        train_treebank.append(ConsTree.read_tree(line))
-    print(len(train_treebank))
+
+    if train_file and model_name:
+        train_treebank = []
+        train_stream   = open(train_file)
+        for line in train_stream:
+            train_treebank.append(ConsTree.read_tree(line))
+        p = RNNGparser(hidden_size=50,stack_embedding_size=50,stack_memory_size=25)
+        p.train_generative_model(5,train_treebank,[])
+        train_stream.close()
         
-    p = RNNGparser(hidden_size=50,stack_embedding_size=50,stack_memory_size=25)
-    p.train_generative_model(50,train_treebank,[])
-
-    for t in train_treebank:
-        print(p.beam_parse(t.tokens(labels=True),all_beam_size=64,lex_beam_size=8))
-
+    if model_name and raw_file:
+        p = RNNGparser.load_model(model_file)
+        test_stream = open(raw_file)
+        for line in test_stream:
+            print(p.parse_sentence(line.split(),ref_tree=None))
+            print(p.beam_parse(line_split(),all_beam_size=64,lex_beam_size=8))
+        test_stream.close()
             
     #t  = ConsTree.read_tree('(S (NP Le chat ) (VP mange  (NP la souris)))')
     #t2 = ConsTree.read_tree('(S (NP Le chat ) (VP voit  (NP le chien) (PP sur (NP le paillasson))))')
