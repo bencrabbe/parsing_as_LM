@@ -608,7 +608,7 @@ if __name__ == '__main__':
         for line in train_stream:
             train_treebank.append(ConsTree.read_tree(line))
         p = RNNGparser(hidden_size=50,stack_embedding_size=50,stack_memory_size=25)
-        p.train_generative_model(5,train_treebank,[])
+        p.train_generative_model(15,train_treebank,[])
         p.save_model(model_name)
         train_stream.close()
         
