@@ -303,8 +303,8 @@ class RNNGparser:
         @param configuration: the current configuration
         @param last_action  : the last action  performed by this parser
         """
+        #TODO manage the numerical undeflow problem
         S,B,n,stack_state,local_score = configuration
-        #I miss the constraint on words (can generate another another word on input)
         
         Wtop = dy.parameter(self.preds_out)
         Wbot = dy.parameter(self.merge_layer)
@@ -495,7 +495,7 @@ class RNNGparser:
         parser = RNNGparser(max_vocabulary_size=struct['max_vocabulary_size'],
                  hidden_size = struct['hidden_size'],
                  stack_embedding_size = struct['stack_embedding_size'],
-                 stack_memory_size= struct['stack_memory_size'])
+                 stack_memory_size= struct['stack_hidden_size'])
         parser.rev_word_codes     = struct['rev_word_codes']
         parser.nonterminals       = struct['nonterminals']
         parser.nonterminals_codes = dict([(sym,idx) for (idx,sym) in enumerate(self.nonterminals)])
