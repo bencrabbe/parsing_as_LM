@@ -517,7 +517,7 @@ class RNNGparser:
                                 'hidden_size':self.hidden_size,
                                 'nonterminals': self.nonterminals,
                                 'rev_word_codes':self.rev_word_codes}))
-        model.save(model_name+'.prm')
+        self.model.save(model_name+'.prm')
 
             
     def train_generative_model(self,max_epochs,train_bank,dev_bank,lex_embeddings_file=None,learning_rate=0.001):
