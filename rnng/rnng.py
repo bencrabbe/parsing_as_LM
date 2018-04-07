@@ -352,7 +352,7 @@ class RNNGparser:
         C         = self.init_configuration(len(tokens))
         all_beam  = [ BeamItem(None,'init',C,0) ]
         next_lex_beam = [ ]
-        for idx in range(len(tokens)+1):
+        for idx in range(len(tokens) + 1):
             while all_beam:
                 next_all_beam = []
                 for elt in all_beam:
@@ -426,7 +426,7 @@ class RNNGparser:
         while True:
             probs = self.predict_action_distrib(C,pred_action,tokens)
             max_idx   = np.argmax(probs)
-            score = probs[max_idx]
+            score = max(probs[max_idx],np.finfo(float).eps)
             pred_action = self.actions[max_idx]
             deriv.append(pred_action)            
             if pred_action == RNNGparser.CLOSE:
@@ -611,7 +611,7 @@ if __name__ == '__main__':
         train_stream.close()
         
     if model_name and raw_file:
-        p = RNNGparser.load_model(model_file)
+        p = RNNGparser.load_model(model_name)
         test_stream = open(raw_file)
         for line in test_stream:
             print(p.parse_sentence(line.split(),ref_tree=None))
