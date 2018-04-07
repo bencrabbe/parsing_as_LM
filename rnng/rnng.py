@@ -617,7 +617,7 @@ if __name__ == '__main__':
         test_stream = open(raw_file)
         for line in test_stream:
             print(p.parse_sentence(line.split(),ref_tree=None))
-            print(p.beam_parse(line_split(),all_beam_size=64,lex_beam_size=8))
+            print(p.beam_parse(line.split(),all_beam_size=64,lex_beam_size=8))
         test_stream.close()
             
     #t  = ConsTree.read_tree('(S (NP Le chat ) (VP mange  (NP la souris)))')
