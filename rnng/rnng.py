@@ -595,7 +595,7 @@ if __name__ == '__main__':
         elif opt in ['-r','--raw']:
             raw_file = arg
         elif opt in ['-m','--model']:
-            model_name = opt
+            model_name = arg
         elif opt in ['-o','--output']:
             out_file = arg
             
@@ -608,6 +608,7 @@ if __name__ == '__main__':
             train_treebank.append(ConsTree.read_tree(line))
         p = RNNGparser(hidden_size=50,stack_embedding_size=50,stack_memory_size=25)
         p.train_generative_model(5,train_treebank,[])
+        p.save_model(model_name)
         train_stream.close()
         
     if model_name and raw_file:
