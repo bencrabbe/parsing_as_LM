@@ -498,8 +498,8 @@ class RNNGparser:
                  stack_memory_size= struct['stack_hidden_size'])
         parser.rev_word_codes     = struct['rev_word_codes']
         parser.nonterminals       = struct['nonterminals']
-        parser.nonterminals_codes = dict([(sym,idx) for (idx,sym) in enumerate(self.nonterminals)])
-        parser.word_codes         = dict([(s,idx) for (idx,s) in enumerate(self.rev_word_codes)])
+        parser.nonterminals_codes = dict([(sym,idx) for (idx,sym) in enumerate(parser.nonterminals)])
+        parser.word_codes         = dict([(s,idx) for (idx,s) in enumerate(parser.rev_word_codes)])
         parser.code_actions()
         parser.make_structure()
         parser.model.populate(model_name+".prm")
