@@ -128,11 +128,11 @@ class RNNGparser:
         for tree in treebank:
             sentence = tree.tokens(labels=True) 
             lexicon.update(sentence)
-        self.lexicon = set([word for word,count in lexicon.most_common(max_vocab_size-2)])
-        self.lexicon.add(RNNGparser.UNKNOWN_TOKEN)
-        self.lexicon.add(RNNGparser.START_TOKEN)
-        self.rev_word_codes = list(self.lexicon)
-        self.lexicon_size   = len(self.lexicon)
+        lexicon = set([word for word,count in lexicon.most_common(max_vocab_size-2)])
+        lexicon.add(RNNGparser.UNKNOWN_TOKEN)
+        lexicon.add(RNNGparser.START_TOKEN)
+        self.rev_word_codes = list(lexicon)
+        self.lexicon_size   = len(lexicon)
         self.word_codes     = dict([(s,idx) for (idx,s) in enumerate(self.rev_word_codes)])
         
     def code_nonterminals(self,treebank):
@@ -158,10 +158,10 @@ class RNNGparser:
         self.action_codes = dict([(s,idx) for (idx,s) in enumerate(self.actions)])
         
         #Masks
-        self.open_mask      =    np.array([True]  * len(self.lexicon) + [False] * len(self.nonterminals) +  [True,True])
-        self.shift_mask     =    np.array([False] * len(self.lexicon) + [True]  * len(self.nonterminals) +  [True,True]) 
-        self.close_mask     =    np.array([True]  * len(self.lexicon) + [True]  * len(self.nonterminals) +  [False,True]) 
-        self.terminate_mask =    np.array([True]  * len(self.lexicon) + [True]  * len(self.nonterminals) +  [True,False]) 
+        self.open_mask      =    np.array([True]  * len(self.rev_word_codes) + [False] * len(self.nonterminals) +  [True,True])
+        self.shift_mask     =    np.array([False] * len(self.rev_word_codes) + [True]  * len(self.nonterminals) +  [True,True]) 
+        self.close_mask     =    np.array([True]  * len(self.rev_word_codes) + [True]  * len(self.nonterminals) +  [False,True]) 
+        self.terminate_mask =    np.array([True]  * len(self.rev_word_codes) + [True]  * len(self.nonterminals) +  [True,False]) 
 
         
     #transition system
