@@ -448,7 +448,7 @@ class RNNGparser:
             elif pred_action[0] == RNNGparser.OPEN:
                 C = self.open_action(C,pred_action[1],score)
             S,B,n,stackS,score = C
-            if len(deriv) > 100: #useful in case of numerical underflow
+            if len(deriv) > 5000: #useful in case of numerical underflow
                 print(deriv)
                 exit(1)
         if get_derivation:
