@@ -317,8 +317,9 @@ class RNNGparser:
         Wbot = dy.parameter(self.merge_layer)
         btop = dy.parameter(self.preds_bias)
         bbot = dy.parameter(self.merge_bias)        
-        probs = dy.softmax( (Wtop * dy.tanh((Wbot *stack_state.output()) + bbot)) + btop)
-        return np.maximum(probs.npvalue(),np.finfo(float).eps) * self.next_action_mask(configuration,last_action,sentence)
+        probs = dy.softmax( (Wtop * dy.tanh((Wbot *stack_state.output()) + bbot)) + btop).npvalue()
+        print('best action without constraint',self.actions[np.argmax(probs)])
+        return np.maximum(probs,np.finfo(float).eps) * self.next_action_mask(configuration,last_action,sentence)
         #this last line attempts to address numerical underflows (0 out of dynet softmaxes) and applies the hard constraint mask
         #such that a legal action has a prob > 0.
     
@@ -449,7 +450,7 @@ class RNNGparser:
                 break #  <= EXIT
             elif pred_action[0] == RNNGparser.SHIFT:
                 #print(score,B,tok_codes)
-                print('S',score,'O',probs[ self.action_codes[(RNNGparser.OPEN,'NP')] ], probs[ self.action_codes[RNNGparser.CLOSE] ])
+                print('S',score,'O',probs[ self.action_codes[(RNNGparser.OPEN,'NP')] ],'C' ,probs[ self.action_codes[RNNGparser.CLOSE] ])
                 C = self.shift_action(C,tok_codes,score)
             elif pred_action[0] == RNNGparser.OPEN:
                 C = self.open_action(C,pred_action[1],score)
