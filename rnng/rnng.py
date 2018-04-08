@@ -408,7 +408,7 @@ class RNNGparser:
             all_beam = next_lex_beam
             next_lex_beam = [ ]
         #backtrace
-        if not all_beam[0]: #TODO (identify why it happens sometimes)
+        if not all_beam: #TODO (identify why it happens sometimes)
            return None 
         current    = all_beam[0]
         best_deriv = [current.pred_action]
