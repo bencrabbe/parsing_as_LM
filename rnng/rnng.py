@@ -441,7 +441,8 @@ class RNNGparser:
             max_idx   = np.argmax(probs)
             score = probs[max_idx]
             pred_action = self.actions[max_idx]
-            deriv.append(pred_action)            
+            deriv.append(pred_action)
+            print(pred_action)
             if pred_action == RNNGparser.CLOSE:
                 C = self.close_action(C,score)
             elif pred_action == RNNGparser.TERMINATE: #we exit the loop here
