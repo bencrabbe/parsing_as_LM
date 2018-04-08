@@ -448,8 +448,8 @@ class RNNGparser:
             elif pred_action == RNNGparser.TERMINATE: #we exit the loop here
                 break #  <= EXIT
             elif pred_action[0] == RNNGparser.SHIFT:
-                print(score,B,tok_codes)
-                print(probs)
+                #print(score,B,tok_codes)
+                #print(probs)
                 C = self.shift_action(C,tok_codes,score)
             elif pred_action[0] == RNNGparser.OPEN:
                 C = self.open_action(C,pred_action[1],score)
@@ -661,26 +661,27 @@ if __name__ == '__main__':
             print(p.parse_sentence(line.split(),ref_tree=None))
             print(p.beam_parse(line.split(),all_beam_size=64,lex_beam_size=8))
         test_stream.close()
-            
-    #t  = ConsTree.read_tree('(S (NP Le chat ) (VP mange  (NP la souris)))')
-    #t2 = ConsTree.read_tree('(S (NP Le chat ) (VP voit  (NP le chien) (PP sur (NP le paillasson))))')
-    #t3 = ConsTree.read_tree('(S (NP La souris (Srel qui (VP dort (PP sur (NP le paillasson))))) (VP sera mangée (PP par (NP le chat ))))')
 
-    #p = RNNGparser(hidden_size=50,stack_embedding_size=50,stack_memory_size=25)
-    #p.train_generative_model(500,[t,t2,t3],[])
-    #D = p.oracle_derivation(t2)
-    #print(D)
-    #print(RNNGparser.derivation2tree(D))
-    #print(p.parse_sentence(t.tokens(labels=True),ref_tree=None))
-    #print(p.beam_parse(t.tokens(labels=True),all_beam_size=64,lex_beam_size=8))
+    if not model_name:
+        t  = ConsTree.read_tree('(S (NP Le chat ) (VP mange  (NP la souris)))')
+        t2 = ConsTree.read_tree('(S (NP Le chat ) (VP voit  (NP le chien) (PP sur (NP le paillasson))))')
+        t3 = ConsTree.read_tree('(S (NP La souris (Srel qui (VP dort (PP sur (NP le paillasson))))) (VP sera mangée (PP par (NP le chat ))))')
 
-    #print(p.parse_sentence(t2.tokens(labels=True),ref_tree=None))
-    #print(p.beam_parse(t2.tokens(labels=True),all_beam_size=64,lex_beam_size=8))
+        p = RNNGparser(hidden_size=50,stack_embedding_size=50,stack_memory_size=25)
+        p.train_generative_model(500,[t,t2,t3],[])
+        D = p.oracle_derivation(t2)
+        print(D)
+        print(RNNGparser.derivation2tree(D))
+        print(p.parse_sentence(t.tokens(labels=True),ref_tree=None))
+        print(p.beam_parse(t.tokens(labels=True),all_beam_size=64,lex_beam_size=8))
 
-    #print(p.parse_sentence(t3.tokens(labels=True),ref_tree=None))
-    #print(p.beam_parse(t3.tokens(labels=True),all_beam_size=64,lex_beam_size=8))
+        print(p.parse_sentence(t2.tokens(labels=True),ref_tree=None))
+        print(p.beam_parse(t2.tokens(labels=True),all_beam_size=64,lex_beam_size=8))
+
+        print(p.parse_sentence(t3.tokens(labels=True),ref_tree=None))
+        print(p.beam_parse(t3.tokens(labels=True),all_beam_size=64,lex_beam_size=8))
     
-    #print()
-    #print(p.oracle_derivation(t2))
-    #print(p.parse_sentence(t2.tokens(labels=True),ref_tree=None))
-    #print(p.parse_sentence(t3.tokens(labels=True),ref_tree=None))
+        print()
+        print(p.oracle_derivation(t2))
+        print(p.parse_sentence(t2.tokens(labels=True),ref_tree=None))
+        print(p.parse_sentence(t3.tokens(labels=True),ref_tree=None))

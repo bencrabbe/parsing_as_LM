@@ -85,7 +85,6 @@ class ConsTree:
         R = isize/len(ref_triples)
         F = (2*P*R)/(P+R)
         return (P,R,F)
-
     
     def strip_tags(self):
         """
