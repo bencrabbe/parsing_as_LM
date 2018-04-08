@@ -434,7 +434,6 @@ class RNNGparser:
         tok_codes = [self.word_codes[t] for t in tokens  ]      
         C         = self.init_configuration(len(tokens))
         pred_action = 'init'
-        print(C,tok_codes)
         S,B,n,stackS,score = C
         deriv = [ ]
         #while B or len(S) > 1 or n != 0:
@@ -449,6 +448,7 @@ class RNNGparser:
             elif pred_action == RNNGparser.TERMINATE: #we exit the loop here
                 break #  <= EXIT
             elif pred_action[0] == RNNGparser.SHIFT:
+                print(C,tok_codes)
                 C = self.shift_action(C,tok_codes,score)
             elif pred_action[0] == RNNGparser.OPEN:
                 C = self.open_action(C,pred_action[1],score)
