@@ -311,7 +311,6 @@ class RNNGparser:
         @param configuration: the current configuration
         @param last_action  : the last action  performed by this parser
         """
-        #TODO manage the numerical undeflow problem
         S,B,n,stack_state,local_score = configuration
         
         Wtop = dy.parameter(self.preds_out)
@@ -319,8 +318,10 @@ class RNNGparser:
         btop = dy.parameter(self.preds_bias)
         bbot = dy.parameter(self.merge_bias)        
         probs = dy.softmax( (Wtop * dy.tanh((Wbot *stack_state.output()) + bbot)) + btop)
-        return probs.npvalue() * self.next_action_mask(configuration,last_action,sentence)
-
+        return np.maximum(probs.npvalue(),np.finfo(float).eps) * self.next_action_mask(configuration,last_action,sentence)
+        #this last line attempts to address numerical undeflows (0 out of dynet softmax) and applies the hard constraint mask
+        #such that a legal action has a prob > 0.
+    
     def train_one(self,configuration,ref_action):
         """
         This performs a forward, backward and update pass on the network for this action.
@@ -436,7 +437,7 @@ class RNNGparser:
         while True:
             probs = self.predict_action_distrib(C,pred_action,tokens)
             max_idx   = np.argmax(probs)
-            score = max(probs[max_idx],np.finfo(float).eps)
+            score = probs[max_idx]
             pred_action = self.actions[max_idx]
             deriv.append(pred_action)            
             if pred_action == RNNGparser.CLOSE:
@@ -582,6 +583,9 @@ class RNNGparser:
             sys.stdout.write("\rEpoch %d, Mean Loss : %.5f"%(e,loss/N))
             sys.stdout.flush()
         print()
+
+
+
         
 if __name__ == '__main__':
 
