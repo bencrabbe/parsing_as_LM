@@ -448,7 +448,7 @@ class RNNGparser:
             elif pred_action == RNNGparser.TERMINATE: #we exit the loop here
                 break #  <= EXIT
             elif pred_action[0] == RNNGparser.SHIFT:
-                print(B,tok_codes)
+                print(score,B,tok_codes)
                 C = self.shift_action(C,tok_codes,score)
             elif pred_action[0] == RNNGparser.OPEN:
                 C = self.open_action(C,pred_action[1],score)
