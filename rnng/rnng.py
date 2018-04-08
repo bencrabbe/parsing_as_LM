@@ -680,8 +680,3 @@ if __name__ == '__main__':
 
         print(p.parse_sentence(t3.tokens(labels=True),ref_tree=None))
         print(p.beam_parse(t3.tokens(labels=True),all_beam_size=64,lex_beam_size=8))
-    
-        print()
-        print(p.oracle_derivation(t2))
-        print(p.parse_sentence(t2.tokens(labels=True),ref_tree=None))
-        print(p.parse_sentence(t3.tokens(labels=True),ref_tree=None))
