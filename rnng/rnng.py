@@ -141,7 +141,7 @@ class RNNGparser:
         @param token : the token to code
         @return : identity for in-vocab tokens and unk word string for OOV tokens
         """
-        return token if token in self.word_codes else self.word_codes[RNNGparser.UNKNOWN_TOKEN]
+        return token if token in self.word_codes else RNNGparser.UNKNOWN_TOKEN
         
     def code_nonterminals(self,treebank):
         """
