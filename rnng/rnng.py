@@ -357,7 +357,7 @@ class RNNGparser:
                 self.score       = prefix_score
                 
         dy.renew_cg()
-        tok_codes = [ self.lex_lookup(t)] for t in tokens ]    
+        tok_codes = [ self.lex_lookup(t) for t in tokens ]    
         C         = self.init_configuration(len(tokens))
         all_beam  = [ BeamItem(None,'init',C,0) ]
         next_lex_beam = [ ]
