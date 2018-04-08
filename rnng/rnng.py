@@ -434,7 +434,7 @@ class RNNGparser:
         tok_codes = [self.word_codes[t] for t in tokens  ]      
         C         = self.init_configuration(len(tokens))
         pred_action = 'init'
-        print(C)
+        print(C,tok_codes)
         S,B,n,stackS,score = C
         deriv = [ ]
         #while B or len(S) > 1 or n != 0:
