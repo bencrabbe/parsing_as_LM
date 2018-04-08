@@ -4,7 +4,7 @@ import getopt
 import json
 from collections import Counter
 from constree import *
-
+from rnng_params import *
 
 class StackSymbol:
     """
@@ -618,8 +618,11 @@ if __name__ == '__main__':
         train_stream   = open(train_file)
         for line in train_stream:
             train_treebank.append(ConsTree.read_tree(line))
-        p = RNNGparser(hidden_size=50,stack_embedding_size=50,stack_memory_size=25)
-        p.train_generative_model(15,train_treebank,[])
+        p = RNNGparser(max_vocabulary_size=TrainingParams.LEX_MAX_SIZE,\
+                        hidden_size=StructParams.OUTER_HIDDEN_SIZE,\
+                        stack_embedding_size=StructParams.STACK_EMB_SIZE,\
+                        stack_memory_size=StructParams.STACK_EMB_SIZE)
+        p.train_generative_model(TrainingParams.NUM_EPOCHS,learning_rate=TrainingParams.LEARNING_RATE,train_treebank,[])
         p.save_model(model_name)
         train_stream.close()
         
