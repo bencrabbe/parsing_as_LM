@@ -139,10 +139,9 @@ class RNNGparser:
         """
         Performs lookup and backs off unk words to the unk token
         @param token : the token to code
-        @return : the index of the word embedding in the lexical embedding matrix  
+        @return : identity for in-vocab tokens and unk word string for OOV tokens
         """
-        idx = self.word_codes[token] if token in self.word_codes else self.word_codes[RNNGparser.UNKNOWN_TOKEN]
-        return idx
+        return token if token in self.word_codes else self.word_codes[RNNGparser.UNKNOWN_TOKEN]
         
     def code_nonterminals(self,treebank):
         """
@@ -172,7 +171,6 @@ class RNNGparser:
         self.close_mask     =    np.array([True]  * len(self.rev_word_codes) + [True]  * len(self.nonterminals) +  [False,True]) 
         self.terminate_mask =    np.array([True]  * len(self.rev_word_codes) + [True]  * len(self.nonterminals) +  [True,False]) 
 
-        
     #transition system
     def init_configuration(self,N):
         """
@@ -199,6 +197,7 @@ class RNNGparser:
 
         return ([],tuple(range(N)),0,stackS,0.0)
 
+    
     def shift_action(self,configuration,sentence,local_score):
         """
         That's the RNNG GENERATE/SHIFT action.
@@ -357,7 +356,8 @@ class RNNGparser:
                 self.score       = prefix_score
                 
         dy.renew_cg()
-        tok_codes = [ self.lex_lookup(t) for t in tokens ]    
+        tokens    = [self.lex_lookup(t) for t in tokens  ]
+        tok_codes = [self.word_codes[t] for t in tokens  ]    
         C         = self.init_configuration(len(tokens))
         all_beam  = [ BeamItem(None,'init',C,0) ]
         next_lex_beam = [ ]
@@ -426,7 +426,8 @@ class RNNGparser:
         @return a derivation, a ConsTree or some evaluation metrics
         """
         dy.renew_cg()
-        tok_codes = [ self.lex_lookup(t) for t in tokens ]    
+        tokens    = [self.lex_lookup(t) for t in tokens  ]
+        tok_codes = [self.word_codes[t] for t in tokens  ]      
         C         = self.init_configuration(len(tokens))
         pred_action = 'init'
         S,B,n,stackS,score = C
@@ -561,7 +562,8 @@ class RNNGparser:
                 dy.renew_cg()
                 ref_derivation  = self.oracle_derivation(tree)
                 #print(ref_derivation)
-                tokens          = [ self.lex_lookup(t) for t in tree.tokens(labels=True) ]
+                tokens    = [self.lex_lookup(t) for t in tokens  ]
+                tok_codes = [self.word_codes[t] for t in tokens  ]   
                 step, max_step  = (0,len(ref_derivation))
                 current_config  = self.init_configuration(len(tokens))
                 while step < max_step:
