@@ -319,7 +319,7 @@ class RNNGparser:
         bbot = dy.parameter(self.merge_bias)        
         probs = dy.softmax( (Wtop * dy.tanh((Wbot *stack_state.output()) + bbot)) + btop)
         return np.maximum(probs.npvalue(),np.finfo(float).eps) * self.next_action_mask(configuration,last_action,sentence)
-        #this last line attempts to address numerical undeflows (0 out of dynet softmax) and applies the hard constraint mask
+        #this last line attempts to address numerical undeflows (0 out of dynet softmaxes) and applies the hard constraint mask
         #such that a legal action has a prob > 0.
     
     def train_one(self,configuration,ref_action):
@@ -342,11 +342,12 @@ class RNNGparser:
         self.trainer.update()
         return loss_val
 
-    def beam_parse(self,tokens,all_beam_size,lex_beam_size):
+    def beam_parse(self,tokens,all_beam_size,lex_beam_size,ref_tree=None):
         """
         This parses a sentence with word sync beam search.
         The beam search assumes the number of structural actions between two words to be bounded 
         @param tokens: the sentence tokens
+        @param ref_tree: if provided return an eval against ref_tree rather than a parse tree
         @return a derivation, a ConsTree or some evaluation metrics
         """
         class BeamItem:
@@ -412,9 +413,11 @@ class RNNGparser:
             current = current.prev
             best_deriv.append(current.pred_action)
         best_deriv.reverse()
-        #print()
-        #print(best_deriv)
-        return RNNGparser.derivation2tree(best_deriv)
+
+        pred_tree = RNNGparser.derivation2tree(best_deriv) 
+        if ref_tree:
+            return ref_tree.compare(pred_tree)
+        return pred_tree
 
     def parse_sentence(self,tokens,get_derivation=False,ref_tree=None):
         """
@@ -484,19 +487,19 @@ class RNNGparser:
         self.model                 = dy.ParameterCollection()
         
         #top level MLP
-        self.preds_out             = self.model.add_parameters((actions_size,self.hidden_size))                            #action output layer
-        self.preds_bias            = self.model.add_parameters((actions_size))
-        self.merge_layer           = self.model.add_parameters((self.hidden_size,self.stack_hidden_size))
-        self.merge_bias            = self.model.add_parameters((self.hidden_size))
+        self.preds_out             = self.model.add_parameters((actions_size,self.hidden_size),init='glorot')          #action output layer
+        self.preds_bias            = self.model.add_parameters((actions_size),init='glorot')
+        self.merge_layer           = self.model.add_parameters((self.hidden_size,self.stack_hidden_size),init='glorot')
+        self.merge_bias            = self.model.add_parameters((self.hidden_size),init='glorot')
         #embeddings
-        self.lex_embedding_matrix  = self.model.add_lookup_parameters((lexicon_size,self.stack_embedding_size))       # symbols embeddings
-        self.nt_embedding_matrix   = self.model.add_lookup_parameters((nt_size,self.stack_embedding_size))
+        self.lex_embedding_matrix  = self.model.add_lookup_parameters((lexicon_size,self.stack_embedding_size),init='glorot')       # symbols embeddings
+        self.nt_embedding_matrix   = self.model.add_lookup_parameters((nt_size,self.stack_embedding_size),init='glorot')
         #stack rnn 
         self.stack_rnn             = dy.LSTMBuilder(1,self.stack_embedding_size, self.stack_hidden_size,self.model)        # main stack rnn
         #tree rnn
         self.fwd_tree_rnn          = dy.LSTMBuilder(1,self.stack_embedding_size, self.stack_hidden_size,self.model)        # bi-rnn for tree embeddings
         self.bwd_tree_rnn          = dy.LSTMBuilder(1,self.stack_embedding_size, self.stack_hidden_size,self.model)
-        self.tree_rnn_out          = self.model.add_parameters((self.stack_embedding_size,self.stack_hidden_size*2))       # out layer merging the tree bi-rnn output
+        self.tree_rnn_out          = self.model.add_parameters((self.stack_embedding_size,self.stack_hidden_size*2),init='glorot')       # out layer merging the tree bi-rnn output
 
     @staticmethod
     def load_model(model_name):
@@ -531,7 +534,26 @@ class RNNGparser:
                                 'rev_word_codes':self.rev_word_codes}))
         self.model.save(model_name+'.prm')
 
-            
+        
+    def eval_model(self,ref_treebank,all_beam_size,lex_beam_size):
+        """
+        Returns a pseudo f-score of the model against ref_treebank
+        with all_beam_size and lex_beam_size.
+        This F-score is not equivalent to evalb f-score and should be regarded as indicative only.
+        @param ref_treebank : the treebank to evaluate on
+        @return Prec,Recall,F-score
+        """
+        P,R,F = 0.0,0.0,0.0
+        N     = len(ref_treebank) 
+        for tree in ref_treebank:
+            p,r,f = self.beam_parse(tree.tokens(),all_beam_size,lex_beam_size,ref_tree=tree)
+            P+=p
+            R+=r
+            F+=f
+        return P/N,R/N,F/N
+
+
+                    
     def train_generative_model(self,max_epochs,train_bank,dev_bank,lex_embeddings_file=None,learning_rate=0.001):
         """
         This trains an RNNG model on a treebank
