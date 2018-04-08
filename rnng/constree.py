@@ -99,6 +99,21 @@ class ConsTree:
         for child in self.children:
             child.strip_tags()
 
+    def normalize_OOV(self,lexicon,unk_token):
+        """
+        Destructively replaces all leaves by the unk_token when the leaf label is not in
+        lexicon.
+        @param lexicon  : a set of strings
+        @param unk_token: a string
+        @return a pointer to the tree root
+        """
+        if self.is_leaf():
+            if self.label not in lexicon:
+                self.label = unk_token
+        for child in self.children:
+            child.normalize_OOV(lexicon,unk_token)
+        return self
+            
     def add_dummy_root(self,root_label='TOP'):
         """
         In place addition of a dummy root

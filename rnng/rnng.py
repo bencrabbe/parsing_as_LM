@@ -579,6 +579,11 @@ class RNNGparser:
         print('num training trees  :',len(train_bank))
 
         self.make_structure()
+
+        
+        lexicon = set(self.rev_word_codes)
+        for t in train_bank:
+            t.normalize_OOV(lexicon,RNNGparser.UNKNOWN_TOKEN)
         
         #training
         self.trainer = dy.AdamTrainer(self.model,alpha=learning_rate)
