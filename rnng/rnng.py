@@ -592,14 +592,11 @@ class RNNGparser:
             for tree in train_bank:
                 dy.renew_cg()
                 ref_derivation  = self.oracle_derivation(tree)
-                #print(ref_derivation)
-                tokens    = [self.lex_lookup(t) for t in tree.tokens()  ]
-                tok_codes = [self.word_codes[t] for t in tokens  ]   
+                tok_codes = [self.word_codes[t] for t in tree.tokens()]   
                 step, max_step  = (0,len(ref_derivation))
-                current_config  = self.init_configuration(len(tokens))
+                current_config  = self.init_configuration(len(tok_codes))
                 while step < max_step:
                     ref_action = ref_derivation[step]
-                    #print(ref_action)
                     loss += self.train_one(current_config,ref_action)
                     N    += 1
                     if ref_action == RNNGparser.CLOSE:
@@ -609,7 +606,6 @@ class RNNGparser:
                     elif ref_action[0] == RNNGparser.OPEN:
                         current_config = self.open_action(current_config,ref_action[1],0.0)
                     step += 1
-                    #print(self.pretty_print_configuration(current_config))
             sys.stdout.write("\rEpoch %d, Mean Loss : %.5f"%(e,loss/N))
             sys.stdout.flush()
         print()
