@@ -120,7 +120,7 @@ class RNNGparser:
     
     def code_lexicon(self,treebank,max_vocab_size):
         """
-        Codes a lexicon (x-data) on integers.
+        Codes a lexicon (x-data) on integers indexes.
         @param treebank: the treebank where to extract the data from
         @param max_vocab_size: the upper bound on the size of the vocabulary
         """
@@ -134,6 +134,15 @@ class RNNGparser:
         self.rev_word_codes = list(lexicon)
         self.lexicon_size   = len(lexicon)
         self.word_codes     = dict([(s,idx) for (idx,s) in enumerate(self.rev_word_codes)])
+
+    def lex_lookup(self,token):
+        """
+        Performs lookup and backs off unk words to the unk token
+        @param token : the token to code
+        @return : the index of the word embedding in the lexical embedding matrix  
+        """
+        idx = self.word_codes[token] if token in self.word_codes else self.word_codes[RNNGparser.UNKNOWN_TOKEN]
+        return idx
         
     def code_nonterminals(self,treebank):
         """
@@ -348,7 +357,7 @@ class RNNGparser:
                 self.score       = prefix_score
                 
         dy.renew_cg()
-        tok_codes = [ self.word_codes[t] for t in tokens ]    
+        tok_codes = [ self.lex_lookup(t)] for t in tokens ]    
         C         = self.init_configuration(len(tokens))
         all_beam  = [ BeamItem(None,'init',C,0) ]
         next_lex_beam = [ ]
@@ -417,7 +426,7 @@ class RNNGparser:
         @return a derivation, a ConsTree or some evaluation metrics
         """
         dy.renew_cg()
-        tok_codes = [ self.word_codes[t] for t in tokens ]    
+        tok_codes = [ self.lex_lookup(t) for t in tokens ]    
         C         = self.init_configuration(len(tokens))
         pred_action = 'init'
         S,B,n,stackS,score = C
@@ -552,7 +561,7 @@ class RNNGparser:
                 dy.renew_cg()
                 ref_derivation  = self.oracle_derivation(tree)
                 #print(ref_derivation)
-                tokens          = [ self.word_codes[t] for t in tree.tokens(labels=True) ]
+                tokens          = [ self.lex_lookup(t) for t in tree.tokens(labels=True) ]
                 step, max_step  = (0,len(ref_derivation))
                 current_config  = self.init_configuration(len(tokens))
                 while step < max_step:
