@@ -436,7 +436,6 @@ class RNNGparser:
         pred_action = 'init'
         S,B,n,stackS,score = C
         deriv = [ ]
-        #while B or len(S) > 1 or n != 0:
         while True:
             probs = self.predict_action_distrib(C,pred_action,tokens)
             max_idx   = np.argmax(probs)
@@ -449,7 +448,7 @@ class RNNGparser:
                 break #  <= EXIT
             elif pred_action[0] == RNNGparser.SHIFT:
                 #print(score,B,tok_codes)
-                #print(probs)
+                print('#',score)
                 C = self.shift_action(C,tok_codes,score)
             elif pred_action[0] == RNNGparser.OPEN:
                 C = self.open_action(C,pred_action[1],score)
@@ -612,7 +611,6 @@ class RNNGparser:
 
         
 if __name__ == '__main__':
-
     try:
         opts, args = getopt.getopt(sys.argv[1:],"ht:o:d:r:m:")
     except getopt.GetoptError:
