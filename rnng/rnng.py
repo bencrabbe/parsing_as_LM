@@ -562,7 +562,7 @@ class RNNGparser:
                 dy.renew_cg()
                 ref_derivation  = self.oracle_derivation(tree)
                 #print(ref_derivation)
-                tokens    = [self.lex_lookup(t) for t in tokens  ]
+                tokens    = [self.lex_lookup(t) for t in tree.tokens()  ]
                 tok_codes = [self.word_codes[t] for t in tokens  ]   
                 step, max_step  = (0,len(ref_derivation))
                 current_config  = self.init_configuration(len(tokens))
