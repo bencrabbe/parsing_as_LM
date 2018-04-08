@@ -574,7 +574,7 @@ class RNNGparser:
                     if ref_action == RNNGparser.CLOSE:
                         current_config = self.close_action(current_config,0.0)
                     elif ref_action[0] == RNNGparser.SHIFT:
-                        current_config = self.shift_action(current_config,tokens,0.0)
+                        current_config = self.shift_action(current_config,tok_codes,0.0)
                     elif ref_action[0] == RNNGparser.OPEN:
                         current_config = self.open_action(current_config,ref_action[1],0.0)
                     step += 1
