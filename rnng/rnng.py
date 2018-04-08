@@ -443,14 +443,11 @@ class RNNGparser:
             score = probs[max_idx]
             pred_action = self.actions[max_idx]
             deriv.append(pred_action)
-            print(pred_action)
             if pred_action == RNNGparser.CLOSE:
                 C = self.close_action(C,score)
             elif pred_action == RNNGparser.TERMINATE: #we exit the loop here
                 break #  <= EXIT
             elif pred_action[0] == RNNGparser.SHIFT:
-                #print(score,B,tok_codes)
-                print('S',score,'O',probs[ self.action_codes[(RNNGparser.OPEN,'NP')] ],'C' ,probs[ self.action_codes[RNNGparser.CLOSE] ])
                 C = self.shift_action(C,tok_codes,score)
             elif pred_action[0] == RNNGparser.OPEN:
                 C = self.open_action(C,pred_action[1],score)
