@@ -319,7 +319,7 @@ class RNNGparser:
         bbot = dy.parameter(self.merge_bias)        
         probs = dy.softmax( (Wtop * dy.tanh((Wbot *stack_state.output()) + bbot)) + btop)
         return np.maximum(probs.npvalue(),np.finfo(float).eps) * self.next_action_mask(configuration,last_action,sentence)
-        #this last line attempts to address numerical undeflows (0 out of dynet softmaxes) and applies the hard constraint mask
+        #this last line attempts to address numerical underflows (0 out of dynet softmaxes) and applies the hard constraint mask
         #such that a legal action has a prob > 0.
     
     def train_one(self,configuration,ref_action):
