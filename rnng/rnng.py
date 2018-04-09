@@ -695,7 +695,7 @@ if __name__ == '__main__':
         p = RNNGparser(max_vocabulary_size=TrainingParams.LEX_MAX_SIZE,\
                         hidden_size=StructParams.OUTER_HIDDEN_SIZE,\
                         stack_embedding_size=StructParams.STACK_EMB_SIZE,\
-                        stack_memory_size=StructParams.STACK_EMB_SIZE)
+                        stack_memory_size=StructParams.STACK_HIDDEN_SIZE)
         p.train_generative_model(TrainingParams.NUM_EPOCHS,train_treebank,[],learning_rate=TrainingParams.LEARNING_RATE,dropout=TrainingParams.DROPOUT)
         p.save_model(model_name)
         train_stream.close()
