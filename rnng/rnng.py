@@ -576,8 +576,11 @@ class RNNGparser:
         Evaluates the local accurracy of individual action prediction.
         @param ref_treebank : a reference treebank
         """
+        ref_derivation  = self.oracle_derivation(tree)
+        tok_codes = [self.word_codes[t] for t in tree.tokens()]   
+        step, max_step  = (0,len(ref_derivation))
+        current_config  = self.init_configuration(len(tok_codes))
         pass
-    
                     
     def train_generative_model(self,max_epochs,train_bank,dev_bank,lex_embeddings_file=None,learning_rate=0.001,dropout=0.3):
         """
@@ -609,7 +612,9 @@ class RNNGparser:
         lexicon = set(self.rev_word_codes)
         for t in train_bank:
             t.normalize_OOV(lexicon,RNNGparser.UNKNOWN_TOKEN)
-        
+        for t in dev_bank:
+            t.normalize_OOV(lexicon,RNNGparser.UNKNOWN_TOKEN)
+            
         #training
         self.trainer = dy.AdamTrainer(self.model,alpha=learning_rate)
         for e in range(max_epochs):
@@ -697,11 +702,11 @@ if __name__ == '__main__':
         t2 = ConsTree.read_tree('(S (NP Le chat ) (VP voit  (NP le chien) (PP sur (NP le paillasson))))')
         t3 = ConsTree.read_tree('(S (NP La souris (Srel qui (VP dort (PP sur (NP le paillasson))))) (VP sera mangée (PP par (NP le chat ))))')
 
-        p = RNNGparser(hidden_size=50,stack_embedding_size=50,stack_memory_size=25)
-        p.train_generative_model(500,[t,t2,t3],[])
-        D = p.oracle_derivation(t2)
-        print(D)
-        print(RNNGparser.derivation2tree(D))
+        p = RNNGparser(max_vocabulary_size=TrainingParams.LEX_MAX_SIZE,\
+                        hidden_size=StructParams.OUTER_HIDDEN_SIZE,\
+                        stack_embedding_size=StructParams.STACK_EMB_SIZE,\
+                        stack_memory_size=StructParams.STACK_EMB_SIZE)
+        p.train_generative_model(TrainingParams.NUM_EPOCHS,train_treebank,[],learning_rate=TrainingParams.LEARNING_RATE,dropout=TrainingParams.DROPOUT)
         print(p.parse_sentence(t.tokens(labels=True),ref_tree=None))
         print(p.beam_parse(t.tokens(labels=True),all_beam_size=64,lex_beam_size=8))
 
