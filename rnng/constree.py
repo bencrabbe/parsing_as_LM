@@ -345,8 +345,7 @@ class PennTreebank:
         
         for d in train_dirs:
             print('Processing wsj-%s'%(d,),file=sys.stderr)
-            train_file.write('\n'.join([str(t) for t in PennTreebank.preprocess_src_dir(str(os.path.join(ptb_root,d)))]))
-            train_file.write('\n')
+            print('\n'.join([str(t) for t in PennTreebank.preprocess_src_dir(str(os.path.join(ptb_root,d)))]),file=train_file)
         print(PennTreebank.N)
 
             
