@@ -3,7 +3,7 @@
 #These are namespaces for the hyperparams of the RNNG parser
 class StructParams:
 
-    OUTER_HIDDEN_SIZE  = 128
+    OUTER_HIDDEN_SIZE  = 50
     STACK_EMB_SIZE     = 50
     STACK_HIDDEN_SIZE  = 50 
     
