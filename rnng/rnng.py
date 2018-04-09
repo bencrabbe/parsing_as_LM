@@ -42,8 +42,8 @@ class RNNGparser:
     CLOSE           = 'C'
     TERMINATE       = 'T'
 
-    UNKNOWN_TOKEN = '__UNK__'
-    START_TOKEN   = '__START__'
+    UNKNOWN_TOKEN = '<UNK>'
+    START_TOKEN   = '<START>'
 
     def __init__(self,max_vocabulary_size=10000,
                  hidden_size = 50,
