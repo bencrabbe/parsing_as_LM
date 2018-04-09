@@ -554,7 +554,7 @@ class RNNGparser:
         self.model.save(model_name+'.prm')
 
         
-    def eval_model(self,ref_treebank,all_beam_size,lex_beam_size):
+    def eval_trees(self,ref_treebank,all_beam_size,lex_beam_size):
         """
         Returns a pseudo f-score of the model against ref_treebank
         with all_beam_size and lex_beam_size.
@@ -571,7 +571,9 @@ class RNNGparser:
             F+=f
         return P/N,R/N,F/N
 
-
+    #def eval_accurracy(self)
+    
+    
                     
     def train_generative_model(self,max_epochs,train_bank,dev_bank,lex_embeddings_file=None,learning_rate=0.001,dropout=0.3):
         """
