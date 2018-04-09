@@ -645,7 +645,7 @@ class RNNGparser:
                 current_config  = self.init_configuration(len(tok_codes))
                 while step < max_step:
                     ref_action = ref_derivation[step]
-                    loc_loss,correct =  self.train_one(current_config,ref_action)
+                    loc_loss,correct = self.train_one(current_config,ref_action)
                     monitor.add_datum(loc_loss,correct)
                     if ref_action == RNNGparser.CLOSE:
                         current_config = self.close_action(current_config,0.0)
@@ -653,6 +653,7 @@ class RNNGparser:
                         current_config = self.shift_action(current_config,tok_codes,0.0)
                     elif ref_action[0] == RNNGparser.OPEN:
                         current_config = self.open_action(current_config,ref_action[1],0.0)
+                    step+=1
             monitor.reset_all()
         print()
         self.dropout = 0.0  #prevents dropout to be applied at decoding
