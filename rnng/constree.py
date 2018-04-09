@@ -307,7 +307,6 @@ class PennTreebank:
             ctree.children = [child for flag,child in zip(removals,ctree.children) if not flag]
             return False
 
-    N = 0
                 
     @staticmethod
     def preprocess_src_dir(dirpath):
@@ -321,8 +320,6 @@ class PennTreebank:
         for f in files:
             filename = str(os.path.join(dirpath,f))
             tree_list.extend(PennTreebank.preprocess_file(filename))
-        print(dirpath,len(tree_list))
-        PennTreebank.N += len(tree_list)
         return tree_list
 
     @staticmethod
@@ -346,17 +343,16 @@ class PennTreebank:
         for d in train_dirs:
             print('Processing wsj-%s'%(d,),file=sys.stderr)
             print('\n'.join([str(t) for t in PennTreebank.preprocess_src_dir(str(os.path.join(ptb_root,d)))]),file=train_file)
-        print(PennTreebank.N)
 
             
         print('Processing wsj-%s'%(dev_dir,),file=sys.stderr)
         devtrees = PennTreebank.preprocess_src_dir(str(os.path.join(ptb_root,dev_dir)))
-        dev_file.write('\n'.join([str(t) for t in devtrees]))
-        dev_raw.write('\n'.join([' '.join(t.tokens(labels=True)) for t in devtrees]))
+        print('\n'.join([str(t) for t in devtrees]),file=dev_file)
+        print('\n'.join([' '.join(t.tokens(labels=True)) for t in devtrees]),file=dev_raw)
         print('Processing wsj-%s'%(test_dir,),file=sys.stderr)
         testtrees = PennTreebank.preprocess_src_dir(str(os.path.join(ptb_root,test_dir)))
-        test_file.write('\n'.join([str(t) for t in testtrees]))
-        test_raw.write('\n'.join([' '.join(t.tokens(labels=True)) for t in testtrees]))
+        print('\n'.join([str(t) for t in testtrees]),file=test_file)
+        print('\n'.join([' '.join(t.tokens(labels=True)) for t in testtrees]),file=test_raw)
 
         train_file.close()
         dev_file.close()
