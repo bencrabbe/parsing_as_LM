@@ -610,9 +610,9 @@ class RNNGparser:
             
         #training
         self.trainer = dy.AdamTrainer(self.model,alpha=learning_rate)
-        #Monitoring loss & accurracy
 
-        class OptimMonitoring:
+        #Monitoring loss & accurracy
+        class OptimMonitor:
             def __init__(self,step_size=1000):
                 self.step_size = step_size
                 self.N = 0
@@ -637,7 +637,7 @@ class RNNGparser:
                     self.reset_acc_counts()
                 
         for e in range(max_epochs):
-            monitor =  OptimMonitoring()
+            monitor =  OptimMonitor()
             for tree in train_bank:
                 dy.renew_cg()
                 ref_derivation  = self.oracle_derivation(tree)

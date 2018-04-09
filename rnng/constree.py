@@ -307,7 +307,8 @@ class PennTreebank:
             ctree.children = [child for flag,child in zip(removals,ctree.children) if not flag]
             return False
 
-        
+    N = 0
+                
     @staticmethod
     def preprocess_src_dir(dirpath):
         """
@@ -320,6 +321,8 @@ class PennTreebank:
         for f in files:
             filename = str(os.path.join(dirpath,f))
             tree_list.extend(PennTreebank.preprocess_file(filename))
+        print(dirpath,len(tree_list))
+        PennTreebank.N += len(tree_list)
         return tree_list
 
     @staticmethod
@@ -344,6 +347,9 @@ class PennTreebank:
             print('Processing wsj-%s'%(d,),file=sys.stderr)
             train_file.write('\n'.join([str(t) for t in PennTreebank.preprocess_src_dir(str(os.path.join(ptb_root,d)))]))
 
+        print(PennTreebank.N)
+
+            
         print('Processing wsj-%s'%(dev_dir,),file=sys.stderr)
         devtrees = PennTreebank.preprocess_src_dir(str(os.path.join(ptb_root,dev_dir)))
         dev_file.write('\n'.join([str(t) for t in devtrees]))
@@ -362,8 +368,8 @@ class PennTreebank:
                 
 if __name__ == '__main__':
     #Generates Penn TB with classical setup
-    PennTreebank.generate_standard_split('/data/Corpus/ptb/treebank_3/parsed/mrg/wsj','/home/bcrabbe/parsing_as_LM/rnng')
+    #PennTreebank.generate_standard_split('/data/Corpus/ptb/treebank_3/parsed/mrg/wsj','/home/bcrabbe/parsing_as_LM/rnng')
     
-    
+    PennTreebank.generate_standard_split('/Users/bcrabbe/Desktop/ptb/treebank_3/parsed/mrg/wsj','/Users/bcrabbe/parsing_as_LM/rnng')
 
     
