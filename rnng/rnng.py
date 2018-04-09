@@ -701,17 +701,12 @@ if __name__ == '__main__':
         t  = ConsTree.read_tree('(S (NP Le chat ) (VP mange  (NP la souris)))')
         t2 = ConsTree.read_tree('(S (NP Le chat ) (VP voit  (NP le chien) (PP sur (NP le paillasson))))')
         t3 = ConsTree.read_tree('(S (NP La souris (Srel qui (VP dort (PP sur (NP le paillasson))))) (VP sera mangée (PP par (NP le chat ))))')
-
+        train_treebank = [t,t2,t3]
+        
         p = RNNGparser(max_vocabulary_size=TrainingParams.LEX_MAX_SIZE,\
                         hidden_size=StructParams.OUTER_HIDDEN_SIZE,\
                         stack_embedding_size=StructParams.STACK_EMB_SIZE,\
                         stack_memory_size=StructParams.STACK_EMB_SIZE)
         p.train_generative_model(TrainingParams.NUM_EPOCHS,train_treebank,[],learning_rate=TrainingParams.LEARNING_RATE,dropout=TrainingParams.DROPOUT)
-        print(p.parse_sentence(t.tokens(labels=True),ref_tree=None))
-        print(p.beam_parse(t.tokens(labels=True),all_beam_size=64,lex_beam_size=8))
-
-        print(p.parse_sentence(t2.tokens(labels=True),ref_tree=None))
-        print(p.beam_parse(t2.tokens(labels=True),all_beam_size=64,lex_beam_size=8))
-
-        print(p.parse_sentence(t3.tokens(labels=True),ref_tree=None))
-        print(p.beam_parse(t3.tokens(labels=True),all_beam_size=64,lex_beam_size=8))
+        for t in train_treebank:            
+            print(p.beam_parse(t.tokens(),all_beam_size=64,lex_beam_size=8))
