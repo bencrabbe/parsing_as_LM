@@ -59,6 +59,7 @@ class RNNGparser:
         self.stack_embedding_size = stack_embedding_size
         self.stack_hidden_size    = stack_memory_size
         self.hidden_size          = hidden_size
+        self.dropout = 0.0
 
     def oracle_derivation(self,ref_tree,root=True):
         """
@@ -208,9 +209,12 @@ class RNNGparser:
         """
         S,B,n,stack_state,score = configuration
         word_idx = sentence[B[0]]
-        word_embedding = self.lex_embedding_matrix[word_idx]
+        if self.dropout > 0.0:
+            word_embedding = dy.dropout(self.lex_embedding_matrix[word_idx],self.dropout)
+        else: 
+            word_embedding = self.lex_embedding_matrix[word_idx]
         return (S + [StackSymbol(B[0],StackSymbol.COMPLETED,word_embedding)],B[1:],n,stack_state.add_input(word_embedding),local_score)
-
+            
     def open_action(self,configuration,X,local_score):
         """
         That's the RNNG OPEN-X action.
@@ -222,9 +226,13 @@ class RNNGparser:
         S,B,n,stack_state,score = configuration
 
         nt_idx = self.nonterminals_codes[X]
-        nonterminal_embedding = self.nt_embedding_matrix[nt_idx]
-        stack_state = stack_state.add_input(nonterminal_embedding)
 
+        if self.dropout > 0.0:
+            nonterminal_embedding = dy.dropout(self.nt_embedding_matrix[nt_idx],self.dropout)
+        else:
+            nonterminal_embedding = self.nt_embedding_matrix[nt_idx]
+            
+        stack_state = stack_state.add_input(nonterminal_embedding)
         return (S + [StackSymbol(X,StackSymbol.PREDICTED,nonterminal_embedding)],B,n+1,stack_state,local_score)
 
     def close_action(self,configuration,local_score):
@@ -234,7 +242,7 @@ class RNNGparser:
         @return a configuration resulting from closing the current constituent
         """
         S,B,n,stack_state,score = configuration
-        assert(n > 0)
+        assert( n > 0 )
         #finds the closest predicted constituent in the stack and backtracks the stack lstm.
         midx = -1
         for idx,symbol in enumerate(reversed(S)):
@@ -255,7 +263,10 @@ class RNNGparser:
             
         #compute the tree embedding with the tree_rnn
         nt_idx = self.nonterminals_codes[root_symbol.symbol]
-        NT_embedding = self.nt_embedding_matrix[nt_idx]
+        if self.dropout > 0.0:
+            NT_embedding = self.nt_embedding_matrix[nt_idx]
+        else:
+            NT_embedding = dy.dropout(self.nt_embedding_matrix[nt_idx],self.dropout)
         s1 = self.fwd_tree_rnn.initial_state()
         s1 = s1.add_input(NT_embedding)
         for c in children:
@@ -268,7 +279,11 @@ class RNNGparser:
         bwd_tree_embedding = s2.output()
         x = dy.concatenate([fwd_tree_embedding,bwd_tree_embedding])
         W = dy.parameter(self.tree_rnn_out)
-        tree_embedding =  dy.tanh(W * x)
+
+        if self.dropout > 0.0:
+            dy.dropout(dy.tanh(W * x),self.dropout)
+        else:
+            tree_embedding = dy.tanh(W * x)
         
         return (S[:-midx]+[root_symbol],B,n-1,stack_state.add_input(tree_embedding), local_score)
 
@@ -323,11 +338,12 @@ class RNNGparser:
         #this last line attempts to address numerical underflows (0 out of dynet softmaxes) and applies the hard constraint mask
         #such that a legal action has a prob > 0.
     
-    def train_one(self,configuration,ref_action):
+    def train_one(self,configuration,ref_action,dropout):
         """
         This performs a forward, backward and update pass on the network for this action.
         @param configuration: the current configuration
         @param ref_action  : the reference action
+        @param dropout : a float, value of the dropout
         @return the loss for this action
         """
         S,B,n,stack_state,local_score = configuration
@@ -336,7 +352,7 @@ class RNNGparser:
         Wbot   = dy.parameter(self.merge_layer)
         btop   = dy.parameter(self.preds_bias)
         bbot   = dy.parameter(self.merge_bias)
-        probs  = dy.softmax( (Wtop * dy.tanh((Wbot * stack_state.output()) + bbot)) + btop)
+        probs  = dy.softmax( (Wtop * dy.dropout(dy.tanh((Wbot * stack_state.output()) + bbot)),self.dropout) + btop)
         loss   = dy.pickneglogsoftmax(probs,self.action_codes[ref_action])
         loss_val = loss.value()
         loss.backward()
@@ -434,7 +450,7 @@ class RNNGparser:
         """
         dy.renew_cg()
         tokens    = [self.lex_lookup(t) for t in tokens  ]
-        tok_codes = [self.word_codes[t] for t in tokens  ]      
+        tok_codes = [self.word_codes[t] for t in tokens  ]
         C         = self.init_configuration(len(tokens))
         pred_action = 'init'
         S,B,n,stackS,score = C
@@ -443,6 +459,8 @@ class RNNGparser:
             probs = self.predict_action_distrib(C,pred_action,tokens)
             max_idx   = np.argmax(probs)
             score = probs[max_idx]
+            if score == 0.0:
+                print('parser trapped ')
             pred_action = self.actions[max_idx]
             deriv.append(pred_action)
             if pred_action == RNNGparser.CLOSE:
@@ -556,7 +574,7 @@ class RNNGparser:
 
 
                     
-    def train_generative_model(self,max_epochs,train_bank,dev_bank,lex_embeddings_file=None,learning_rate=0.001):
+    def train_generative_model(self,max_epochs,train_bank,dev_bank,lex_embeddings_file=None,learning_rate=0.001,dropout=0.3):
         """
         This trains an RNNG model on a treebank
         @param learning_rate: the learning rate for SGD
@@ -566,6 +584,8 @@ class RNNGparser:
         @param lex_embeddings_file: an external word embeddings filename
         @return a dynet model
         """
+        self.dropout = dropout
+        
         #Coding
         self.code_lexicon(train_bank,self.max_vocab_size)
         self.code_nonterminals(train_bank)
@@ -608,10 +628,8 @@ class RNNGparser:
             sys.stdout.write("\rEpoch %d, Mean Loss : %.5f"%(e,loss/N))
             sys.stdout.flush()
         print()
+        self.dropout = 0.0  #prevents dropout to be applied at decoding
 
-
-
-        
 if __name__ == '__main__':
     try:
         opts, args = getopt.getopt(sys.argv[1:],"ht:o:d:r:m:")
