@@ -594,7 +594,8 @@ class RNNGparser:
         self.print_summary()
         print('---------------------------')
         print('num epochs          :',max_epochs)
-        print('learning rate       :',learning_rate)        
+        print('learning rate       :',learning_rate)
+        print('dropout             :',self.dropout)        
         print('num training trees  :',len(train_bank),flush=True)
 
         self.make_structure()
