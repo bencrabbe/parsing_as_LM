@@ -338,12 +338,11 @@ class RNNGparser:
         #this last line attempts to address numerical underflows (0 out of dynet softmaxes) and applies the hard constraint mask
         #such that a legal action has a prob > 0.
     
-    def train_one(self,configuration,ref_action,dropout):
+    def train_one(self,configuration,ref_action):
         """
         This performs a forward, backward and update pass on the network for this action.
         @param configuration: the current configuration
         @param ref_action  : the reference action
-        @param dropout : a float, value of the dropout
         @return the loss for this action
         """
         S,B,n,stack_state,local_score = configuration
