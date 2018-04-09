@@ -645,8 +645,8 @@ class RNNGparser:
                 current_config  = self.init_configuration(len(tok_codes))
                 while step < max_step:
                     ref_action = ref_derivation[step]
-                    l ,correct =  self.train_one(current_config,ref_action)
-                    monitor.add_datum(l,correct)
+                    loc_loss,correct =  self.train_one(current_config,ref_action)
+                    monitor.add_datum(loc_loss,correct)
                     if ref_action == RNNGparser.CLOSE:
                         current_config = self.close_action(current_config,0.0)
                     elif ref_action[0] == RNNGparser.SHIFT:
