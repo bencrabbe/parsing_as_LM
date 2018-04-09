@@ -571,8 +571,12 @@ class RNNGparser:
             F+=f
         return P/N,R/N,F/N
 
-    #def eval_accurracy(self)
-    
+    def eval_accurracy(self,ref_treebank):
+        """
+        Evaluates the local accurracy of individual action prediction.
+        @param ref_treebank : a reference treebank
+        """
+        pass
     
                     
     def train_generative_model(self,max_epochs,train_bank,dev_bank,lex_embeddings_file=None,learning_rate=0.001,dropout=0.3):
@@ -673,7 +677,11 @@ if __name__ == '__main__':
         p.train_generative_model(TrainingParams.NUM_EPOCHS,train_treebank,[],learning_rate=TrainingParams.LEARNING_RATE,dropout=TrainingParams.DROPOUT)
         p.save_model(model_name)
         train_stream.close()
+        #runs a test on train data
+        for t in train_treebank[:100]:
+            print(p.beam_parse(t.tokens(),all_beam_size=64,lex_beam_size=8))
         
+    #runs a test    
     if model_name and raw_file:
         p = RNNGparser.load_model(model_name)
         test_stream = open(raw_file)
@@ -682,6 +690,8 @@ if __name__ == '__main__':
             print(p.beam_parse(line.split(),all_beam_size=64,lex_beam_size=8))
         test_stream.close()
 
+        
+    #despaired debug
     if not model_name:
         t  = ConsTree.read_tree('(S (NP Le chat ) (VP mange  (NP la souris)))')
         t2 = ConsTree.read_tree('(S (NP Le chat ) (VP voit  (NP le chien) (PP sur (NP le paillasson))))')
