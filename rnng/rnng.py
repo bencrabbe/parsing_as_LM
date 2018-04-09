@@ -329,11 +329,9 @@ class RNNGparser:
         """
         S,B,n,stack_state,local_score = configuration
         
-        Wtop = dy.parameter(self.preds_out)
-        Wbot = dy.parameter(self.merge_layer)
-        btop = dy.parameter(self.preds_bias)
-        bbot = dy.parameter(self.merge_bias)        
-        probs = dy.softmax( (Wtop * dy.tanh((Wbot *stack_state.output()) + bbot)) + btop).npvalue()
+        Wout = dy.parameter(self.preds_out)
+        b_out = dy.parameter(self.preds_bias)
+        probs = dy.softmax( (Wout * dy.tanh(stack_state.output()) + b_out).npvalue()
         #print('best action without constraint',self.actions[np.argmax(probs)],probs[np.argmax(probs)])
         return np.maximum(probs,np.finfo(float).eps) * self.next_action_mask(configuration,last_action,sentence)
         #this last line attempts to address numerical underflows (0 out of dynet softmaxes) and applies the hard constraint mask
@@ -347,11 +345,9 @@ class RNNGparser:
         @return (the loss for this action,a boolean indicating if the prediction argmax is correct or not)
         """
         S,B,n,stack_state,local_score = configuration
-        Wtop   = dy.parameter(self.preds_out)
-        Wbot   = dy.parameter(self.merge_layer)
-        btop   = dy.parameter(self.preds_bias)
-        bbot   = dy.parameter(self.merge_bias)
-        log_probs  = dy.log_softmax( (Wtop * dy.dropout(dy.tanh((Wbot * stack_state.output()) + bbot),self.dropout)) + btop)
+        Wout   = dy.parameter(self.preds_out)
+        b_out   = dy.parameter(self.preds_bias)
+        log_probs  = dy.log_softmax( (Wout * dy.dropout(dy.tanh(stack_state.output()),self.dropout)) + b_out)
 
         best_prediction = np.argmax(log_probs.npvalue())
         iscorrect = (self.action_codes[ref_action] == best_prediction)
@@ -512,8 +508,6 @@ class RNNGparser:
         #top level MLP
         self.preds_out             = self.model.add_parameters((actions_size,self.hidden_size),init='glorot')          #action output layer
         self.preds_bias            = self.model.add_parameters((actions_size),init='glorot')
-        self.merge_layer           = self.model.add_parameters((self.hidden_size,self.stack_hidden_size),init='glorot')
-        self.merge_bias            = self.model.add_parameters((self.hidden_size),init='glorot')
         #embeddings
         self.lex_embedding_matrix  = self.model.add_lookup_parameters((lexicon_size,self.stack_embedding_size),init='glorot')       # symbols embeddings
         self.nt_embedding_matrix   = self.model.add_lookup_parameters((nt_size,self.stack_embedding_size),init='glorot')
@@ -670,6 +664,8 @@ if __name__ == '__main__':
     out_file   = ''
     model_name = ''
     raw_file   = ''
+    lex_beam    = 8
+    struct_beam = 64
     
     for opt, arg in opts:
         if opt in ['-h','--help']:
@@ -685,6 +681,10 @@ if __name__ == '__main__':
             model_name = arg
         elif opt in ['-o','--output']:
             out_file = arg
+        elif opt in ['--lex-beam']:
+            lex_beam = int(arg)
+        elif opt in ['--struct-beam']:
+            struct_beam = int(arg)
             
     train_treebank = []
 
@@ -710,11 +710,11 @@ if __name__ == '__main__':
         test_stream = open(raw_file)
         for line in test_stream:
             #print(p.parse_sentence(line.split(),ref_tree=None))
-            print(p.beam_parse(line.split(),all_beam_size=64,lex_beam_size=8))
+            print(p.beam_parse(line.split(),all_beam_size=struct_beam,lex_beam_size=lex_beam))
         test_stream.close()
 
         
-    #despaired debug
+    #despaired debugging
     if not model_name:
         t  = ConsTree.read_tree('(S (NP Le chat ) (VP mange  (NP la souris)))')
         t2 = ConsTree.read_tree('(S (NP Le chat ) (VP voit  (NP le chien) (PP sur (NP le paillasson))))')
@@ -727,4 +727,4 @@ if __name__ == '__main__':
                         stack_memory_size=StructParams.STACK_EMB_SIZE)
         p.train_generative_model(TrainingParams.NUM_EPOCHS,train_treebank,[],learning_rate=TrainingParams.LEARNING_RATE,dropout=TrainingParams.DROPOUT)
         for t in train_treebank:            
-            print(p.beam_parse(t.tokens(),all_beam_size=64,lex_beam_size=8))
+            print(p.beam_parse(t.tokens(),all_beam_size=struct_beam,lex_beam_size=lex_beam))
