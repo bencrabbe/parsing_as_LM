@@ -10,6 +10,6 @@ class StructParams:
     
 class TrainingParams:
     LEX_MAX_SIZE      = 1000
-    NUM_EPOCHS        = 2
+    NUM_EPOCHS        = 200
     LEARNING_RATE     = 0.01
-    DROPOUT           = 0.3
+    DROPOUT           = 0.01
