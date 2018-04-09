@@ -638,6 +638,7 @@ class RNNGparser:
         for e in range(max_epochs):
             monitor =  OptimMonitoring()
             for tree in train_bank:
+                print(tree)
                 dy.renew_cg()
                 ref_derivation  = self.oracle_derivation(tree)
                 tok_codes = [self.word_codes[t] for t in tree.tokens()]   
