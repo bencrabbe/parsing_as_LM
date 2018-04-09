@@ -289,7 +289,7 @@ class RNNGparser:
 
     
     def next_action_mask(self,configuration,last_action,sentence):
-        """
+        """ 
         This returns a mask stating which abstract actions are possible for next round
         @param configuration: the current configuration
         @param last_action  : the last abstract action  performed by this parser
