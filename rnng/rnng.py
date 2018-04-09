@@ -343,7 +343,7 @@ class RNNGparser:
         This performs a forward, backward and update pass on the network for this action.
         @param configuration: the current configuration
         @param ref_action  : the reference action
-        @return the loss for this action
+        @return (the loss for this action,a boolean indicating if the prediction argmax is correct or not)
         """
         S,B,n,stack_state,local_score = configuration
         
@@ -570,17 +570,6 @@ class RNNGparser:
             R+=r
             F+=f
         return P/N,R/N,F/N
-
-    def eval_accurracy(self,ref_treebank):
-        """
-        Evaluates the local accurracy of individual action prediction.
-        @param ref_treebank : a reference treebank
-        """
-        ref_derivation  = self.oracle_derivation(tree)
-        tok_codes = [self.word_codes[t] for t in tree.tokens()]   
-        step, max_step  = (0,len(ref_derivation))
-        current_config  = self.init_configuration(len(tok_codes))
-        pass
                     
     def train_generative_model(self,max_epochs,train_bank,dev_bank,lex_embeddings_file=None,learning_rate=0.001,dropout=0.3):
         """
