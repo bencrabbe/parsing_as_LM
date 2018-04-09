@@ -351,7 +351,7 @@ class RNNGparser:
         Wbot   = dy.parameter(self.merge_layer)
         btop   = dy.parameter(self.preds_bias)
         bbot   = dy.parameter(self.merge_bias)
-        probs  = dy.softmax( (Wtop * dy.dropout(dy.tanh((Wbot * stack_state.output()) + bbot)),self.dropout) + btop)
+        probs  = dy.softmax( (Wtop * dy.dropout(dy.tanh((Wbot * stack_state.output()) + bbot),self.dropout)) + btop)
         loss   = dy.pickneglogsoftmax(probs,self.action_codes[ref_action])
         loss_val = loss.value()
         loss.backward()
