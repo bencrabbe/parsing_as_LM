@@ -614,6 +614,7 @@ class RNNGparser:
         class OptimMonitoring:
             def __init__(self,step_size=1000):
                 self.step_size = step_size
+                self.N = 0
                 self.reset_all()
             def reset_all(self):
                 if self.N > 0:
