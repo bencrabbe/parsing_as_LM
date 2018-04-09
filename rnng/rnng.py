@@ -281,7 +281,7 @@ class RNNGparser:
         W = dy.parameter(self.tree_rnn_out)
 
         if self.dropout > 0.0:
-            dy.dropout(dy.tanh(W * x),self.dropout)
+            tree_embedding = dy.dropout(dy.tanh(W * x),self.dropout)
         else:
             tree_embedding = dy.tanh(W * x)
         
