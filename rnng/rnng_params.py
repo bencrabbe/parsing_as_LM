@@ -8,7 +8,7 @@ class StructParams:
     STACK_HIDDEN_SIZE  = 256 
     
 class TrainingParams:
-    LEX_MAX_SIZE      = 2500
+    LEX_MAX_SIZE      = 3000
     NUM_EPOCHS        = 4
     LEARNING_RATE     = 0.0001
     DROPOUT           = 0.0001

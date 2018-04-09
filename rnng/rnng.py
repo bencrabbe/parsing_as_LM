@@ -129,6 +129,7 @@ class RNNGparser:
         for tree in treebank:
             sentence = tree.tokens(labels=True) 
             lexicon.update(sentence)
+        print('Full lexicon size:',len(lexicon))
         lexicon = set([word for word,count in lexicon.most_common(max_vocab_size-2)])
         lexicon.add(RNNGparser.UNKNOWN_TOKEN)
         lexicon.add(RNNGparser.START_TOKEN)
