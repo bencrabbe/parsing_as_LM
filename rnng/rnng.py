@@ -333,7 +333,7 @@ class RNNGparser:
         btop = dy.parameter(self.preds_bias)
         bbot = dy.parameter(self.merge_bias)        
         probs = dy.softmax( (Wtop * dy.tanh((Wbot *stack_state.output()) + bbot)) + btop).npvalue()
-        print('best action without constraint',self.actions[np.argmax(probs)],probs[np.argmax(probs)])
+        #print('best action without constraint',self.actions[np.argmax(probs)],probs[np.argmax(probs)])
         return np.maximum(probs,np.finfo(float).eps) * self.next_action_mask(configuration,last_action,sentence)
         #this last line attempts to address numerical underflows (0 out of dynet softmaxes) and applies the hard constraint mask
         #such that a legal action has a prob > 0.
