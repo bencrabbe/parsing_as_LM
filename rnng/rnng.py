@@ -632,7 +632,7 @@ class RNNGparser:
                 self.N     +=1
                 self.acc_sum+=datum_correct
                 if self.N % self.step_size == 0:
-                    sys.stdout.write("\r    Mean acc : %.5f"%(self.acc_sum/self.step_size))
+                    sys.stdout.write("\r    Mean acc (%d): %.5f"%(self.step_size,self.acc_sum/self.step_size))
                     self.reset_acc_counts()
                 
         for e in range(max_epochs):
