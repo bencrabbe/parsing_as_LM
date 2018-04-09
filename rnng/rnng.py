@@ -618,7 +618,7 @@ class RNNGparser:
                 self.reset_all()
             def reset_all(self):
                 if self.N > 0:
-                    sys.stdout.write("Epoch %d, Mean Loss : %.5f"%(e,self.loss/self.N))
+                    sys.stdout.write("\nEpoch %d, Mean Loss : %.5f\n"%(e,self.loss/self.N))
                     sys.stdout.flush()
                 self.reset_loss_counts()
                 self.reset_acc_counts()
