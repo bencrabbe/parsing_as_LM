@@ -346,17 +346,20 @@ class RNNGparser:
         @return (the loss for this action,a boolean indicating if the prediction argmax is correct or not)
         """
         S,B,n,stack_state,local_score = configuration
-        
         Wtop   = dy.parameter(self.preds_out)
         Wbot   = dy.parameter(self.merge_layer)
         btop   = dy.parameter(self.preds_bias)
         bbot   = dy.parameter(self.merge_bias)
-        probs  = dy.softmax( (Wtop * dy.dropout(dy.tanh((Wbot * stack_state.output()) + bbot),self.dropout)) + btop)
-        loss   = dy.pickneglogsoftmax(probs,self.action_codes[ref_action])
-        loss_val = loss.value()
+        log_probs  = dy.log_softmax( (Wtop * dy.dropout(dy.tanh((Wbot * stack_state.output()) + bbot),self.dropout)) + btop)
+
+        best_prediction = np.argmax(log_probs.npvalue())
+        iscorrect = (self.action_codes[ref_action] == best_prediction)
+
+        loss       = dy.pick(-log_probs,self.action_codes[ref_action])
+        loss_val   = loss.value()
         loss.backward()
         self.trainer.update()
-        return loss_val
+        return loss_val,iscorrect
 
     def beam_parse(self,tokens,all_beam_size,lex_beam_size,ref_tree=None):
         """
@@ -606,8 +609,33 @@ class RNNGparser:
             
         #training
         self.trainer = dy.AdamTrainer(self.model,alpha=learning_rate)
+        #Monitoring loss & accurracy
+
+        class OptimMonitoring:
+            def __init__(self,step_size=1000):
+                self.step_size = step_size
+                self.reset_all()
+            def reset_all(self):
+                if self.N > 0:
+                    sys.stdout.write("Epoch %d, Mean Loss : %.5f"%(e,self.loss/self.N))
+                    sys.stdout.flush()
+                self.reset_loss_counts()
+                self.reset_acc_counts()
+            def reset_loss_counts(self):
+                self.loss = 0
+                self.N    = 0
+            def reset_acc_counts(self):
+                self.acc_sum = 0
+            def add_datum(self,datum_loss,datum_correct):
+                self.loss  += datum_loss
+                self.N     +=1
+                self.acc_sum+=datum_correct
+                if self.N % self.step_size == 0:
+                    sys.stdout.write("\r    Mean acc : %.5f"%(self.acc_sum/self.step_size))
+                    self.reset_acc_counts()
+                
         for e in range(max_epochs):
-            loss,N = 0,0
+            monitor =  OptimMonitoring()
             for tree in train_bank:
                 dy.renew_cg()
                 ref_derivation  = self.oracle_derivation(tree)
@@ -616,17 +644,15 @@ class RNNGparser:
                 current_config  = self.init_configuration(len(tok_codes))
                 while step < max_step:
                     ref_action = ref_derivation[step]
-                    loss += self.train_one(current_config,ref_action)
-                    N    += 1
+                    l ,correct =  self.train_one(current_config,ref_action)
+                    monitor.add_datum(l,correct)
                     if ref_action == RNNGparser.CLOSE:
                         current_config = self.close_action(current_config,0.0)
                     elif ref_action[0] == RNNGparser.SHIFT:
                         current_config = self.shift_action(current_config,tok_codes,0.0)
                     elif ref_action[0] == RNNGparser.OPEN:
                         current_config = self.open_action(current_config,ref_action[1],0.0)
-                    step += 1
-            sys.stdout.write("\rEpoch %d, Mean Loss : %.5f"%(e,loss/N))
-            sys.stdout.flush()
+            monitor.reset_all()
         print()
         self.dropout = 0.0  #prevents dropout to be applied at decoding
 
