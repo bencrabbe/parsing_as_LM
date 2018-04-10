@@ -524,7 +524,7 @@ class RNNGparser:
             if lab_state == RNNGparser.WORD_LABEL:
                 C = self.word_action(C,tok_codes,score)
             elif lab_state == RNNGparser.NT_LABEL:
-                C = self.nonterminal_action(C,pred_action,local_score):
+                C = self.nonterminal_action(C,pred_action,local_score)
             elif pred_action == RNNGparser.CLOSE:
                 C = self.close_action(C,score)
                 last_struct_action = RNNGparser.CLOSE
