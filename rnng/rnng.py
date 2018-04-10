@@ -529,10 +529,10 @@ class RNNGparser:
                 C = self.close_action(C,score)
                 last_struct_action = RNNGparser.CLOSE
             elif pred_action == RNNGparser.OPEN:
-                C = self.open_action(C,pred_action,score)
+                C = self.open_action(C,score)
                 last_struct_action = RNNGparser.OPEN
             elif pred_action == RNNGparser.SHIFT:
-                C = self.shift_action(C,tok_codes,score)
+                C = self.shift_action(C,score)
                 last_struct_action = RNNGparser.SHIFT
             elif pred_action == RNNGparser.TERMINATE:
                 break
@@ -724,9 +724,9 @@ class RNNGparser:
                     elif ref_action == RNNGparser.CLOSE:
                         C = self.close_action(C,score)
                     elif ref_action == RNNGparser.OPEN:
-                        C = self.open_action(C,pred_action,score)
+                        C = self.open_action(C,score)
                     elif ref_action == RNNGparser.SHIFT:
-                        C = self.shift_action(C,tok_codes,score)
+                        C = self.shift_action(C,score)
                     elif ref_action == RNNGparser.TERMINATE:
                         break
                     step+=1
