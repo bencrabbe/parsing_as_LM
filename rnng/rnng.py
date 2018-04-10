@@ -720,14 +720,14 @@ class RNNGparser:
                     if lab_state == RNNGparser.WORD_LABEL:
                         C = self.word_action(C,tok_codes,score)
                     elif lab_state == RNNGparser.NT_LABEL:
-                        C = self.nonterminal_action(C,pred_action,local_score)
-                    elif pred_action == RNNGparser.CLOSE:
+                        C = self.nonterminal_action(C,ref_action,local_score)
+                    elif ref_action == RNNGparser.CLOSE:
                         C = self.close_action(C,score)
-                    elif pred_action == RNNGparser.OPEN:
+                    elif ref_action == RNNGparser.OPEN:
                         C = self.open_action(C,pred_action,score)
-                    elif pred_action == RNNGparser.SHIFT:
+                    elif ref_action == RNNGparser.SHIFT:
                         C = self.shift_action(C,tok_codes,score)
-                    elif pred_action == RNNGparser.TERMINATE:
+                    elif ref_action == RNNGparser.TERMINATE:
                         break
                     step+=1
                     
