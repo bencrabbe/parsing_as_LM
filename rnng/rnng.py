@@ -162,10 +162,10 @@ class RNNGparser:
         """
         self.actions         = [RNNGparser.SHIFT,RNNGparser.OPEN,RNNGparser.CLOSE,RNNGparser.TERMINATE]
         self.action_codes    = dict([(sym,idx) for (idx,sym) in enumerate(self.actions)])
-        self.open_mask       = np.array([True,False,True,True])
-        self.shift_mask      = np.array([False,True,True,True])
-        self.close_mask      = np.array([True,True,False,True])
-        self.terminate_mask  = np.array([True,True,True,False])
+        self.open_mask       = np.log([True,False,True,True]) #we assume scores are log probs
+        self.shift_mask      = np.log([False,True,True,True])
+        self.close_mask      = np.log([True,True,False,True])
+        self.terminate_mask  = np.log([True,True,True,False])
 
         
     #transition system
@@ -343,7 +343,7 @@ class RNNGparser:
             #constraint + underflow prevention
             print(self.structural_action_mask(configuration,last_structural_action,sentence))
             print(self.actions)
-            logprobs = np.maximum(logprobs,np.log(np.finfo(float).eps)) * self.structural_action_mask(configuration,last_structural_action,sentence)
+            logprobs = np.maximum(logprobs,np.log(np.finfo(float).eps)) + self.structural_action_mask(configuration,last_structural_action,sentence)
             if max_only:
                 idx = np.argmax(logprobs)
                 print(idx,logprobs)
