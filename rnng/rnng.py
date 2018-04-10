@@ -156,22 +156,6 @@ class RNNGparser:
         self.nonterminals_codes = dict([(sym,idx) for (idx,sym) in enumerate(self.nonterminals)])
         return self.nonterminals
 
-    # def code_actions(self):
-    #     """
-    #     Codes the actions on integers
-    #     """
-    #     self.actions     =   [ (RNNGparser.SHIFT,LEX) for LEX in self.rev_word_codes] 
-    #     self.actions.extend( [ (RNNGparser.OPEN,NT) for NT in self.nonterminals ])
-    #     self.actions.append( RNNGparser.CLOSE )
-    #     self.actions.append( RNNGparser.TERMINATE )
-    #     self.action_codes = dict([(s,idx) for (idx,s) in enumerate(self.actions)])
-        
-    #     #Masks
-    #     self.open_mask      =    np.array([True]  * len(self.rev_word_codes) + [False] * len(self.nonterminals) +  [True,True])
-    #     self.shift_mask     =    np.array([False] * len(self.rev_word_codes) + [True]  * len(self.nonterminals) +  [True,True]) 
-    #     self.close_mask     =    np.array([True]  * len(self.rev_word_codes) + [True]  * len(self.nonterminals) +  [False,True]) 
-    #     self.terminate_mask =    np.array([True]  * len(self.rev_word_codes) + [True]  * len(self.nonterminals) +  [True,False])
-     
     def code_struct_actions(self):
         """
         Codes the structural actions on integers
@@ -293,38 +277,6 @@ class RNNGparser:
             tree_embedding = dy.tanh(W * x)
         
         return (S[:-midx]+[root_symbol],B,n-1,stack_state.add_input(tree_embedding), local_score)
-
-    
-    # def structural_action_mask(self,configuration,last_structural_action,sentence):
-    #     """ 
-    #     This returns a mask stating which abstract actions are possible for next round
-    #     @param configuration: the current configuration
-    #     @param last_action  : the last structural action  performed by this parser
-    #     @param sentence     : a list of strings, the tokens
-    #     @return a mask for the possible next actions
-    #     """
-    #     MASK = np.array([True] * len(self.actions))
-    #     S,B,n,stack_state,local_score = configuration
-
-    #     if not B:
-    #         MASK *= self.open_mask
-    #         MASK *= self.shift_mask
-    #     if not S:
-    #         MASK *= self.open_mask
-    #         MASK *= self.close_mask
-    #     if type(last_action) == tuple and last_action[0] == RNNGparser.OPEN:
-    #         MASK *= self.open_mask
-    #         MASK *= self.close_mask
-    #     if n == 0:
-    #         MASK *= self.close_mask
-    #     if n > 0 or len(S) > 1 :
-    #         MASK *= self.terminate_mask
-    #     if B:
-    #         MASK *= self.terminate_mask
-    #         #masks for shift : only one is possible when parsing
-    #         MASK *= self.shift_mask
-    #         MASK [ self.action_codes[(RNNGparser.SHIFT,sentence[B[0]])] ] = 1.0
-    #     return MASK
 
     def structural_action_mask(self,configuration,last_structural_action,sentence):
         """ 
@@ -670,7 +622,7 @@ class RNNGparser:
         #Coding
         self.code_lexicon(train_bank,self.max_vocab_size)
         self.code_nonterminals(train_bank)
-        self.code_actions()
+        self.code_struct_actions()
 
         self.print_summary()
         print('---------------------------')
