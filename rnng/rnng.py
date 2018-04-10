@@ -711,22 +711,16 @@ class RNNGparser:
                 tok_codes = [self.word_codes[t] for t in tree.tokens()]   
                 step, max_step  = (0,len(ref_derivation))
                 current_config  = self.init_configuration(len(tok_codes))
-                last_struct_action = None
                 while step < max_step:
                     ref_action = ref_derivation[step]
-                    loc_loss,correct = self.train_one(current_config,last_struct_action,ref_action)
+                    loc_loss,correct = self.train_one(current_config,ref_action)
                     monitor.add_datum(loc_loss,correct)
                     if ref_action == RNNGparser.CLOSE:
                         current_config = self.close_action(current_config,0.0)
-                        last_struct_action = RNNGparser.CLOSE
                     elif last_struct_action == RNNGparser.SHIFT:
                         current_config = self.shift_action(current_config,tok_codes,0.0)
-                        last_struct_action = None
                     elif last_struct_action == RNNGparser.OPEN:
                         current_config = self.open_action(current_config,ref_action,0.0)
-                        last_struct_action = None
-                    else:
-                        last_struct_action = ref_action
                     step+=1
             monitor.reset_all()
         print()
