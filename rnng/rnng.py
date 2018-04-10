@@ -95,7 +95,6 @@ class RNNGparser:
         stack = []
         prev_action = None
         for action in derivation:
-            print(stack)
             if prev_action == RNNGparser.SHIFT:
                 lex = ConsTree(action)
                 stack.append((lex,False))
@@ -116,6 +115,7 @@ class RNNGparser:
                         break
                     else:
                         children.append(node)
+            prev_action = action
         return stack[0][0]
                 
     def pretty_print_configuration(self,configuration):
@@ -341,7 +341,7 @@ class RNNGparser:
         """        
         S,B,n,stack_state,lab_state,local_score = configuration
 
-        print('<predict>')
+        #print('<predict>')
         if lab_state == RNNGparser.WORD_LABEL: #generate wordform action
             next_word = sentence[B[0]]
             W = dy.parameter(self.lex_out)
@@ -371,10 +371,10 @@ class RNNGparser:
             #constraint + underflow prevention
             logprobs = np.maximum(logprobs,np.log(np.finfo(float).eps)) + self.structural_action_mask(configuration,last_structural_action,sentence)
             if max_only:
-                print(self.actions)
-                print(logprobs)
-                print(self.structural_action_mask(configuration,last_structural_action,sentence))
-                print('last s act',last_structural_action)
+                #print(self.actions)
+                #print(logprobs)
+                #print(self.structural_action_mask(configuration,last_structural_action,sentence))
+                #print('last s act',last_structural_action)
                 idx = np.argmax(logprobs)
                 return (self.actions[idx],logprobs[idx])
             else:
