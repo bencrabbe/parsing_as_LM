@@ -511,7 +511,7 @@ class RNNGparser:
                     labelling_state = False
                 elif pred_action == RNNGparser.TERMINATE: 
                     break #we exit the loop here
-                elif pred_action == SHIFT or pred_action == OPEN:
+                elif pred_action == RNNGparser.SHIFT or pred_action == RNNGparser.OPEN:
                     labelling_state = True
                 last_struct_action = pred_action
 
