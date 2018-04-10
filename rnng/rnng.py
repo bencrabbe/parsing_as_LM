@@ -37,10 +37,10 @@ class RNNGparser:
     This is RNNG with in-order tree traversal.
     """        
     #action codes
-    SHIFT           = 'S'
-    OPEN            = 'O'
-    CLOSE           = 'C'
-    TERMINATE       = 'T'
+    SHIFT           = '<S>'
+    OPEN            = '<O>'
+    CLOSE           = '<C>'
+    TERMINATE       = '<T>'
 
     UNKNOWN_TOKEN = '<UNK>'
     START_TOKEN   = '<START>'
