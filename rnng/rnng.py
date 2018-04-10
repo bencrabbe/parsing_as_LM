@@ -346,7 +346,7 @@ class RNNGparser:
             logprobs = np.maximum(logprobs,np.log(np.finfo(float).eps)) * self.structural_action_mask(configuration,last_structural_action,sentence)
             if max_only:
                 idx = np.argmax(logprobs)
-                print(idx)
+                print(idx,logprobs)
                 return (self.actions[idx],logprobs[idx])
             else:
                 res = [(act,logp) for act,logp in zip(self.actions,logprobs) if logp > -np.inf]
