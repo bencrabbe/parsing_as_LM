@@ -89,6 +89,7 @@ class RNNGparser:
         stack = []
         prev_action = None
         for action in derivation:
+            print(stack)
             if prev_action == RNNGparser.SHIFT:
                 lex = ConsTree(action)
                 stack.append((lex,False))
