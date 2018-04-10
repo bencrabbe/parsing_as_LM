@@ -504,7 +504,7 @@ class RNNGparser:
                 last_struct_action = pred_action
                 
             S,B,n,stackS,score = C
-        print(derivation)
+        print(deriv)
             
         if get_derivation:
             return deriv
