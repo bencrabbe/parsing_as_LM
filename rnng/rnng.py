@@ -553,7 +553,7 @@ class RNNGparser:
         #tree rnn
         self.fwd_tree_rnn          = dy.LSTMBuilder(1,self.stack_embedding_size, self.stack_hidden_size,self.model)        # bi-rnn for tree embeddings
         self.bwd_tree_rnn          = dy.LSTMBuilder(1,self.stack_embedding_size, self.stack_hidden_size,self.model)
-        self.tree_rnn_out          = self.model.add_parameters((self.hidden_size,self.stack_hidden_size*2),init='glorot')       # out layer merging the tree bi-rnn output
+        self.tree_rnn_out          = self.model.add_parameters((self.stack_embedding_size,self.stack_hidden_size*2),init='glorot')       # out layer merging the tree bi-rnn output
 
     @staticmethod
     def load_model(model_name):
@@ -767,7 +767,7 @@ if __name__ == '__main__':
         p = RNNGparser(max_vocabulary_size=TrainingParams.LEX_MAX_SIZE,\
                         hidden_size=StructParams.OUTER_HIDDEN_SIZE,\
                         stack_embedding_size=StructParams.STACK_EMB_SIZE,\
-                        stack_memory_size=StructParams.STACK_EMB_SIZE)
+                        stack_memory_size=StructParams.STACK_HIDDEN_SIZE)
         p.train_generative_model(TrainingParams.NUM_EPOCHS,train_treebank,[],learning_rate=TrainingParams.LEARNING_RATE,dropout=TrainingParams.DROPOUT)
         for t in train_treebank:            
             print(p.beam_parse(t.tokens(),all_beam_size=struct_beam,lex_beam_size=lex_beam))
