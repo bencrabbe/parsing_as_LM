@@ -338,7 +338,7 @@ class RNNGparser:
             b = dy.parameter(self.struct_bias)
             logprobs = dy.log_softmax(W * dy.tanh(stack_state.output()) + b).npvalue()
             #constraint + underflow prevention
-            logprobs = np.maximum(logprobs,np.log(np.finfo(float).eps)) * self.structural_action_mask(configuration,last_action,sentence)
+            logprobs = np.maximum(logprobs,np.log(np.finfo(float).eps)) * self.structural_action_mask(configuration,last_structural_action,sentence)
             if max_only:
                 idx = np.argmax(logprobs)
                 return (self.actions[idx],logprobs[idx])
