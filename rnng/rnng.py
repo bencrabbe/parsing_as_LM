@@ -673,6 +673,7 @@ class RNNGparser:
             for tree in train_bank:
                 dy.renew_cg()
                 ref_derivation  = self.oracle_derivation(tree)
+                print(ref_derivation)
                 tok_codes = [self.word_codes[t] for t in tree.tokens()]   
                 step, max_step  = (0,len(ref_derivation))
                 current_config  = self.init_configuration(len(tok_codes))
