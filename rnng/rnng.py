@@ -710,18 +710,27 @@ class RNNGparser:
                 ref_derivation  = self.oracle_derivation(tree)
                 tok_codes = [self.word_codes[t] for t in tree.tokens()]   
                 step, max_step  = (0,len(ref_derivation))
-                current_config  = self.init_configuration(len(tok_codes))
+                C               = self.init_configuration(len(tok_codes))
                 while step < max_step:
                     ref_action = ref_derivation[step]
-                    loc_loss,correct = self.train_one(current_config,ref_action)
+                    loc_loss,correct = self.train_one(C,ref_action)
                     monitor.add_datum(loc_loss,correct)
-                    if ref_action == RNNGparser.CLOSE:
-                        current_config = self.close_action(current_config,0.0)
-                    elif last_struct_action == RNNGparser.SHIFT:
-                        current_config = self.shift_action(current_config,tok_codes,0.0)
-                    elif last_struct_action == RNNGparser.OPEN:
-                        current_config = self.open_action(current_config,ref_action,0.0)
+
+                    S,B,n,stackS,lab_state,score = C
+                    if lab_state == RNNGparser.WORD_LABEL:
+                        C = self.word_action(C,tok_codes,score)
+                    elif lab_state == RNNGparser.NT_LABEL:
+                        C = self.nonterminal_action(C,pred_action,local_score)
+                    elif pred_action == RNNGparser.CLOSE:
+                        C = self.close_action(C,score)
+                    elif pred_action == RNNGparser.OPEN:
+                        C = self.open_action(C,pred_action,score)
+                    elif pred_action == RNNGparser.SHIFT:
+                        C = self.shift_action(C,tok_codes,score)
+                    elif pred_action == RNNGparser.TERMINATE:
+                        break
                     step+=1
+                    
             monitor.reset_all()
         print()
         self.dropout = 0.0  #prevents dropout to be applied at decoding
