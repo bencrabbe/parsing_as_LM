@@ -493,6 +493,7 @@ class RNNGparser:
         deriv = [ ]
         while True:
             (pred_action,score) = self.predict_action_distrib(C,last_struct_action,tokens,max_only=True)
+            print(pred_action)
             deriv.append(pred_action)
             if last_struct_action == RNNGparser.SHIFT:
                 C = self.shift_action(C,tok_codes,score)
