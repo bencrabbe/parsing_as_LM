@@ -41,7 +41,13 @@ class RNNGparser:
     OPEN            = '<O>'
     CLOSE           = '<C>'
     TERMINATE       = '<T>'
-
+    
+    #labelling states
+    WORD_LABEL      = '@w'
+    NT_LABEL        = '@n'
+    NO_LABEL        = '@'
+    
+    #special tokens
     UNKNOWN_TOKEN = '<UNK>'
     START_TOKEN   = '<START>'
 
@@ -178,6 +184,7 @@ class RNNGparser:
         B: the buffer
         n: the number of predicted constituents in the stack
         stack_mem: the current state of the stack lstm
+        lab_state: the labelling state of the configuration
         sigma:     the *prefix* score of the configuration. I assume scores are log probs
         
         Creates an initial configuration, with empty stack, full buffer (as a list of integers and null score)
@@ -193,34 +200,53 @@ class RNNGparser:
         word_embedding = self.lex_embedding_matrix[word_idx]
         stackS = stackS.add_input(word_embedding)
 
-        return ([],tuple(range(N)),0,stackS,0.0)
+        return ([],tuple(range(N)),0,stackS,RNNGparser.NO_LABEL,0.0)
 
-    
-    def shift_action(self,configuration,sentence,local_score):
+    def shift_action(self,configuration,local_score):
         """
-        That's the RNNG GENERATE/SHIFT action.
+        That's the structural RNNG SHIFT action.
+        @param configuration : a configuration tuple
+        @param local_score: the local score of the action (logprob)
+        @return a configuration resulting from shifting the next word into the stack 
+        """    
+        S,B,n,stack_state,lab_state,score = configuration
+        return (S,B,n,stack_state,RNNGparser.WORD_LABEL,score+local_score)
+    
+    def word_action(self,configuration,sentence,local_score):
+        """
+        That's the word labelling action (implements a traditional shift).
         @param configuration : a configuration tuple
         @param sentence: the list of words of the sentence as a list of word idxes
         @param local_score: the local score of the action (logprob)
         @return a configuration resulting from shifting the next word into the stack 
         """
-        S,B,n,stack_state,score = configuration
+        S,B,n,stack_state,lab_state,score = configuration
         word_idx = sentence[B[0]]
         if self.dropout > 0.0:
             word_embedding = dy.dropout(self.lex_embedding_matrix[word_idx],self.dropout)
         else: 
             word_embedding = self.lex_embedding_matrix[word_idx]
-        return (S + [StackSymbol(B[0],StackSymbol.COMPLETED,word_embedding)],B[1:],n,stack_state.add_input(word_embedding),score+local_score)
-            
-    def open_action(self,configuration,X,local_score):
+        return (S + [StackSymbol(B[0],StackSymbol.COMPLETED,word_embedding)],B[1:],n,stack_state.add_input(word_embedding),RNNGparser.NO_LABEL,score+local_score)
+
+    def open_action(self,configuration,local_score):
         """
-        That's the RNNG OPEN-X action.
+        That's the structural RNNG OPEN action.
         @param configuration : a configuration tuple
-        @param X: the category to Open
         @param local_score: the local score of the action (logprob)
-        @return a configuration resulting from opening the X constituent
+        @return a configuration resulting from opening the constituent
         """
-        S,B,n,stack_state,score = configuration
+        S,B,n,stack_state,lab_state,score = configuration
+        return (S,B,n,stack_state,RNNGparser.NT_LABEL,score+local_score)
+    
+    def nonterminal_action(self,configuration,X,local_score):
+        """
+        That's the non terminal labelling action.
+        @param configuration : a configuration tuple
+        @param X: the label of the nonterminal 
+        @param local_score: the local score of the action (logprob)
+        @return a configuration resulting from labelling the nonterminal
+        """
+        S,B,n,stack_state,lab_state,score = configuration
 
         nt_idx = self.nonterminals_codes[X]
 
@@ -230,8 +256,9 @@ class RNNGparser:
             nonterminal_embedding = self.nt_embedding_matrix[nt_idx]
             
         stack_state = stack_state.add_input(nonterminal_embedding)
-        return (S + [StackSymbol(X,StackSymbol.PREDICTED,nonterminal_embedding)],B,n+1,stack_state,score+local_score)
+        return (S + [StackSymbol(X,StackSymbol.PREDICTED,nonterminal_embedding)],B,n+1,stack_state,RNNGparser.NO_LABEL,score+local_score)
 
+    
     def close_action(self,configuration,local_score):
         """
         That's the RNNG CLOSE action.
@@ -239,7 +266,7 @@ class RNNGparser:
         @param local_score: the local score of the action (logprob)
         @return a configuration resulting from closing the current constituent
         """
-        S,B,n,stack_state,score = configuration
+        S,B,n,stack_state,lab_state,score = configuration
         assert( n > 0 )
         #finds the closest predicted constituent in the stack and backtracks the stack lstm.
         midx = -1
@@ -278,19 +305,19 @@ class RNNGparser:
         else:
             tree_embedding = dy.tanh(W * x)
         
-        return (S[:-midx]+[root_symbol],B,n-1,stack_state.add_input(tree_embedding), score+local_score)
+        return (S[:-midx]+[root_symbol],B,n-1,stack_state.add_input(tree_embedding),RNNGparser.NO_LABEL,score+local_score)
 
     def structural_action_mask(self,configuration,last_structural_action,sentence):
         """ 
         This returns a mask stating which abstract actions are possible for next round
         @param configuration: the current configuration
-        @param last_action  : the last structural action  performed by this parser
+        @param last_structural_action: the last action performed.
         @param sentence     : a list of strings, the tokens
         @return a mask for the possible next actions
         """
         #Assumes masking log probs
         MASK = np.log([True] * len(self.actions))
-        S,B,n,stack_state,local_score = configuration
+        S,B,n,stack_state,lab_state,local_score = configuration
 
         if not B or not S or last_structural_action == RNNGparser.OPEN:
             MASK += self.open_mask
@@ -311,13 +338,10 @@ class RNNGparser:
         @param sentence : a list of string tokens
         @param max_only : returns only the couple (action,logprob) with highest score
         @return a list of (action,logprob) legal at that state
-        """
+        """        
+        S,B,n,stack_state,lab_state,local_score = configuration
 
-        print('** <predict> **')
-        
-        S,B,n,stack_state,local_score = configuration
-
-        if last_structural_action == RNNGparser.SHIFT: #generate wordform action
+        if lab_state == RNNGparser.WORD_LABEL: #generate wordform action
             next_word = sentence[B[0]]
             W = dy.parameter(self.lex_out)
             b = dy.parameter(self.lex_bias)
@@ -328,7 +352,7 @@ class RNNGparser:
             else:
                 return [(next_word,score)]
             
-        elif last_structural_action == RNNGparser.OPEN: #label NT action
+        elif lab_state == RNNGparser.NT_LABEL: #label NT action
             W = dy.parameter(self.nt_out)
             b = dy.parameter(self.nt_bias)
             logprobs = dy.log_softmax(W * dy.tanh(stack_state.output()) + b).npvalue()
@@ -338,8 +362,7 @@ class RNNGparser:
             else:
                 return list(zip(self.nonterminals,logprobs))
         
-        else: #perform a structural action
-            print('=>struct')
+        else: #lab_state == RNNGparser.NO_LABEL perform a structural action
             W = dy.parameter(self.struct_out)
             b = dy.parameter(self.struct_bias)
             logprobs = dy.log_softmax(W * dy.tanh(stack_state.output()) + b).npvalue()
@@ -351,21 +374,20 @@ class RNNGparser:
             else:
                 return [(act,logp) for act,logp in zip(self.actions,logprobs) if logp > -np.inf]
         
-    def train_one(self,configuration,last_structural_action,ref_action):
+    def train_one(self,configuration,ref_action):
         """
         This performs a forward, backward and update pass on the network for this action.
         @param configuration: the current configuration
-        @param last_structural_action  : the last structural action performed by this parser
         @param ref_action  : the reference action
         @return (the loss for this action,a boolean indicating if the prediction argmax is correct or not)
         """
-        S,B,n,stack_state,local_score = configuration
+        S,B,n,stack_state,lab_state,local_score = configuration
 
-        if last_structural_action == RNNGparser.SHIFT:
+        if lab_state == RNNGparser.WORD_LABEL:
             W   = dy.parameter(self.lex_out)
             b   = dy.parameter(self.lex_bias)
             correct_prediction = self.word_codes[ref_action]
-        elif last_structural_action == RNNGparser.OPEN:
+        elif lab_state == RNNGparser.NT_LABEL:
             W   = dy.parameter(self.nt_out)
             b   = dy.parameter(self.nt_bias)
             correct_prediction = self.nonterminals_codes[ref_action]
@@ -382,7 +404,8 @@ class RNNGparser:
         loss.backward()
         self.trainer.update()
         return loss_val,iscorrect
-        
+
+    
     def beam_parse(self,tokens,all_beam_size,lex_beam_size,ref_tree=None):
         """
         This parses a sentence with word sync beam search.
@@ -490,32 +513,31 @@ class RNNGparser:
         C         = self.init_configuration(len(tokens))
 
         last_struct_action = 'init'
-        labelling_state    = False
          
-        S,B,n,stackS,score = C
+        S,B,n,stackS,lab_state,score = C
         deriv = [ ]
         while True:
             (pred_action,score) = self.predict_action_distrib(C,last_struct_action,tokens,max_only=True)
             print(pred_action)
             deriv.append(pred_action)
-            if labelling_state:
-              if last_struct_action == RNNGparser.SHIFT:
-                C = self.shift_action(C,tok_codes,score)
-                labelling_state = False
-              if last_struct_action == RNNGparser.OPEN:
-                C = self.open_action(C,pred_action,score)
-                labelling_state = False
-            else: #struct action
-                if pred_action == RNNGparser.CLOSE:
-                    C = self.close_action(C,score)
-                    labelling_state = False
-                elif pred_action == RNNGparser.TERMINATE: 
-                    break #we exit the loop here
-                elif pred_action == RNNGparser.SHIFT or pred_action == RNNGparser.OPEN:
-                    labelling_state = True
-                last_struct_action = pred_action
 
-            S,B,n,stackS,score = C
+            if lab_state == RNNGparser.WORD_LABEL:
+                C = self.word_action(C,tok_codes,score)
+            elif lab_state == RNNGparser.NT_LABEL:
+                C = self.nonterminal_action(C,pred_action,local_score):
+            elif pred_action == RNNGparser.CLOSE:
+                C = self.close_action(C,score)
+                last_struct_action = RNNGparser.CLOSE
+            elif pred_action == RNNGparser.OPEN:
+                C = self.open_action(C,pred_action,score)
+                last_struct_action = RNNGparser.OPEN
+            elif pred_action == RNNGparser.SHIFT:
+                C = self.shift_action(C,tok_codes,score)
+                last_struct_action = RNNGparser.SHIFT
+            elif pred_action == RNNGparser.TERMINATE:
+                break
+            
+            S,B,n,stackS,lab_state,score = C
             
         print(deriv)
             
@@ -785,4 +807,4 @@ if __name__ == '__main__':
         p.train_generative_model(TrainingParams.NUM_EPOCHS,train_treebank,[],learning_rate=TrainingParams.LEARNING_RATE,dropout=TrainingParams.DROPOUT)
         for t in train_treebank:
             print(p.parse_sentence(t.tokens()))         
-            print(p.beam_parse(t.tokens(),all_beam_size=struct_beam,lex_beam_size=lex_beam))
+            #print(p.beam_parse(t.tokens(),all_beam_size=struct_beam,lex_beam_size=lex_beam))
