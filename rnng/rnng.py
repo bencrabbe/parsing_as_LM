@@ -341,6 +341,7 @@ class RNNGparser:
         """        
         S,B,n,stack_state,lab_state,local_score = configuration
 
+        print('<predict>')
         if lab_state == RNNGparser.WORD_LABEL: #generate wordform action
             next_word = sentence[B[0]]
             W = dy.parameter(self.lex_out)
@@ -363,12 +364,17 @@ class RNNGparser:
                 return list(zip(self.nonterminals,logprobs))
         
         else: #lab_state == RNNGparser.NO_LABEL perform a structural action
+            print('<struct>')
             W = dy.parameter(self.struct_out)
             b = dy.parameter(self.struct_bias)
             logprobs = dy.log_softmax(W * dy.tanh(stack_state.output()) + b).npvalue()
             #constraint + underflow prevention
             logprobs = np.maximum(logprobs,np.log(np.finfo(float).eps)) + self.structural_action_mask(configuration,last_structural_action,sentence)
             if max_only:
+                print(self.actions)
+                print(logprobs)
+                print(self.structural_action_mask(configuration,last_structural_action,sentence))
+                print('last s act',last_structural_action)
                 idx = np.argmax(logprobs)
                 return (self.actions[idx],logprobs[idx])
             else:
