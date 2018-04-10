@@ -508,9 +508,11 @@ class RNNGparser:
             else: #struct action
                 if pred_action == RNNGparser.CLOSE:
                     C = self.close_action(C,score)
+                    labelling_state = False
                 elif pred_action == RNNGparser.TERMINATE: 
                     break #we exit the loop here
-                #pred action == SHIFT or OPEN
+                elif pred action == SHIFT or pred action == OPEN:
+                    labelling_state = True
                 last_struct_action = pred_action
 
             S,B,n,stackS,score = C
