@@ -364,7 +364,7 @@ class RNNGparser:
                 return list(zip(self.nonterminals,logprobs))
         
         else: #lab_state == RNNGparser.NO_LABEL perform a structural action
-            print('<struct>')
+            #print('<struct>')
             W = dy.parameter(self.struct_out)
             b = dy.parameter(self.struct_bias)
             logprobs = dy.log_softmax(W * dy.tanh(stack_state.output()) + b).npvalue()
@@ -524,7 +524,6 @@ class RNNGparser:
         deriv = [ ]
         while True:
             (pred_action,score) = self.predict_action_distrib(C,last_struct_action,tokens,max_only=True)
-            print(pred_action)
             deriv.append(pred_action)
 
             if lab_state == RNNGparser.WORD_LABEL:
@@ -544,9 +543,7 @@ class RNNGparser:
                 break
             
             S,B,n,stackS,lab_state,score = C
-            
-        print(deriv)
-            
+                        
         if get_derivation:
             return deriv
         pred_tree  = RNNGparser.derivation2tree(deriv)
