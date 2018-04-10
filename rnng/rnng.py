@@ -718,15 +718,15 @@ class RNNGparser:
 
                     S,B,n,stackS,lab_state,score = C
                     if lab_state == RNNGparser.WORD_LABEL:
-                        C = self.word_action(C,tok_codes,score)
+                        C = self.word_action(C,tok_codes,0)
                     elif lab_state == RNNGparser.NT_LABEL:
-                        C = self.nonterminal_action(C,ref_action,local_score)
+                        C = self.nonterminal_action(C,ref_action,0)
                     elif ref_action == RNNGparser.CLOSE:
-                        C = self.close_action(C,score)
+                        C = self.close_action(C,0)
                     elif ref_action == RNNGparser.OPEN:
-                        C = self.open_action(C,score)
+                        C = self.open_action(C,0)
                     elif ref_action == RNNGparser.SHIFT:
-                        C = self.shift_action(C,score)
+                        C = self.shift_action(C,0)
                     elif ref_action == RNNGparser.TERMINATE:
                         break
                     step+=1
