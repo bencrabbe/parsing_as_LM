@@ -309,6 +309,8 @@ class RNNGparser:
         @param max_only : returns only the couple (action,logprob) with highest score
         @return a list of (action,logprob) legal at that state
         """
+
+        print('** <predict> **')
         
         S,B,n,stack_state,local_score = configuration
 
@@ -334,6 +336,7 @@ class RNNGparser:
                 return list(zip(self.nonterminals,logprobs))
         
         else: #perform a structural action
+            print('=>struct')
             W = dy.parameter(self.struct_out)
             b = dy.parameter(self.struct_bias)
             logprobs = dy.log_softmax(W * dy.tanh(stack_state.output()) + b).npvalue()
@@ -343,8 +346,9 @@ class RNNGparser:
                 idx = np.argmax(logprobs)
                 return (self.actions[idx],logprobs[idx])
             else:
-                return [(act,logp) for act,logp in zip(self.actions,logprobs) if logp > -np.inf]
-
+                res = [(act,logp) for act,logp in zip(self.actions,logprobs) if logp > -np.inf]
+                print(res)
+                return res
         
     def train_one(self,configuration,last_structural_action,ref_action):
         """
