@@ -68,11 +68,11 @@ class RNNGparser:
         @return a list of (action, configuration) couples (= a derivation)
         """
         if ref_tree.is_leaf():
-            return [(RNNGparser.SHIFT,ref_tree.label)]
+            return [RNNGparser.SHIFT,ref_tree.label]
         else:
             first_child = ref_tree.children[0]
             derivation = self.oracle_derivation(first_child,root=False)
-            derivation.extend([(RNNGparser.OPEN,ref_tree.label)])
+            derivation.extend([RNNGparser.OPEN,ref_tree.label])
             for child in ref_tree.children[1:]: 
                 derivation.extend(self.oracle_derivation(child,root=False))
             derivation.append(RNNGparser.CLOSE)
@@ -87,18 +87,17 @@ class RNNGparser:
         @param derivation: a derivation to use for generating a tree
         """
         stack = []
+        prev_action = None
         for action in derivation:
-            if type(action) == tuple:
-                abs_action,symbol = action
-                if abs_action == RNNGparser.SHIFT:
-                    lex = ConsTree(symbol)
-                    stack.append((lex,False))
-                elif abs_action == RNNGparser.OPEN:
-                    lc_child = stack.pop()
-                    lc_node,status = lc_child
-                    assert(status==False)
-                    root = ConsTree(symbol,children=[lc_node])
-                    stack.append((root,True))
+            if prev_action == RNNGparser.SHIFT:
+                lex = ConsTree(action)
+                stack.append((lex,False))
+            elif prev_action == RNNGparser.OPEN:
+                lc_child = stack.pop()
+                lc_node,status = lc_child
+                assert(status==False)
+                root = ConsTree(action,children=[lc_node])
+                stack.append((root,True))
             elif action == RNNGparser.CLOSE:
                 children = []
                 while stack:
@@ -157,22 +156,34 @@ class RNNGparser:
         self.nonterminals_codes = dict([(sym,idx) for (idx,sym) in enumerate(self.nonterminals)])
         return self.nonterminals
 
-    def code_actions(self):
-        """
-        Codes the actions on integers
-        """
-        self.actions     =   [ (RNNGparser.SHIFT,LEX) for LEX in self.rev_word_codes] 
-        self.actions.extend( [ (RNNGparser.OPEN,NT) for NT in self.nonterminals ])
-        self.actions.append( RNNGparser.CLOSE )
-        self.actions.append( RNNGparser.TERMINATE )
-        self.action_codes = dict([(s,idx) for (idx,s) in enumerate(self.actions)])
+    # def code_actions(self):
+    #     """
+    #     Codes the actions on integers
+    #     """
+    #     self.actions     =   [ (RNNGparser.SHIFT,LEX) for LEX in self.rev_word_codes] 
+    #     self.actions.extend( [ (RNNGparser.OPEN,NT) for NT in self.nonterminals ])
+    #     self.actions.append( RNNGparser.CLOSE )
+    #     self.actions.append( RNNGparser.TERMINATE )
+    #     self.action_codes = dict([(s,idx) for (idx,s) in enumerate(self.actions)])
         
-        #Masks
-        self.open_mask      =    np.array([True]  * len(self.rev_word_codes) + [False] * len(self.nonterminals) +  [True,True])
-        self.shift_mask     =    np.array([False] * len(self.rev_word_codes) + [True]  * len(self.nonterminals) +  [True,True]) 
-        self.close_mask     =    np.array([True]  * len(self.rev_word_codes) + [True]  * len(self.nonterminals) +  [False,True]) 
-        self.terminate_mask =    np.array([True]  * len(self.rev_word_codes) + [True]  * len(self.nonterminals) +  [True,False]) 
+    #     #Masks
+    #     self.open_mask      =    np.array([True]  * len(self.rev_word_codes) + [False] * len(self.nonterminals) +  [True,True])
+    #     self.shift_mask     =    np.array([False] * len(self.rev_word_codes) + [True]  * len(self.nonterminals) +  [True,True]) 
+    #     self.close_mask     =    np.array([True]  * len(self.rev_word_codes) + [True]  * len(self.nonterminals) +  [False,True]) 
+    #     self.terminate_mask =    np.array([True]  * len(self.rev_word_codes) + [True]  * len(self.nonterminals) +  [True,False])
+     
+    def code_struct_actions(self):
+        """
+        Codes the structural actions on integers
+        """
+        self.actions         = [RNNGparser.SHIFT,RNNGparser.OPEN,RNNGparser.CLOSE,RNNGparser.TERMINATE]
+        self.action_codes    = dict([(sym,idx) for (idx,sym) in enumerate(self.actions)])
+        self.open_mask       = np.array([True,False,True,True])
+        self.shift_mask      = np.array([False,True,True,True])
+        self.close_mask      = np.array([True,True,False,True])
+        self.terminate_mask  = np.array([True,True,True,False])
 
+        
     #transition system
     def init_configuration(self,N):
         """
@@ -253,14 +264,9 @@ class RNNGparser:
             else:
                 stack_state = stack_state.prev()
         stack_state = stack_state.prev()
-        try:
-            root_symbol = S[-midx+1].copy()
-            root_symbol.complete()
-            children    = [S[-midx]]+S[-midx+2:]
-        except:
-            print(self.pretty_print_configuration(configuration))
-            print(midx)
-            exit(1)
+        root_symbol = S[-midx+1].copy()
+        root_symbol.complete()
+        children    = [S[-midx]]+S[-midx+2:]
             
         #compute the tree embedding with the tree_rnn
         nt_idx = self.nonterminals_codes[root_symbol.symbol]
@@ -289,75 +295,137 @@ class RNNGparser:
         return (S[:-midx]+[root_symbol],B,n-1,stack_state.add_input(tree_embedding), local_score)
 
     
-    def next_action_mask(self,configuration,last_action,sentence):
+    # def structural_action_mask(self,configuration,last_structural_action,sentence):
+    #     """ 
+    #     This returns a mask stating which abstract actions are possible for next round
+    #     @param configuration: the current configuration
+    #     @param last_action  : the last structural action  performed by this parser
+    #     @param sentence     : a list of strings, the tokens
+    #     @return a mask for the possible next actions
+    #     """
+    #     MASK = np.array([True] * len(self.actions))
+    #     S,B,n,stack_state,local_score = configuration
+
+    #     if not B:
+    #         MASK *= self.open_mask
+    #         MASK *= self.shift_mask
+    #     if not S:
+    #         MASK *= self.open_mask
+    #         MASK *= self.close_mask
+    #     if type(last_action) == tuple and last_action[0] == RNNGparser.OPEN:
+    #         MASK *= self.open_mask
+    #         MASK *= self.close_mask
+    #     if n == 0:
+    #         MASK *= self.close_mask
+    #     if n > 0 or len(S) > 1 :
+    #         MASK *= self.terminate_mask
+    #     if B:
+    #         MASK *= self.terminate_mask
+    #         #masks for shift : only one is possible when parsing
+    #         MASK *= self.shift_mask
+    #         MASK [ self.action_codes[(RNNGparser.SHIFT,sentence[B[0]])] ] = 1.0
+    #     return MASK
+
+    def structural_action_mask(self,configuration,last_structural_action,sentence):
         """ 
         This returns a mask stating which abstract actions are possible for next round
         @param configuration: the current configuration
-        @param last_action  : the last abstract action  performed by this parser
+        @param last_action  : the last structural action  performed by this parser
         @param sentence     : a list of strings, the tokens
         @return a mask for the possible next actions
         """
         MASK = np.array([True] * len(self.actions))
         S,B,n,stack_state,local_score = configuration
 
+        if not B or not S or last_structural_action == RNNGparser.OPEN:
+            MASK *= self.open_mask
+        if B or n > 0 or len(S) > 1:
+            MASK *= self.terminate_mask
         if not B:
-            MASK *= self.open_mask
             MASK *= self.shift_mask
-        if not S:
-            MASK *= self.open_mask
+        if not S or last_structural_action == RNNGparser.OPEN or n == 0:
             MASK *= self.close_mask
-        if type(last_action) == tuple and last_action[0] == RNNGparser.OPEN:
-            MASK *= self.open_mask
-            MASK *= self.close_mask
-        if n == 0:
-            MASK *= self.close_mask
-        if n > 0 or len(S) > 1 :
-            MASK *= self.terminate_mask
-        if B:
-            MASK *= self.terminate_mask
-            #masks for shift : only one is possible when parsing
-            MASK *= self.shift_mask
-            MASK [ self.action_codes[(RNNGparser.SHIFT,sentence[B[0]])] ] = 1.0
         return MASK
 
     
-    def predict_action_distrib(self,configuration,last_action,sentence):
+    def predict_action_distrib(self,configuration,last_structural_action,sentence,max_only=False):
         """
         This predicts the next action distribution with the classifier and constrains it with the classifier structural rules
         @param configuration: the current configuration
-        @param last_action  : the last action  performed by this parser
+        @param last_structural_action  : the last structural action performed by this parser
+        @param sentence : a list of string tokens
+        @param max_only : returns only the couple (action,logprob) with highest score
+        @return a list of (action,logprob) legal at that state
         """
-        S,B,n,stack_state,local_score = configuration
         
-        Wout = dy.parameter(self.preds_out)
-        b_out = dy.parameter(self.preds_bias)
-        probs = dy.softmax( (Wout * dy.tanh(stack_state.output()) + b_out).npvalue()
-        #print('best action without constraint',self.actions[np.argmax(probs)],probs[np.argmax(probs)])
-        return np.maximum(probs,np.finfo(float).eps) * self.next_action_mask(configuration,last_action,sentence)
-        #this last line attempts to address numerical underflows (0 out of dynet softmaxes) and applies the hard constraint mask
-        #such that a legal action has a prob > 0.
-    
-    def train_one(self,configuration,ref_action):
+        S,B,n,stack_state,local_score = configuration
+
+        if last_structural_action == RNNGparser.SHIFT: #generate wordform action
+            next_word = sentence[B[0]]
+            W = dy.parameter(self.lex_out)
+            b = dy.parameter(self.lex_bias)
+            logprobs = dy.log_softmax(W * dy.tanh(stack_state.output()) + b).npvalue()
+            score = np.maximum(logprobs[self.word_codes[next_word]],np.log(np.finfo(float).eps))
+            if max_only:
+                (next_word,score)
+            else:
+                return [(next_word,score)]
+            
+        elif last_structural_action == RNNGparser.OPEN: #label NT action
+            W = dy.parameter(self.nt_out)
+            b = dy.parameter(self.nt_bias)
+            logprobs = dy.log_softmax(W * dy.tanh(stack_state.output()) + b).npvalue()
+            if max_only:
+                idx = np.argmax(logprobs)
+                return (self.nonterminals[idx],logprobs[idx])
+            else:
+                return list(zip(self.nonterminals,logprobs))
+        
+        else: #perform a structural action
+            W = dy.parameter(self.struct_out)
+            b = dy.parameter(self.struct_bias)
+            logprobs = dy.log_softmax(W * dy.tanh(stack_state.output()) + b).npvalue()
+            #constraint + underflow prevention
+            logprobs = np.maximum(logprobs,np.log(np.finfo(float).eps)) * self.structural_action_mask(configuration,last_action,sentence)
+            if max_only:
+                idx = np.argmax(logprobs)
+                return (self.actions[idx],logprobs[idx])
+            else:
+                return [(act,logp) for act,logp in zip(self.actions,logprobs) if logp > -np.inf]
+
+        
+    def train_one(self,configuration,last_structural_action,ref_action):
         """
         This performs a forward, backward and update pass on the network for this action.
         @param configuration: the current configuration
+        @param last_structural_action  : the last structural action performed by this parser
         @param ref_action  : the reference action
         @return (the loss for this action,a boolean indicating if the prediction argmax is correct or not)
         """
         S,B,n,stack_state,local_score = configuration
-        Wout   = dy.parameter(self.preds_out)
-        b_out   = dy.parameter(self.preds_bias)
-        log_probs  = dy.log_softmax( (Wout * dy.dropout(dy.tanh(stack_state.output()),self.dropout)) + b_out)
 
+        if last_structural_action == RNNGparser.SHIFT:
+            W   = dy.parameter(self.lex_out)
+            b   = dy.parameter(self.lex_bias)
+            correct_prediction = self.word_codes[ref_action]
+        elif last_structural_action == RNNGparser.OPEN:
+            W   = dy.parameter(self.nt_out)
+            b   = dy.parameter(self.nt_bias)
+            correct_prediction = self.nonterminals_codes[ref_action]
+        else:
+            W   = dy.parameter(self.struct_out)
+            b   = dy.parameter(self.struct_bias)
+            correct_prediction = self.action_codes[ref_action]
+            
+        log_probs = dy.log_softmax( (W * dy.dropout(dy.tanh(stack_state.output()),self.dropout)) + b)
         best_prediction = np.argmax(log_probs.npvalue())
-        iscorrect = (self.action_codes[ref_action] == best_prediction)
-
-        loss       = dy.pick(-log_probs,self.action_codes[ref_action])
+        iscorrect = (correct_prediction == best_prediction)
+        loss       = dy.pick(-log_probs,correct_prediction)
         loss_val   = loss.value()
         loss.backward()
         self.trainer.update()
         return loss_val,iscorrect
-
+        
     def beam_parse(self,tokens,all_beam_size,lex_beam_size,ref_tree=None):
         """
         This parses a sentence with word sync beam search.
@@ -366,56 +434,70 @@ class RNNGparser:
         @param ref_tree: if provided return an eval against ref_tree rather than a parse tree
         @return a derivation, a ConsTree or some evaluation metrics
         """
-        class BeamItem:
-            def __init__(self,prev_item,prev_action,config,prefix_score):
-                self.prev        = prev_item #prev beam item
-                self.pred_action = prev_action
-                self.config      = config
-                self.score       = prefix_score
+        class BeamElement:
+            
+            #allows for delayed exec of actions in the beam
+            def __init__(self,prev_item,last_structural_action,current_action,labelling_state,prefix_score):
+                self.prev_element           = prev_item               #prev beam item (history)
                 
+                self.last_structural_action = last_structural_action  #scheduling info
+                self.current_action         = current_action
+                self.labelling_state        = labelling_state         #flag to indicate if we need to label or to structure
+                
+                self.config                 = None           
+                self.score                  = prefix_score
+                
+            
         dy.renew_cg()
         tokens    = [self.lex_lookup(t) for t in tokens  ]
         tok_codes = [self.word_codes[t] for t in tokens  ]    
-        C         = self.init_configuration(len(tokens))
-        all_beam  = [ BeamItem(None,'init',C,0) ]
+        start = BeamItem(None,'init',None,None,False,0)
+        start.config = self.init_configuration(len(tokens))
+
+        all_beam  = [ start ]
         next_lex_beam = [ ]
+        
         for idx in range(len(tokens) + 1):
             while all_beam:
                 next_all_beam = []
                 for elt in all_beam:
                     C = elt.config
                     s = elt.score
-                    prev_action = elt.pred_action
-                    probs = np.log(self.predict_action_distrib(C,prev_action,tokens))
-                    for act,logprob in zip(self.actions,probs):
-                        if logprob > -np.inf:#filters illegal actions
-                            if act ==  RNNGparser.TERMINATE:
-                                next_lex_beam.append( BeamItem(elt,act,None,s+logprob) )
-                            elif type(act) == tuple and act[0] == RNNGparser.SHIFT:
-                                next_lex_beam.append( BeamItem(elt,act,None,s+logprob) )
-                            else: #not a shift
-                                next_all_beam.append( BeamItem(elt,act,None,s+logprob) )
+                    prev_s_action = elt.last_structural_action
+                    preds = self.predict_action_distrib(C,prev_s_action,tokens)
+                    if prev_s_action == RNNGparser.SHIFT: #dispatch
+                        action,score = preds[0]
+                        next_lex_beam.append(BeamItem(elt,prev_s_action,action,True,s+score))
+                    elif prev_s_action == RNNGparser.OPEN:
+                        for action,score in preds:
+                            next_all_beam.append(BeamItem(elt,prev_s_action, action,True,s+score))
+                    else: #structural action scheduling
+                        for action,score in preds:
+                            if action == RNNGparser.TERMINATE:
+                                next_lex_beam.append(BeamItem(elt,action, action,False,s+score))
+                            else:
+                                next_all_beam.append(BeamItem(elt,action, action,False,s+score))
                 #prune and exec actions
                 next_all_beam.sort(key=lambda x:x.score,reverse=True)
                 next_all_beam = next_all_beam[:all_beam_size]
                 for elt in next_all_beam:
-                    C   = elt.prev.config
-                    act = elt.pred_action
-                    if act == RNNGparser.CLOSE:
+                    C  = elt.prev_element.config
+                    if elt.labelling_state:
+                        if elt.last_structural_action == RNNGParser.OPEN:
+                            elt.config = self.open_action(C,elt.current_action,0)
+                        elif elt.last_structural_action == RNNGParser.SHIFT:
+                            elt.config = self.shift_action(C,tok_codes,0)
+                    elif elt.current_action == RNNGparser.CLOSE:
                         elt.config = self.close_action(C,0)
-                    elif act == RNNGparser.TERMINATE:
+                    else: #SHIFT,OPEN,TERMINATE
                         elt.config = C
-                    elif act[0] == RNNGparser.SHIFT:
-                        elt.config = self.shift_action(C,tok_codes,0)
-                    elif act[0] == RNNGparser.OPEN:
-                        elt.config = self.open_action(C,act[1],0)
                 all_beam = next_all_beam
             #Lex beam
             next_lex_beam.sort(key=lambda x:x.score,reverse=True)
             next_lex_beam = next_lex_beam[:lex_beam_size]
             for elt in next_lex_beam:
-                C = elt.prev.config
-                act = elt.pred_action
+                C = elt.prev_element.config
+                act = elt.current_action
                 if act == RNNGparser.TERMINATE:
                     elt.config = C
                 else:
@@ -423,8 +505,6 @@ class RNNGparser:
             all_beam = next_lex_beam
             next_lex_beam = [ ]
         #backtrace
-        if not all_beam: #TODO (identify why it happens sometimes)
-           return None 
         current    = all_beam[0]
         best_deriv = [current.pred_action]
         while current.prev != None:
@@ -451,32 +531,30 @@ class RNNGparser:
         tokens    = [self.lex_lookup(t) for t in tokens  ]
         tok_codes = [self.word_codes[t] for t in tokens  ]
         C         = self.init_configuration(len(tokens))
-        pred_action = 'init'
+        last_struct_action = 'init'
         S,B,n,stackS,score = C
         deriv = [ ]
         while True:
-            probs = self.predict_action_distrib(C,pred_action,tokens)
-            max_idx   = np.argmax(probs)
-            score = probs[max_idx]
-            if score == 0.0:
-                print('parser trapped ')
-            pred_action = self.actions[max_idx]
+            (pred_action,score) = self.predict_action_distrib(C,last_struct_action,tokens,max_only=True)
             deriv.append(pred_action)
-            if pred_action == RNNGparser.CLOSE:
+            if last_struct_action == RNNGparser.SHIFT:
+                C = self.shift_action(C,tok_codes,score)
+                last_struct_action = None
+            elif last_struct_action == RNNGparser.OPEN:
+                C = self.open_action(C,pred_action,score)
+                last_struct_action = None
+            elif pred_action == RNNGparser.CLOSE:
                 C = self.close_action(C,score)
+                last_struct_action = pred_action
             elif pred_action == RNNGparser.TERMINATE: #we exit the loop here
                 break #  <= EXIT
-            elif pred_action[0] == RNNGparser.SHIFT:
-                C = self.shift_action(C,tok_codes,score)
-            elif pred_action[0] == RNNGparser.OPEN:
-                C = self.open_action(C,pred_action[1],score)
+            else:
+                last_struct_action = pred_action
+                
             S,B,n,stackS,score = C
-            if len(deriv) > 5000: #useful in case of numerical underflow
-                print(deriv)
-                exit(1)
+
         if get_derivation:
             return deriv
-        #print('DERIV',deriv)
         pred_tree  = RNNGparser.derivation2tree(deriv)
         if ref_tree:
             return ref_tree.compare(pred_tree)
@@ -505,9 +583,17 @@ class RNNGparser:
         #Model structure
         self.model                 = dy.ParameterCollection()
         
-        #top level MLP
-        self.preds_out             = self.model.add_parameters((actions_size,self.hidden_size),init='glorot')          #action output layer
-        self.preds_bias            = self.model.add_parameters((actions_size),init='glorot')
+        #top level task predictions
+        self.struct_out             = self.model.add_parameters((actions_size,self.hidden_size),init='glorot')          #struct action output layer
+        self.struct_bias            = self.model.add_parameters((actions_size),init='glorot')
+
+        self.lex_out                = self.model.add_parameters((lexicon_size,self.hidden_size),init='glorot')          #lex action output layer
+        self.lex_bias               = self.model.add_parameters((lexicon_size),init='glorot')
+
+        self.nt_out                 = self.model.add_parameters((nt_size,self.hidden_size),init='glorot')               #nonterminal action output layer
+        self.nt_bias                = self.model.add_parameters((nt_size),init='glorot')
+
+        
         #embeddings
         self.lex_embedding_matrix  = self.model.add_lookup_parameters((lexicon_size,self.stack_embedding_size),init='glorot')       # symbols embeddings
         self.nt_embedding_matrix   = self.model.add_lookup_parameters((nt_size,self.stack_embedding_size),init='glorot')
@@ -638,16 +724,22 @@ class RNNGparser:
                 tok_codes = [self.word_codes[t] for t in tree.tokens()]   
                 step, max_step  = (0,len(ref_derivation))
                 current_config  = self.init_configuration(len(tok_codes))
+                last_struct_action = None
                 while step < max_step:
                     ref_action = ref_derivation[step]
-                    loc_loss,correct = self.train_one(current_config,ref_action)
+                    loc_loss,correct = self.train_one(current_config,last_struct_action,ref_action)
                     monitor.add_datum(loc_loss,correct)
                     if ref_action == RNNGparser.CLOSE:
                         current_config = self.close_action(current_config,0.0)
-                    elif ref_action[0] == RNNGparser.SHIFT:
+                        last_struct_action = RNNGparser.CLOSE
+                    elif last_struct_action == RNNGparser.SHIFT:
                         current_config = self.shift_action(current_config,tok_codes,0.0)
-                    elif ref_action[0] == RNNGparser.OPEN:
-                        current_config = self.open_action(current_config,ref_action[1],0.0)
+                        last_struct_action = None
+                    elif last_struct_action == RNNGparser.OPEN:
+                        current_config = self.open_action(current_config,ref_action,0.0)
+                        last_struct_action = None
+                    else:
+                        last_struct_action = ref_action
                     step+=1
             monitor.reset_all()
         print()
