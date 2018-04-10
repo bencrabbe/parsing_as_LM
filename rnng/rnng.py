@@ -523,7 +523,6 @@ class RNNGparser:
         print('Stack embedding size    :',self.stack_embedding_size,flush=True)
         print('Stack hidden size       :',self.stack_hidden_size,flush=True)
 
-
     def make_structure(self):
         """
         Allocates the network structure
@@ -554,7 +553,7 @@ class RNNGparser:
         #tree rnn
         self.fwd_tree_rnn          = dy.LSTMBuilder(1,self.stack_embedding_size, self.stack_hidden_size,self.model)        # bi-rnn for tree embeddings
         self.bwd_tree_rnn          = dy.LSTMBuilder(1,self.stack_embedding_size, self.stack_hidden_size,self.model)
-        self.tree_rnn_out          = self.model.add_parameters((self.stack_embedding_size,self.stack_hidden_size*2),init='glorot')       # out layer merging the tree bi-rnn output
+        self.tree_rnn_out          = self.model.add_parameters((self.hidden_size,self.stack_hidden_size*2),init='glorot')       # out layer merging the tree bi-rnn output
 
     @staticmethod
     def load_model(model_name):
