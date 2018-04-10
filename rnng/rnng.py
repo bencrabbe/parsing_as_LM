@@ -322,7 +322,7 @@ class RNNGparser:
             logprobs = dy.log_softmax(W * dy.tanh(stack_state.output()) + b).npvalue()
             score = np.maximum(logprobs[self.word_codes[next_word]],np.log(np.finfo(float).eps))
             if max_only:
-                (next_word,score)
+                return (next_word,score)
             else:
                 return [(next_word,score)]
             
@@ -342,17 +342,12 @@ class RNNGparser:
             b = dy.parameter(self.struct_bias)
             logprobs = dy.log_softmax(W * dy.tanh(stack_state.output()) + b).npvalue()
             #constraint + underflow prevention
-            print(self.structural_action_mask(configuration,last_structural_action,sentence))
-            print(self.actions)
             logprobs = np.maximum(logprobs,np.log(np.finfo(float).eps)) + self.structural_action_mask(configuration,last_structural_action,sentence)
             if max_only:
                 idx = np.argmax(logprobs)
-                print(idx,logprobs)
                 return (self.actions[idx],logprobs[idx])
             else:
-                res = [(act,logp) for act,logp in zip(self.actions,logprobs) if logp > -np.inf]
-                print(res)
-                return res
+                return [(act,logp) for act,logp in zip(self.actions,logprobs) if logp > -np.inf]
         
     def train_one(self,configuration,last_structural_action,ref_action):
         """
