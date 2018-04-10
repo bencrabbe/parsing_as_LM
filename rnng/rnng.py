@@ -172,13 +172,13 @@ class RNNGparser:
     #transition system
     def init_configuration(self,N):
         """
-        A: configuration is a quintuple (S,B,n,stack_mem,sigma)
+        A: configuration is a 6tuple (S,B,n,stack_mem,labelling?,sigma)
         
         S: is the stack
         B: the buffer
         n: the number of predicted constituents in the stack
         stack_mem: the current state of the stack lstm
-        sigma:     the *local* score of the configuration. I assume scores are log probs
+        sigma:     the *prefix* score of the configuration. I assume scores are log probs
         
         Creates an initial configuration, with empty stack, full buffer (as a list of integers and null score)
         Stacks are filled with non terminals of type strings and/or terminals of type integer.
@@ -199,9 +199,9 @@ class RNNGparser:
     def shift_action(self,configuration,sentence,local_score):
         """
         That's the RNNG GENERATE/SHIFT action.
-        @param configuration : a configuration triple
+        @param configuration : a configuration tuple
         @param sentence: the list of words of the sentence as a list of word idxes
-        @param local_score: the local score of the action
+        @param local_score: the local score of the action (logprob)
         @return a configuration resulting from shifting the next word into the stack 
         """
         S,B,n,stack_state,score = configuration
@@ -210,14 +210,14 @@ class RNNGparser:
             word_embedding = dy.dropout(self.lex_embedding_matrix[word_idx],self.dropout)
         else: 
             word_embedding = self.lex_embedding_matrix[word_idx]
-        return (S + [StackSymbol(B[0],StackSymbol.COMPLETED,word_embedding)],B[1:],n,stack_state.add_input(word_embedding),local_score)
+        return (S + [StackSymbol(B[0],StackSymbol.COMPLETED,word_embedding)],B[1:],n,stack_state.add_input(word_embedding),score+local_score)
             
     def open_action(self,configuration,X,local_score):
         """
         That's the RNNG OPEN-X action.
-        @param configuration : a configuration triple
+        @param configuration : a configuration tuple
         @param X: the category to Open
-        @param local_score: the local score of the action
+        @param local_score: the local score of the action (logprob)
         @return a configuration resulting from opening the X constituent
         """
         S,B,n,stack_state,score = configuration
@@ -230,12 +230,13 @@ class RNNGparser:
             nonterminal_embedding = self.nt_embedding_matrix[nt_idx]
             
         stack_state = stack_state.add_input(nonterminal_embedding)
-        return (S + [StackSymbol(X,StackSymbol.PREDICTED,nonterminal_embedding)],B,n+1,stack_state,local_score)
+        return (S + [StackSymbol(X,StackSymbol.PREDICTED,nonterminal_embedding)],B,n+1,stack_state,score+local_score)
 
     def close_action(self,configuration,local_score):
         """
         That's the RNNG CLOSE action.
-        @param configuration : a configuration triple
+        @param configuration : a configuration tuple
+        @param local_score: the local score of the action (logprob)
         @return a configuration resulting from closing the current constituent
         """
         S,B,n,stack_state,score = configuration
@@ -277,7 +278,7 @@ class RNNGparser:
         else:
             tree_embedding = dy.tanh(W * x)
         
-        return (S[:-midx]+[root_symbol],B,n-1,stack_state.add_input(tree_embedding), local_score)
+        return (S[:-midx]+[root_symbol],B,n-1,stack_state.add_input(tree_embedding), score+local_score)
 
     def structural_action_mask(self,configuration,last_structural_action,sentence):
         """ 
@@ -487,28 +488,33 @@ class RNNGparser:
         tokens    = [self.lex_lookup(t) for t in tokens  ]
         tok_codes = [self.word_codes[t] for t in tokens  ]
         C         = self.init_configuration(len(tokens))
+
         last_struct_action = 'init'
+        labelling_state    = False
+         
         S,B,n,stackS,score = C
         deriv = [ ]
         while True:
             (pred_action,score) = self.predict_action_distrib(C,last_struct_action,tokens,max_only=True)
             print(pred_action)
             deriv.append(pred_action)
-            if last_struct_action == RNNGparser.SHIFT:
+            if labelling_state:
+              if last_struct_action == RNNGparser.SHIFT:
                 C = self.shift_action(C,tok_codes,score)
-                last_struct_action = None
-            elif last_struct_action == RNNGparser.OPEN:
+                labelling_state = False
+              if last_struct_action == RNNGparser.OPEN:
                 C = self.open_action(C,pred_action,score)
-                last_struct_action = None
-            elif pred_action == RNNGparser.CLOSE:
-                C = self.close_action(C,score)
+                labelling_state = False
+            else: #struct action
+                if pred_action == RNNGparser.CLOSE:
+                    C = self.close_action(C,score)
+                elif pred_action == RNNGparser.TERMINATE: 
+                    break #we exit the loop here
+                #pred action == SHIFT or OPEN
                 last_struct_action = pred_action
-            elif pred_action == RNNGparser.TERMINATE: #we exit the loop here
-                break #  <= EXIT
-            else:
-                last_struct_action = pred_action
-                
+
             S,B,n,stackS,score = C
+            
         print(deriv)
             
         if get_derivation:
@@ -678,7 +684,6 @@ class RNNGparser:
             for tree in train_bank:
                 dy.renew_cg()
                 ref_derivation  = self.oracle_derivation(tree)
-                print(ref_derivation)
                 tok_codes = [self.word_codes[t] for t in tree.tokens()]   
                 step, max_step  = (0,len(ref_derivation))
                 current_config  = self.init_configuration(len(tok_codes))
