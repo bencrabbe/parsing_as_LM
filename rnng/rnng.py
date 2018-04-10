@@ -286,17 +286,18 @@ class RNNGparser:
         @param sentence     : a list of strings, the tokens
         @return a mask for the possible next actions
         """
-        MASK = np.array([True] * len(self.actions))
+        #Assumes masking log probs
+        MASK = np.log([True] * len(self.actions))
         S,B,n,stack_state,local_score = configuration
 
         if not B or not S or last_structural_action == RNNGparser.OPEN:
-            MASK *= self.open_mask
+            MASK += self.open_mask
         if B or n > 0 or len(S) > 1:
-            MASK *= self.terminate_mask
+            MASK += self.terminate_mask
         if not B:
-            MASK *= self.shift_mask
+            MASK += self.shift_mask
         if not S or last_structural_action == RNNGparser.OPEN or n == 0:
-            MASK *= self.close_mask
+            MASK += self.close_mask
         return MASK
 
     
