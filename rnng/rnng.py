@@ -463,7 +463,7 @@ class RNNGparser:
                     loc_score = elt.local_score
                     action    = elt.incoming_action
                     C         = elt.prev_element.config
-                     _,_,_,_,lab_state,prefix_score = C
+                    _,_,_,_,lab_state,prefix_score = C
                     prev_s_action = elt.last_structural_action
                     if lab_state == RNNGparser.NT_LABEL:
                         elt.config = self.nonterminal_action(C,action,loc_score)
