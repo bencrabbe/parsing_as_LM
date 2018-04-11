@@ -798,7 +798,6 @@ class RNNGparser:
                     break
 
         L = monitor.get_global_loss()
-        print('\n   end eval.')
         monitor.reset_all()
         return L
                         
@@ -844,6 +843,7 @@ class RNNGparser:
         
         monitor =  OptimMonitor()
         for e in range(max_epochs):
+            print('\nEpoch %d'%(e,))
             for tree in train_bank:
                 dy.renew_cg()
                 ref_derivation  = self.oracle_derivation(tree)
