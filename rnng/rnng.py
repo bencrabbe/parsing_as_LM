@@ -343,7 +343,7 @@ class RNNGparser:
         S,B,n,stack_state,lab_state,local_score = configuration
 
         if lab_state == RNNGparser.WORD_LABEL: #generate wordform action
-            print(self.pretty_print_configuration(configuration))
+            #print(self.pretty_print_configuration(configuration))
             next_word = sentence[B[0]]
             W = dy.parameter(self.lex_out)
             b = dy.parameter(self.lex_bias)
