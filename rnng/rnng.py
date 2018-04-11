@@ -450,7 +450,7 @@ class RNNGparser:
                         for action,loc_score in preds_distrib:
                             next_all_beam.append(BeamElement(elt,prev_s_action,action,loc_score))
                     else:
-                        for action,score in preds_distrib:
+                        for action,loc_score in preds_distrib:
                             print('struct',action)
                             if action == RNNGparser.TERMINATE:
                                 next_lex_beam.append(BeamElement(elt,prev_s_action, action,False,loc_score))
