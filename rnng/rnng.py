@@ -102,7 +102,7 @@ class OptimMonitor:
 
         if self.N % self.step_size == 0:
             global_acc = self.struct_acc+self.lex_acc+self.nt_acc
-            N =  self.acc_lexN+acc_structN+acc_ntN 
+            N =  self.acc_lexN+self.acc_structN+self.acc_ntN 
             acc,lex_acc,struct_acc,nt_acc = global_acc/N,self.lex_acc/self.acc_lexN,self.struct_acc/self.acc_structN,self.nt_acc/self.acc_ntN
             self.acc_dataset.append(( acc,lex_acc,struct_acc,nt_acc))
             sys.stdout.write("\r    Mean acc : %.5f, Lex acc : %.5f, Struct acc : %.5f, NT acc : %.5f (last %d datums)"%(acc,lex_acc,struct_acc,nt_acc,self.step_size))
