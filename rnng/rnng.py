@@ -852,8 +852,8 @@ if __name__ == '__main__':
     out_file   = ''
     model_name = ''
     raw_file   = ''
-    lex_beam    = 8
-    struct_beam = 64
+    lex_beam    = 8  #40
+    struct_beam = 64 #400
     
     for opt, arg in opts:
         if opt in ['-h','--help']:
