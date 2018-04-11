@@ -510,10 +510,10 @@ class RNNGparser:
             next_lex_beam = [ ]
         #backtrace
         current    = all_beam[0]
-        best_deriv = [current.pred_action]
-        while current.prev != None:
-            current = current.prev
-            best_deriv.append(current.pred_action)
+        best_deriv = [current.incoming_action]
+        while current.prev_element != None:
+            current = current.prev_element
+            best_deriv.append(current.incoming_action)
         best_deriv.reverse()
 
         pred_tree = RNNGparser.derivation2tree(best_deriv) 
