@@ -775,7 +775,7 @@ class RNNGparser:
             step, max_step  = (0,len(ref_derivation))
             C               = self.init_configuration(len(tok_codes))
             for ref_action in ref_derivation:
-                loc_loss,correct = self.train_one(C,ref_action,backrop=False)
+                loc_loss,correct = self.train_one(C,ref_action,backprop=False)
 
                 S,B,n,stackS,lab_state,score = C
                 monitor.add_datum(loc_loss,correct,lab_state)

@@ -1,6 +1,7 @@
 import sys
 import os
 import os.path
+import re
 
 class ConsTree:
     """
@@ -102,13 +103,15 @@ class ConsTree:
     def normalize_OOV(self,lexicon,unk_token):
         """
         Destructively replaces all leaves by the unk_token when the leaf label is not in
-        lexicon.
+        lexicon. Normalizes numbers
         @param lexicon  : a set of strings
         @param unk_token: a string
         @return a pointer to the tree root
         """
         if self.is_leaf():
-            if self.label not in lexicon:
+            if re.match(r'[0-9]+([,/\.][0-9]+)',self.label):
+                self.label = '<num>'
+            elif self.label not in lexicon:
                 self.label = unk_token
         for child in self.children:
             child.normalize_OOV(lexicon,unk_token)
