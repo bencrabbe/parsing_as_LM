@@ -139,7 +139,7 @@ class ConsTree:
         for child in self.children:
             child.close_unaries()
 
-    def expand_unaries(self,dummy_annotation='$'):
+    def expand_unaries(self,dummy_annotation='@'):
         """
         In place (destructive) expansion of unary symbols.
         """

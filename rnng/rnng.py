@@ -590,7 +590,8 @@ class RNNGparser:
             best_deriv.append(current.incoming_action)
         best_deriv.reverse()
 
-        pred_tree = RNNGparser.derivation2tree(best_deriv) 
+        pred_tree = RNNGparser.derivation2tree(best_deriv)
+        pred_tree.expand_unaries() 
         if ref_tree:
             return ref_tree.compare(pred_tree)
         return pred_tree
@@ -886,9 +887,6 @@ if __name__ == '__main__':
                         stack_memory_size=StructParams.STACK_HIDDEN_SIZE)
         p.train_generative_model(model_name,TrainingParams.NUM_EPOCHS,train_treebank,[],learning_rate=TrainingParams.LEARNING_RATE,dropout=TrainingParams.DROPOUT)
         train_stream.close()
-        #runs a test on train data
-        for t in train_treebank[:100]:
-            print(p.beam_parse(t.tokens(),all_beam_size=64,lex_beam_size=8))
         
     #runs a test    
     if model_name and raw_file:
