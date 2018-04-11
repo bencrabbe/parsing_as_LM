@@ -804,8 +804,10 @@ class RNNGparser:
         
         lexicon = set(self.rev_word_codes)
         for t in train_bank:
+            ConsTree.close_unaries(t)
             t.normalize_OOV(lexicon,RNNGparser.UNKNOWN_TOKEN)
         for t in dev_bank:
+            ConsTree.close_unaries(t)
             t.normalize_OOV(lexicon,RNNGparser.UNKNOWN_TOKEN)
             
         #training
