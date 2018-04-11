@@ -428,8 +428,8 @@ class RNNGparser:
             def figure_of_merit(elt):
                 #provides a score for ranking the elements in the beam
                 #could add derivation length for further normalization (?)
-                _,_,_,_,lab_state,prefix_score = self.prev_element.config
-                return self.local_score + prefix_score
+                _,_,_,_,lab_state,prefix_score = elt.prev_element.config
+                return elt.local_score + prefix_score
                 
         dy.renew_cg()
         tokens    = [self.lex_lookup(t) for t in tokens  ]
