@@ -473,13 +473,13 @@ class RNNGparser:
                     prev_s_action = elt.last_structural_action
                     if lab_state == RNNGparser.NT_LABEL:
                         elt.config = self.nonterminal_action(C,action,loc_score)
-                    elif pred_action == RNNGparser.CLOSE:
+                    elif action == RNNGparser.CLOSE:
                         elt.config = self.close_action(C,loc_score)
                         elt.last_struct_action = RNNGparser.CLOSE
-                    elif pred_action == RNNGparser.OPEN:
+                    elif action == RNNGparser.OPEN:
                         elt.config = self.open_action(C,loc_score)
                         elt.last_struct_action = RNNGparser.OPEN
-                    elif pred_action == RNNGparser.SHIFT:
+                    elif action == RNNGparser.SHIFT:
                         elt.config = self.shift_action(C,loc_score)
                         elt.last_struct_action = RNNGparser.SHIFT
                     else:
@@ -497,9 +497,11 @@ class RNNGparser:
                 prev_s_action = elt.last_structural_action
                 if lab_state == RNNGparser.WORD_LABEL:
                     elt.config = self.word_action(C,tok_codes,loc_score)
-                if act == RNNGparser.TERMINATE:
+                elif action == RNNGparser.TERMINATE:
                     elt.config = C
                     elt.last_struct_action = RNNGparser.TERMINATE
+                else:
+                    print('bug beam exec lex actions')
             all_beam = next_lex_beam
             next_lex_beam = [ ]
         #backtrace
