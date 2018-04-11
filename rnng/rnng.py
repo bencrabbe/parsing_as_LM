@@ -762,8 +762,10 @@ class RNNGparser:
         """
         Evaluates the model on a development treebank
         """
+        print('\nEval on dev...')
+        
         monitor =  OptimMonitor()
-        for tree in train_bank:
+        for tree in dev_bank:
             dy.renew_cg()
             ref_derivation  = self.oracle_derivation(tree)
             tok_codes       = [self.word_codes[t] for t in tree.tokens()]   
