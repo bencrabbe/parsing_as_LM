@@ -860,6 +860,7 @@ if __name__ == '__main__':
         sys.exit(0)
 
     train_file = ''
+    dev_file   = ''
     out_file   = ''
     model_name = ''
     raw_file   = ''
@@ -887,16 +888,23 @@ if __name__ == '__main__':
             
     train_treebank = []
 
-    if train_file and model_name:
+    if train_file and model_name: #train
         train_treebank = []
         train_stream   = open(train_file)
         for line in train_stream:
             train_treebank.append(ConsTree.read_tree(line))
+
+        dev_treebank = []
+        if dev_file:
+            dev_stream   = open(train_file)
+            for line in dev_stream:
+                dev_treebank.append(ConsTree.read_tree(line))
+                
         p = RNNGparser(max_vocabulary_size=TrainingParams.LEX_MAX_SIZE,\
                         hidden_size=StructParams.OUTER_HIDDEN_SIZE,\
                         stack_embedding_size=StructParams.STACK_EMB_SIZE,\
                         stack_memory_size=StructParams.STACK_HIDDEN_SIZE)
-        p.train_generative_model(model_name,TrainingParams.NUM_EPOCHS,train_treebank,[],learning_rate=TrainingParams.LEARNING_RATE,dropout=TrainingParams.DROPOUT)
+        p.train_generative_model(model_name,TrainingParams.NUM_EPOCHS,train_treebank,dev_treebank,learning_rate=TrainingParams.LEARNING_RATE,dropout=TrainingParams.DROPOUT)
         train_stream.close()
         
     #runs a test    
