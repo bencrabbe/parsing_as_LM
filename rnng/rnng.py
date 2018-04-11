@@ -758,8 +758,10 @@ class RNNGparser:
             C               = self.init_configuration(len(tok_codes))
             for ref_action in ref_derivation:
                 loc_loss,correct = self.train_one(C,ref_action,backrop=False)
-                monitor.add_datum(loc_loss,correct)
+
                 S,B,n,stackS,lab_state,score = C
+                monitor.add_datum(loc_loss,correct,lab_state)
+
                 if lab_state == RNNGparser.WORD_LABEL:
                     C = self.word_action(C,tok_codes,0)
                 elif lab_state == RNNGparser.NT_LABEL:
@@ -826,9 +828,10 @@ class RNNGparser:
                 
                 for ref_action in ref_derivation:
                     loc_loss,correct = self.train_one(C,ref_action)
-                    monitor.add_datum(loc_loss,correct)
 
                     S,B,n,stackS,lab_state,score = C
+                    monitor.add_datum(loc_loss,correct,lab_state)
+                    
                     if lab_state == RNNGparser.WORD_LABEL:
                         C = self.word_action(C,tok_codes,0)
                     elif lab_state == RNNGparser.NT_LABEL:
