@@ -268,7 +268,6 @@ class RNNGparser:
         """
         S,B,n,stack_state,lab_state,score = configuration
         assert( n > 0 )
-        print(self.pretty_print_configuration(configuration))
         #finds the closest predicted constituent in the stack and backtracks the stack lstm.
         midx = -1
         for idx,symbol in enumerate(reversed(S)):
@@ -344,6 +343,7 @@ class RNNGparser:
         S,B,n,stack_state,lab_state,local_score = configuration
 
         if lab_state == RNNGparser.WORD_LABEL: #generate wordform action
+            print(self.pretty_print_configuration(configuration))
             next_word = sentence[B[0]]
             W = dy.parameter(self.lex_out)
             b = dy.parameter(self.lex_bias)
