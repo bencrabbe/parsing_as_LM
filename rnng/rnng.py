@@ -268,7 +268,7 @@ class RNNGparser:
         """
         S,B,n,stack_state,lab_state,score = configuration
         assert( n > 0 )
-        self.pretty_print_configuration(configuration)
+        print(self.pretty_print_configuration(configuration))
         #finds the closest predicted constituent in the stack and backtracks the stack lstm.
         midx = -1
         for idx,symbol in enumerate(reversed(S)):
