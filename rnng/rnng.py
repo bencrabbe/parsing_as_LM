@@ -320,6 +320,7 @@ class RNNGparser:
         MASK = np.log([True] * len(self.actions))
         S,B,n,stack_state,lab_state,local_score = configuration
 
+        print('last struct',last_structural_action)
         if not B or not S or last_structural_action == RNNGparser.OPEN:
             MASK += self.open_mask
         if B or n > 0 or len(S) > 1:
@@ -452,15 +453,15 @@ class RNNGparser:
                     #dispatch predicted items on relevant beams
                     if lab_state == RNNGparser.WORD_LABEL:
                         action,loc_score = preds_distrib[0]
-                        print('lab lex',action)
+                        #print('lab lex',action)
                         next_lex_beam.append(BeamElement(elt,prev_s_action,action,loc_score))
                     elif lab_state == RNNGparser.NT_LABEL:
                         for action,loc_score in preds_distrib:
-                            print('lab NT',action)
+                            #print('lab NT',action)
                             next_all_beam.append(BeamElement(elt,prev_s_action,action,loc_score))
                     else:
                         for action,loc_score in preds_distrib:
-                            print('struct',action)
+                            #print('struct',action)
                             if action == RNNGparser.TERMINATE:
                                 next_lex_beam.append(BeamElement(elt,prev_s_action, action,loc_score))
                             else:
