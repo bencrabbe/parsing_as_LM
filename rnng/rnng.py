@@ -48,7 +48,7 @@ class OptimMonitor:
         if self.N > 0:
             global_nll = self.struct_loss+self.lex_loss+self.nt_loss
             N = self.lexN+self.ntN+self.structN
-            sys.stdout.write("Mean NLL : %.5f, PPL : %.5f, Lex-PPL : %.5f, NT-PPL : %.5f, Struct-PPL: %.5f\n"%(global_nll/self.N,\
+            sys.stdout.write("\nMean NLL : %.5f, PPL : %.5f, Lex-PPL : %.5f, NT-PPL : %.5f, Struct-PPL: %.5f\n"%(global_nll/self.N,\
                                                                                                                np.exp(global_nll/N),\
                                                                                                                self.lex_loss/self.lexN,
                                                                                                                self.nt_loss/self.ntN,
@@ -429,7 +429,7 @@ class RNNGparser:
 
             if ref_action:
                 correct_prediction = self.word_codes[ref_action]
-                return dy.pickneglog_softmax( (W * dy.dropout(dy.tanh(stack_state.output()),self.dropout)) + b,correct_prediction).value()
+                return dy.pickneglog_softmax( (W * dy.tanh(stack_state.output())) + b,correct_prediction).value()
             
             logprobs = dy.log_softmax(W * dy.tanh(stack_state.output()) + b).npvalue()
             score = np.maximum(logprobs[self.word_codes[next_word]],np.log(np.finfo(float).eps))
@@ -445,7 +445,7 @@ class RNNGparser:
 
             if ref_action:
                 correct_prediction = self.nonterminals_codes[ref_action]
-                return dy.pickneglog_softmax( (W * dy.dropout(dy.tanh(stack_state.output()),self.dropout)) + b,correct_prediction).value()
+                return dy.pickneglog_softmax( (W * dy.tanh(stack_state.output())) + b,correct_prediction).value()
             
             logprobs = dy.log_softmax(W * dy.tanh(stack_state.output()) + b).npvalue()
             
@@ -461,7 +461,7 @@ class RNNGparser:
 
             if ref_action:
                 correct_prediction = self.action_codes[ref_action]
-                return dy.pickneglog_softmax( (W * dy.dropout(dy.tanh(stack_state.output()),self.dropout)) + b,correct_prediction).value()
+                return dy.pickneglog_softmax( (W * dy.tanh(stack_state.output())) + b,correct_prediction).value()
             
             logprobs = dy.log_softmax(W * dy.tanh(stack_state.output()) + b).npvalue()
             #constraint + underflow prevention
