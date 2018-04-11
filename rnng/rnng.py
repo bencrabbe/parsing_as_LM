@@ -478,7 +478,6 @@ class RNNGparser:
                         elt.last_struct_action = RNNGparser.SHIFT
                     else:
                         print('bug beam exec struct actions')
-                    #
                 all_beam = next_all_beam
                 
             #Lex beam
@@ -819,4 +818,4 @@ if __name__ == '__main__':
         p.train_generative_model(TrainingParams.NUM_EPOCHS,train_treebank,[],learning_rate=TrainingParams.LEARNING_RATE,dropout=TrainingParams.DROPOUT)
         for t in train_treebank:
             print(p.parse_sentence(t.tokens()))         
-            #print(p.beam_parse(t.tokens(),all_beam_size=struct_beam,lex_beam_size=lex_beam))
+            print(p.beam_parse(t.tokens(),all_beam_size=struct_beam,lex_beam_size=lex_beam))
