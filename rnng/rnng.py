@@ -319,7 +319,6 @@ class RNNGparser:
         MASK = np.log([True] * len(self.actions))
         S,B,n,stack_state,lab_state,local_score = configuration
 
-        print('last struct',last_structural_action)
         if not B or not S or last_structural_action == RNNGparser.OPEN:
             MASK += self.open_mask
         if B or n > 0 or len(S) > 1:
