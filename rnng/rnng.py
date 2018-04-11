@@ -424,7 +424,13 @@ class RNNGparser:
                 self.incoming_action        = current_action
                 self.config                 = None           
                 self.local_score            = local_score
-            
+            @staticmethod
+            def figure_of_merit(elt):
+                #provides a score for ranking the elements in the beam
+                #could add derivation length for further normalization (?)
+                _,_,_,_,lab_state,prefix_score = self.prev_element.config
+                return self.local_score + prefix_score
+                
         dy.renew_cg()
         tokens    = [self.lex_lookup(t) for t in tokens  ]
         tok_codes = [self.word_codes[t] for t in tokens  ]    
@@ -457,7 +463,7 @@ class RNNGparser:
                             else:
                                 next_all_beam.append(BeamElement(elt,prev_s_action,action,loc_score))
                 #prune and exec actions
-                next_all_beam.sort(key=lambda x:x.score,reverse=True)
+                next_all_beam.sort(key=lambda x:BeamElement.figure_of_merit(x),reverse=True)
                 next_all_beam = next_all_beam[:all_beam_size]
                 for elt in next_all_beam:#exec actions
                     loc_score = elt.local_score
@@ -481,7 +487,7 @@ class RNNGparser:
                 all_beam = next_all_beam
                 
             #Lex beam
-            next_lex_beam.sort(key=lambda x:x.score,reverse=True)
+            next_lex_beam.sort(key=lambda x:BeamElement.figure_of_merit(x),reverse=True)
             next_lex_beam = next_lex_beam[:lex_beam_size]
             for elt in next_lex_beam:
                 loc_score     = elt.local_score
