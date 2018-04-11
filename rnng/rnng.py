@@ -428,7 +428,7 @@ class RNNGparser:
         dy.renew_cg()
         tokens    = [self.lex_lookup(t) for t in tokens  ]
         tok_codes = [self.word_codes[t] for t in tokens  ]    
-        start = BeamElement(None,'init',None,None,0)
+        start = BeamElement(None,'init','init',0)
         start.config = self.init_configuration(len(tokens))
 
         all_beam  = [ start ]
