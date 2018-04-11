@@ -92,7 +92,7 @@ class OptimMonitor:
             global_acc = self.struct_acc+self.lex_acc+self.nt_acc
             acc,lex_acc,struct_acc,nt_acc = global_acc/self.step_size,self.lex_acc/self.step_size,self.struct_acc/self.step_size,self.nt_acc/self.step_size
             self.acc_dataset.append(( acc,lex_acc,struct_acc,nt_acc))
-            sys.stdout.write("\r    Mean acc : %.5f, Lex acc : %.5f, Struct acc : %.5f, NT acc : %.5f (last %d datums)"%(acc,lex_acc,struct_acc,nt_acc))
+            sys.stdout.write("\r    Mean acc : %.5f, Lex acc : %.5f, Struct acc : %.5f, NT acc : %.5f (last %d datums)"%(acc,lex_acc,struct_acc,nt_acc,self.step_size))
             self.reset_acc_counts()
     
 class RNNGparser:
