@@ -109,14 +109,13 @@ class ConsTree:
         @return a pointer to the tree root
         """
         if self.is_leaf():
-            #if re.match(r'[0-9]+([,/\.][0-9]+)',self.label):
-            #    self.label = '<num>'
             if self.label not in lexicon:
                 self.label = unk_token
         for child in self.children:
             child.normalize_OOV(lexicon,unk_token)
         return self
-            
+
+    
     def add_dummy_root(self,root_label='TOP'):
         """
         In place addition of a dummy root
@@ -260,7 +259,8 @@ class PennTreebank:
                 bfr = ''
         assert(not bfr or bfr.isspace()) #checks that we do not forget stuff
         return trees
-
+    
+    
     @staticmethod
     def preprocess_file(filename,strip_tags=True):
         """
@@ -272,6 +272,8 @@ class PennTreebank:
         for t_string in trees:
             tree = ConsTree.read_tree(t_string).children[0]
             tree.add_dummy_root()
+            
+            PennTreebank.normalize_numbers(tree,num_token='<num>')
             PennTreebank.strip_traces(tree)
             PennTreebank.strip_decoration(tree)
             ConsTree.close_unaries(tree)
@@ -287,6 +289,7 @@ class PennTreebank:
         @param ctree: a ConsTree object.
         """
         ctree.label = ctree.label.split('-')[0]
+        ctree.label = ctree.label.split('=')[0]
         for child in ctree.children:
             PennTreebank.strip_decoration(child)
         
@@ -363,6 +366,17 @@ class PennTreebank:
         dev_raw.close()
         test_raw.close()
 
+    @staticmethod
+    def normalize_numbers(tree,num_token='<num>'):
+        """
+        Replaces all numbers with the <num> token
+        """
+        if tree.is_leaf():
+            if re.match(r'[0-9]+([,/\.][0-9]+)*',tree.label):
+                tree.label = num_token
+        for child in tree.children:
+            PennTreebank.normalize_numbers(child,num_token)
+        return tree
                 
 if __name__ == '__main__':
     #Generates Penn TB with classical setup
