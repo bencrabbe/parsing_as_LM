@@ -428,7 +428,7 @@ class RNNGparser:
         dy.renew_cg()
         tokens    = [self.lex_lookup(t) for t in tokens  ]
         tok_codes = [self.word_codes[t] for t in tokens  ]    
-        start = BeamItem(None,'init',None,None,False,0)
+        start = BeamElement(None,'init',None,None,0)
         start.config = self.init_configuration(len(tokens))
 
         all_beam  = [ start ]
@@ -445,17 +445,17 @@ class RNNGparser:
                     #dispatch predicted items on relevant beams
                     if lab_state == RNNGparser.WORD_LABEL: 
                         action,loc_score = preds_distrib[0]
-                        next_lex_beam.append(BeamItem(elt,prev_s_action,action,loc_score))
+                        next_lex_beam.append(BeamElement(elt,prev_s_action,action,loc_score))
                     elif lab_state == RNNGparser.NT_LABEL:
                         for action,loc_score in preds_distrib:
-                            next_all_beam.append(BeamItem(elt,prev_s_action,action,loc_score))
+                            next_all_beam.append(BeamElement(elt,prev_s_action,action,loc_score))
                     else:
                         for action,score in preds_distrib:
                             print('struct',action)
                             if action == RNNGparser.TERMINATE:
-                                next_lex_beam.append(BeamItem(elt,prev_s_action, action,False,loc_score))
+                                next_lex_beam.append(BeamElement(elt,prev_s_action, action,False,loc_score))
                             else:
-                                next_all_beam.append(BeamItem(elt,prev_s_action,action,False,loc_score))
+                                next_all_beam.append(BeamElement(elt,prev_s_action,action,False,loc_score))
                 #prune and exec actions
                 next_all_beam.sort(key=lambda x:x.score,reverse=True)
                 next_all_beam = next_all_beam[:all_beam_size]
