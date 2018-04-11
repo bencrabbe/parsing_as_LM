@@ -341,7 +341,6 @@ class RNNGparser:
         """        
         S,B,n,stack_state,lab_state,local_score = configuration
 
-        #print('<predict>')
         if lab_state == RNNGparser.WORD_LABEL: #generate wordform action
             next_word = sentence[B[0]]
             W = dy.parameter(self.lex_out)
@@ -364,18 +363,14 @@ class RNNGparser:
                 return list(zip(self.nonterminals,logprobs))
         
         else: #lab_state == RNNGparser.NO_LABEL perform a structural action
-            #print('<struct>')
             W = dy.parameter(self.struct_out)
             b = dy.parameter(self.struct_bias)
             logprobs = dy.log_softmax(W * dy.tanh(stack_state.output()) + b).npvalue()
             #constraint + underflow prevention
             logprobs = np.maximum(logprobs,np.log(np.finfo(float).eps)) + self.structural_action_mask(configuration,last_structural_action,sentence)
             if max_only:
-                #print(self.actions)
-                #print(logprobs)
-                #print(self.structural_action_mask(configuration,last_structural_action,sentence))
-                #print('last s act',last_structural_action)
                 idx = np.argmax(logprobs)
+                #TODO here:if logprob == -inf raise parse failure 
                 return (self.actions[idx],logprobs[idx])
             else:
                 return [(act,logp) for act,logp in zip(self.actions,logprobs) if logp > -np.inf]
@@ -422,17 +417,13 @@ class RNNGparser:
         """
         class BeamElement:
             
-            #allows for delayed exec of actions in the beam
-            def __init__(self,prev_item,last_structural_action,current_action,labelling_state,prefix_score):
+            #representation used for lazy delayed exec of actions in the beam
+            def __init__(self,prev_item,last_structural_action,current_action,local_score):
                 self.prev_element           = prev_item               #prev beam item (history)
-                
                 self.last_structural_action = last_structural_action  #scheduling info
-                self.current_action         = current_action
-                self.labelling_state        = labelling_state         #flag to indicate if we need to label or to structure
-                
+                self.incoming_action        = current_action
                 self.config                 = None           
-                self.score                  = prefix_score
-                
+                self.local_score            = local_score
             
         dy.renew_cg()
         tokens    = [self.lex_lookup(t) for t in tokens  ]
@@ -448,46 +439,62 @@ class RNNGparser:
                 next_all_beam = []
                 for elt in all_beam:
                     C = elt.config
-                    s = elt.score
+                    _,_,_,_,lab_state,prefix_score = C
                     prev_s_action = elt.last_structural_action
-                    preds = self.predict_action_distrib(C,prev_s_action,tokens)
-                    if prev_s_action == RNNGparser.SHIFT: #dispatch
-                        action,score = preds[0]
-                        next_lex_beam.append(BeamItem(elt,prev_s_action,action,True,s+score))
-                    elif prev_s_action == RNNGparser.OPEN:
-                        for action,score in preds:
-                            next_all_beam.append(BeamItem(elt,prev_s_action, action,True,s+score))
-                    else: #structural action scheduling
-                        for action,score in preds:
+                    preds_distrib = self.predict_action_distrib(C,prev_s_action,tokens)
+                    #dispatch predicted items on relevant beams
+                    if lab_state == RNNGparser.WORD_LABEL: 
+                        action,loc_score = preds_distrib[0]
+                        next_lex_beam.append(BeamItem(elt,prev_s_action,action,loc_score))
+                    elif lab_state == RNNGparser.NT_LABEL:
+                        for action,loc_score in preds_distrib:
+                            next_all_beam.append(BeamItem(elt,prev_s_action,action,loc_score))
+                    else:
+                        for action,score in preds_distrib:
+                            print('struct',action)
                             if action == RNNGparser.TERMINATE:
-                                next_lex_beam.append(BeamItem(elt,action, action,False,s+score))
+                                next_lex_beam.append(BeamItem(elt,prev_s_action, action,False,loc_score))
                             else:
-                                next_all_beam.append(BeamItem(elt,action, action,False,s+score))
+                                next_all_beam.append(BeamItem(elt,prev_s_action,action,False,loc_score))
                 #prune and exec actions
                 next_all_beam.sort(key=lambda x:x.score,reverse=True)
                 next_all_beam = next_all_beam[:all_beam_size]
-                for elt in next_all_beam:
-                    C  = elt.prev_element.config
-                    if elt.labelling_state:
-                        if elt.last_structural_action == RNNGParser.OPEN:
-                            elt.config = self.open_action(C,elt.current_action,0)
-                        elif elt.last_structural_action == RNNGParser.SHIFT:
-                            elt.config = self.shift_action(C,tok_codes,0)
-                    elif elt.current_action == RNNGparser.CLOSE:
-                        elt.config = self.close_action(C,0)
-                    else: #SHIFT,OPEN,TERMINATE
-                        elt.config = C
+                for elt in next_all_beam:#exec actions
+                    loc_score = elt.local_score
+                    action    = elt.incoming_action
+                    C         = elt.prev_element.config
+                     _,_,_,_,lab_state,prefix_score = C
+                    prev_s_action = elt.last_structural_action
+                    if lab_state == RNNGparser.NT_LABEL:
+                        elt.config = self.nonterminal_action(C,action,loc_score)
+                    elif pred_action == RNNGparser.CLOSE:
+                        elt.config = self.close_action(C,loc_score)
+                        elt.last_struct_action = RNNGparser.CLOSE
+                    elif pred_action == RNNGparser.OPEN:
+                        elt.config = self.open_action(C,loc_score)
+                        elt.last_struct_action = RNNGparser.OPEN
+                    elif pred_action == RNNGparser.SHIFT:
+                        elt.config = self.shift_action(C,loc_score)
+                        elt.last_struct_action = RNNGparser.SHIFT
+                    else:
+                        print('bug beam exec struct actions')
+                    #
                 all_beam = next_all_beam
+                
             #Lex beam
             next_lex_beam.sort(key=lambda x:x.score,reverse=True)
             next_lex_beam = next_lex_beam[:lex_beam_size]
             for elt in next_lex_beam:
-                C = elt.prev_element.config
-                act = elt.current_action
+                loc_score     = elt.local_score
+                action        = elt.incoming_action
+                C             = elt.prev_element.config
+                _,_,_,_,lab_state,prefix_score = C
+                prev_s_action = elt.last_structural_action
+                if lab_state == RNNGparser.WORD_LABEL:
+                    elt.config = self.word_action(C,tok_codes,loc_score)
                 if act == RNNGparser.TERMINATE:
                     elt.config = C
-                else:
-                    elt.config = self.shift_action(C,tok_codes,0)
+                    elt.last_struct_action = RNNGparser.TERMINATE
             all_beam = next_lex_beam
             next_lex_beam = [ ]
         #backtrace
@@ -525,7 +532,6 @@ class RNNGparser:
         while True:
             (pred_action,score) = self.predict_action_distrib(C,last_struct_action,tokens,max_only=True)
             deriv.append(pred_action)
-
             if lab_state == RNNGparser.WORD_LABEL:
                 C = self.word_action(C,tok_codes,score)
             elif lab_state == RNNGparser.NT_LABEL:
