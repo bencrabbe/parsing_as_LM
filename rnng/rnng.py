@@ -44,11 +44,12 @@ class OptimMonitor:
     def reset_all(self):
         if self.N > 0:
             global_nll = self.struct_loss+self.lex_loss+self.nt_loss
+            N = self.lexN+self.ntN+self.structN
             sys.stdout.write("Mean NLL : %.5f, PPL : %.5f, Lex-PPL : %.5f, NT-PPL : %.5f, Struct-PPL: %.5f\n"%(global_nll/self.N,\
-                                                                                                               np.exp(global_nll/self.N),\
-                                                                                                               self.lex_loss/self.N,
-                                                                                                               self.nt_loss/self.N,
-                                                                                                               self.struct_loss/self.N))
+                                                                                                               np.exp(global_nll/N),\
+                                                                                                               self.lex_loss/self.lexN,
+                                                                                                               self.nt_loss/self.ntN,
+                                                                                                               self.struct_loss/self.structN))
             sys.stdout.flush()
         self.reset_loss_counts()
         self.reset_acc_counts()
@@ -60,17 +61,19 @@ class OptimMonitor:
         self.lex_loss    = 0
         self.struct_loss = 0
         self.nt_loss     = 0
-        self.N    = 0
+        self.lexN,self.structN,self.ntN = 0,0,0
 
     def reset_acc_counts(self):
         self.lex_acc    = 0
         self.struct_acc = 0
         self.nt_acc     = 0
-
-    def save_accuracy_curves(self,filename):
+        self.acc_lexN,acc_structN,acc_ntN = 0,0,0
         
+        
+    def save_accuracy_curves(self,filename):
         df = pd.DataFrame.from_records(self.acc_dataset,columns=['g-acc','lex-acc','struct-acc','nt-acc'])
         df.to_csv(filename)
+
         
     def add_datum(self,datum_loss,datum_correct,datum_type):
         """
@@ -82,15 +85,25 @@ class OptimMonitor:
         if datum_type  == RNNGparser.WORD_LABEL:
             self.lex_loss += datum_loss
             self.lex_acc  += datum_correct
+            self.lexN     += 1
+            self.acc_lexN += 1
+            
         elif datum_type == RNNGparser.NT_LABEL:
             self.nt_loss += datum_loss
             self.nt_acc  += datum_correct
+            self.ntN     +=1
+            self.acc_ntN += 1
+            
         elif datum_type == RNNGparser.NO_LABEL:
             self.struct_loss += datum_loss
             self.struct_acc  += datum_correct
+            self.structN     +=1
+            self.acc_structN += 1
+
         if self.N % self.step_size == 0:
             global_acc = self.struct_acc+self.lex_acc+self.nt_acc
-            acc,lex_acc,struct_acc,nt_acc = global_acc/self.step_size,self.lex_acc/self.step_size,self.struct_acc/self.step_size,self.nt_acc/self.step_size
+            N =  self.acc_lexN+acc_structN+acc_ntN 
+            acc,lex_acc,struct_acc,nt_acc = global_acc/N,self.lex_acc/self.acc_lexN,self.struct_acc/self.acc_structN,self.nt_acc/self.acc_ntN
             self.acc_dataset.append(( acc,lex_acc,struct_acc,nt_acc))
             sys.stdout.write("\r    Mean acc : %.5f, Lex acc : %.5f, Struct acc : %.5f, NT acc : %.5f (last %d datums)"%(acc,lex_acc,struct_acc,nt_acc,self.step_size))
             self.reset_acc_counts()
