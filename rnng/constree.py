@@ -271,7 +271,7 @@ class PennTreebank:
             tree.add_dummy_root()
             PennTreebank.strip_traces(tree)
             PennTreebank.strip_decoration(tree)
-            #ConsTree.close_unaries(tree)
+            ConsTree.close_unaries(tree)
             if strip_tags:
                 ConsTree.strip_tags(tree)
             yield tree
