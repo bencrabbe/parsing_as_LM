@@ -453,9 +453,9 @@ class RNNGparser:
                         for action,loc_score in preds_distrib:
                             print('struct',action)
                             if action == RNNGparser.TERMINATE:
-                                next_lex_beam.append(BeamElement(elt,prev_s_action, action,False,loc_score))
+                                next_lex_beam.append(BeamElement(elt,prev_s_action, action,loc_score))
                             else:
-                                next_all_beam.append(BeamElement(elt,prev_s_action,action,False,loc_score))
+                                next_all_beam.append(BeamElement(elt,prev_s_action,action,loc_score))
                 #prune and exec actions
                 next_all_beam.sort(key=lambda x:x.score,reverse=True)
                 next_all_beam = next_all_beam[:all_beam_size]
