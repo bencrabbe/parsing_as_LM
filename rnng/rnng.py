@@ -792,7 +792,11 @@ class RNNGparser:
                     C = self.shift_action(C,0)
                 elif ref_action == RNNGparser.TERMINATE:
                     break
-        return monitor.get_global_loss()
+
+        L = monitor.get_global_loss()
+        print('\nend eval.')
+        monitor.reset_all()
+        return L
                         
     def train_generative_model(self,modelname,max_epochs,train_bank,dev_bank,lex_embeddings_file=None,learning_rate=0.001,dropout=0.3):
         """
@@ -821,7 +825,6 @@ class RNNGparser:
 
         self.make_structure()
 
-        
         lexicon = set(self.rev_word_codes)
         for t in train_bank:
             #ConsTree.close_unaries(t)
