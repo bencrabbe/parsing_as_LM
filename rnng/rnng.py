@@ -479,13 +479,13 @@ class RNNGparser:
                         elt.config = self.nonterminal_action(C,action,loc_score)
                     elif action == RNNGparser.CLOSE:
                         elt.config = self.close_action(C,loc_score)
-                        elt.last_struct_action = RNNGparser.CLOSE
+                        elt.last_structural_action = RNNGparser.CLOSE
                     elif action == RNNGparser.OPEN:
                         elt.config = self.open_action(C,loc_score)
-                        elt.last_struct_action = RNNGparser.OPEN
+                        elt.last_structural_action = RNNGparser.OPEN
                     elif action == RNNGparser.SHIFT:
                         elt.config = self.shift_action(C,loc_score)
-                        elt.last_struct_action = RNNGparser.SHIFT
+                        elt.last_structural_action = RNNGparser.SHIFT
                     else:
                         print('bug beam exec struct actions')
                 all_beam = next_all_beam
@@ -503,7 +503,7 @@ class RNNGparser:
                     elt.config = self.word_action(C,tok_codes,loc_score)
                 elif action == RNNGparser.TERMINATE:
                     elt.config = C
-                    elt.last_struct_action = RNNGparser.TERMINATE
+                    elt.last_structural_action = RNNGparser.TERMINATE
                 else:
                     print('bug beam exec lex actions')
             all_beam = next_lex_beam
