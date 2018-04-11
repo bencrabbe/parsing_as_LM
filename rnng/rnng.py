@@ -7,6 +7,9 @@ from collections import Counter
 from constree import *
 from rnng_params import *
 
+#TODO check unary management by removing unary closure from constree module
+#probably requires to add a unary kind of action
+
 class StackSymbol:
     """
     A convenience class for stack symbols
@@ -868,7 +871,7 @@ class RNNGparser:
                 
         print()
         self.dropout = 0.0  #prevents dropout to be applied at decoding
-        self.save_accuracy_curves(modelname+'learningcurves.csv')
+        monitor.save_accuracy_curves(modelname+'learningcurves.csv')
         
 if __name__ == '__main__':
     try:
