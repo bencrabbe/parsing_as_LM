@@ -879,6 +879,7 @@ class RNNGparser:
         print()
         self.dropout = 0.0  #prevents dropout to be applied at decoding
         monitor.save_accuracy_curves(modelname+'learningcurves.csv')
+        self.save_model(modelname+'.final')
         
 if __name__ == '__main__':
     try:
