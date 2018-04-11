@@ -449,11 +449,13 @@ class RNNGparser:
                     prev_s_action = elt.last_structural_action
                     preds_distrib = self.predict_action_distrib(C,prev_s_action,tokens)
                     #dispatch predicted items on relevant beams
-                    if lab_state == RNNGparser.WORD_LABEL: 
+                    if lab_state == RNNGparser.WORD_LABEL:
+                        print('lab lex',action)
                         action,loc_score = preds_distrib[0]
                         next_lex_beam.append(BeamElement(elt,prev_s_action,action,loc_score))
                     elif lab_state == RNNGparser.NT_LABEL:
                         for action,loc_score in preds_distrib:
+                            print('lab NT',action)
                             next_all_beam.append(BeamElement(elt,prev_s_action,action,loc_score))
                     else:
                         for action,loc_score in preds_distrib:
