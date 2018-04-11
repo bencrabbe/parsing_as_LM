@@ -2,6 +2,7 @@ import numpy as np
 import dynet as dy
 import getopt
 import json
+import pandas as pd
 from collections import Counter
 from constree import *
 from rnng_params import *
@@ -38,6 +39,7 @@ class OptimMonitor:
         self.step_size = step_size
         self.N = 0
         self.reset_all()
+        self.acc_dataset = []
         
     def reset_all(self):
         if self.N > 0:
@@ -60,12 +62,16 @@ class OptimMonitor:
         self.nt_loss     = 0
         self.N    = 0
 
-                
     def reset_acc_counts(self):
         self.lex_acc    = 0
         self.struct_acc = 0
         self.nt_acc     = 0
 
+    def save_accuracy_curves(self,filename):
+        
+        df = pd.DataFrame.from_records(self.acc_dataset,columns=['g-acc','lex-acc','struct-acc','nt-acc'])
+        df.to_csv(filename)
+        
     def add_datum(self,datum_loss,datum_correct,datum_type):
         """
         @param datum_loss: the -logprob of the correct action
@@ -84,7 +90,9 @@ class OptimMonitor:
             self.struct_acc  += datum_correct
         if self.N % self.step_size == 0:
             global_acc = self.struct_acc+self.lex_acc+self.nt_acc
-            sys.stdout.write("\r    Mean acc : %.5f, Lex acc : %.5f, Struct acc : %.5f, NT acc : %.5f (last %d datums)"%(global_acc/self.step_size,self.lex_acc/self.step_size,self.struct_acc/self.step_size,self.nt_acc/self.step_size))
+            acc,lex_acc,struct_acc,nt_acc = global_acc/self.step_size,self.lex_acc/self.step_size,self.struct_acc/self.step_size,self.nt_acc/self.step_size
+            self.acc_dataset.append(( acc,lex_acc,struct_acc,nt_acc))
+            sys.stdout.write("\r    Mean acc : %.5f, Lex acc : %.5f, Struct acc : %.5f, NT acc : %.5f (last %d datums)"%(acc,lex_acc,struct_acc,nt_acc))
             self.reset_acc_counts()
     
 class RNNGparser:
@@ -840,7 +848,8 @@ class RNNGparser:
                 
         print()
         self.dropout = 0.0  #prevents dropout to be applied at decoding
-
+        self.save_accuracy_curves(modelname+'learningcurves.csv')
+        
 if __name__ == '__main__':
     try:
         opts, args = getopt.getopt(sys.argv[1:],"ht:o:d:r:m:")
