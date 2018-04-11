@@ -494,8 +494,12 @@ class RNNGparser:
             W   = dy.parameter(self.struct_out)
             b   = dy.parameter(self.struct_bias)
             correct_prediction = self.action_codes[ref_action]
+
+        if backprop:
+            log_probs = dy.log_softmax( (W * dy.dropout(dy.tanh(stack_state.output()),self.dropout)) + b)
+        else:
+            log_probs = dy.log_softmax( (W * dy.tanh(stack_state.output())) + b)
             
-        log_probs = dy.log_softmax( (W * dy.dropout(dy.tanh(stack_state.output()),self.dropout)) + b)
         best_prediction = np.argmax(log_probs.npvalue())
         iscorrect = (correct_prediction == best_prediction)
         loss       = dy.pick(-log_probs,correct_prediction)
@@ -765,7 +769,7 @@ class RNNGparser:
         """
         Evaluates the model on a development treebank
         """
-        print('\nEval on dev...')
+        print('\n  Eval on dev...')
         
         monitor =  OptimMonitor()
         for tree in dev_bank:
@@ -794,7 +798,7 @@ class RNNGparser:
                     break
 
         L = monitor.get_global_loss()
-        print('\nend eval.')
+        print('\n   end eval.')
         monitor.reset_all()
         return L
                         
@@ -888,7 +892,7 @@ if __name__ == '__main__':
     out_file   = ''
     model_name = ''
     raw_file   = ''
-    lex_beam    = 8  #40
+    lex_beam   = 8  #40
     struct_beam = 64 #400
     
     for opt, arg in opts:
