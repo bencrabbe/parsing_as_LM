@@ -67,7 +67,7 @@ class OptimMonitor:
         self.lex_acc    = 0
         self.struct_acc = 0
         self.nt_acc     = 0
-        self.acc_lexN,acc_structN,acc_ntN = 0,0,0
+        self.acc_lexN,self.acc_structN,self.acc_ntN = 0,0,0
         
         
     def save_accuracy_curves(self,filename):
