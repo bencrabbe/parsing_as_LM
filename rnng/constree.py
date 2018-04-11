@@ -109,9 +109,9 @@ class ConsTree:
         @return a pointer to the tree root
         """
         if self.is_leaf():
-            if re.match(r'[0-9]+([,/\.][0-9]+)',self.label):
-                self.label = '<num>'
-            elif self.label not in lexicon:
+            #if re.match(r'[0-9]+([,/\.][0-9]+)',self.label):
+            #    self.label = '<num>'
+            if self.label not in lexicon:
                 self.label = unk_token
         for child in self.children:
             child.normalize_OOV(lexicon,unk_token)
