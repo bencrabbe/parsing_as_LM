@@ -38,25 +38,34 @@ class OptimMonitor:
         self.step_size = step_size
         self.N = 0
         self.reset_all()
+        
     def reset_all(self):
         if self.N > 0:
-            sys.stdout.write("Mean NLL : %.5f, PPL : %.5f\n"%(self.loss/self.N,snp.exp(self.loss/self.N)))
+            global_nll = self.struct_loss+self.lex_loss+self.nt_loss
+            sys.stdout.write("Mean NLL : %.5f, PPL : %.5f, Lex-PPL : %.5f, NT-PPL : %.5f, Struct-PPL: %.5f\n"%(global_nll/self.N,\
+                                                                                                               np.exp(global_nll/self.N),\
+                                                                                                               self.lex_loss/self.N,
+                                                                                                               self.nt_loss/self.N,
+                                                                                                               self.struct_loss/self.N))
             sys.stdout.flush()
         self.reset_loss_counts()
         self.reset_acc_counts()
-        
+
+    def get_global_loss(self):
+        return self.struct_loss+self.lex_loss+self.nt_loss
+            
     def reset_loss_counts(self):
         self.lex_loss    = 0
         self.struct_loss = 0
         self.nt_loss     = 0
-        
+        self.N    = 0
+
+                
     def reset_acc_counts(self):
         self.lex_acc    = 0
         self.struct_acc = 0
         self.nt_acc     = 0
-        self.N    = 0
 
-        
     def add_datum(self,datum_loss,datum_correct,datum_type):
         """
         @param datum_loss: the -logprob of the correct action
@@ -64,11 +73,18 @@ class OptimMonitor:
         @param datum_type : an parser state symbol value
         """
         self.N     +=1
-
-        self.loss  += datum_loss
-        self.acc_sum+=datum_correct
+        if datum_type  == RNNGparser.WORD_LABEL:
+            self.lex_loss += datum_loss
+            self.lex_acc  += datum_correct
+        elif datum_type == RNNGparser.NT_LABEL:
+            self.nt_loss += datum_loss
+            self.nt_acc  += datum_correct
+        elif datum_type == RNNGparser.NO_LABEL:
+            self.struct_loss += datum_loss
+            self.struct_acc  += datum_correct
         if self.N % self.step_size == 0:
-            sys.stdout.write("\r    Mean acc (%d): %.5f"%(self.step_size,self.acc_sum/self.step_size))
+            global_acc = self.struct_acc+self.lex_acc+self.nt_acc
+            sys.stdout.write("\r    Mean acc : %.5f, Lex acc : %.5f, Struct acc : %.5f, NT acc : %.5f (last %d datums)"%(global_acc/self.step_size,self.lex_acc/self.step_size,self.struct_acc/self.step_size,self.nt_acc/self.step_size))
             self.reset_acc_counts()
     
 class RNNGparser:
@@ -433,7 +449,7 @@ class RNNGparser:
         
             return [(act,logp) for act,logp in zip(self.actions,logprobs) if logp > -np.inf]
         
-    def train_one(self,configuration,ref_action):
+    def train_one(self,configuration,ref_action,backprop=True):
         """
         This performs a forward, backward and update pass on the network for this action.
         @param configuration: the current configuration
@@ -460,34 +476,10 @@ class RNNGparser:
         iscorrect = (correct_prediction == best_prediction)
         loss       = dy.pick(-log_probs,correct_prediction)
         loss_val   = loss.value()
-        loss.backward()
-        self.trainer.update()
+        if backprop:
+            loss.backward()
+            self.trainer.update()
         return loss_val,iscorrect
-
-
-    def eval_one(self,configuration,ref_action):
-        """
-        This performs a forward pass on the network for this action.
-        @param configuration: the current configuration
-        @param ref_action  : the reference action
-        @return : the (NLL) for this action 
-        """
-        S,B,n,stack_state,lab_state,local_score = configuration
-
-        if lab_state == RNNGparser.WORD_LABEL:
-            W   = dy.parameter(self.lex_out)
-            b   = dy.parameter(self.lex_bias)
-            correct_prediction = self.word_codes[ref_action]
-        elif lab_state == RNNGparser.NT_LABEL:
-            W   = dy.parameter(self.nt_out)
-            b   = dy.parameter(self.nt_bias)
-            correct_prediction = self.nonterminals_codes[ref_action]
-        else:
-            W   = dy.parameter(self.struct_out)
-            b   = dy.parameter(self.struct_bias)
-            correct_prediction = self.action_codes[ref_action]
-            
-        return dy.pickneglog_softmax( (W * dy.dropout(dy.tanh(stack_state.output()),self.dropout)) + b,correct_prediction).value()
     
     def beam_parse(self,tokens,all_beam_size,lex_beam_size,ref_tree=None):
         """
@@ -743,10 +735,40 @@ class RNNGparser:
             R+=r
             F+=f
         return P/N,R/N,F/N
-                    
-    def train_generative_model(self,max_epochs,train_bank,dev_bank,lex_embeddings_file=None,learning_rate=0.001,dropout=0.3):
+    
+    def eval_all(self,dev_bank):
+        """
+        Evaluates the model on a development treebank
+        """
+        monitor =  OptimMonitor()
+        for tree in train_bank:
+            dy.renew_cg()
+            ref_derivation  = self.oracle_derivation(tree)
+            tok_codes       = [self.word_codes[t] for t in tree.tokens()]   
+            step, max_step  = (0,len(ref_derivation))
+            C               = self.init_configuration(len(tok_codes))
+            for ref_action in ref_derivation:
+                loc_loss,correct = self.train_one(C,ref_action,backrop=False)
+                monitor.add_datum(loc_loss,correct)
+                S,B,n,stackS,lab_state,score = C
+                if lab_state == RNNGparser.WORD_LABEL:
+                    C = self.word_action(C,tok_codes,0)
+                elif lab_state == RNNGparser.NT_LABEL:
+                    C = self.nonterminal_action(C,ref_action,0)
+                elif ref_action == RNNGparser.CLOSE:
+                    C = self.close_action(C,0)
+                elif ref_action == RNNGparser.OPEN:
+                    C = self.open_action(C,0)
+                elif ref_action == RNNGparser.SHIFT:
+                    C = self.shift_action(C,0)
+                elif ref_action == RNNGparser.TERMINATE:
+                    break
+        return monitor.get_global_loss()
+                        
+    def train_generative_model(self,modelname,max_epochs,train_bank,dev_bank,lex_embeddings_file=None,learning_rate=0.001,dropout=0.3):
         """
         This trains an RNNG model on a treebank
+        @param model_name: a string for the fileprefix where to store the model
         @param learning_rate: the learning rate for SGD
         @param max_epochs: the max number of epochs
         @param train_bank: a list of ConsTree
@@ -780,6 +802,8 @@ class RNNGparser:
         #training
         self.trainer = dy.AdamTrainer(self.model,alpha=learning_rate)
 
+        best_model_loss = np.inf #stores the best model on dev
+        
         monitor =  OptimMonitor()
         for e in range(max_epochs):
             for tree in train_bank:
@@ -788,8 +812,8 @@ class RNNGparser:
                 tok_codes = [self.word_codes[t] for t in tree.tokens()]   
                 step, max_step  = (0,len(ref_derivation))
                 C               = self.init_configuration(len(tok_codes))
-                while step < max_step:
-                    ref_action = ref_derivation[step]
+                
+                for ref_action in ref_derivation
                     loc_loss,correct = self.train_one(C,ref_action)
                     monitor.add_datum(loc_loss,correct)
 
@@ -806,9 +830,13 @@ class RNNGparser:
                         C = self.shift_action(C,0)
                     elif ref_action == RNNGparser.TERMINATE:
                         break
-                    step+=1
                     
             monitor.reset_all()
+            devloss = self.eval_all(dev_bank)
+            if devloss < best_model_loss :
+                best_model_loss=devloss
+                self.save_model(modelname)
+                
         print()
         self.dropout = 0.0  #prevents dropout to be applied at decoding
 
@@ -856,8 +884,7 @@ if __name__ == '__main__':
                         hidden_size=StructParams.OUTER_HIDDEN_SIZE,\
                         stack_embedding_size=StructParams.STACK_EMB_SIZE,\
                         stack_memory_size=StructParams.STACK_HIDDEN_SIZE)
-        p.train_generative_model(TrainingParams.NUM_EPOCHS,train_treebank,[],learning_rate=TrainingParams.LEARNING_RATE,dropout=TrainingParams.DROPOUT)
-        p.save_model(model_name)
+        p.train_generative_model(model_name,TrainingParams.NUM_EPOCHS,train_treebank,[],learning_rate=TrainingParams.LEARNING_RATE,dropout=TrainingParams.DROPOUT)
         train_stream.close()
         #runs a test on train data
         for t in train_treebank[:100]:
