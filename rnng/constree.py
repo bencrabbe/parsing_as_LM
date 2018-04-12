@@ -343,12 +343,14 @@ class PennTreebank:
         train_file = open(os.path.join(out_data_dir,'ptb_train.mrg'),'w')
         dev_file   = open(os.path.join(out_data_dir,'ptb_dev.mrg'),'w')
         test_file  = open(os.path.join(out_data_dir,'ptb_test.mrg'),'w')
+        train_raw  = open(os.path.join(out_data_dir,'ptb_train.raw'),'w')
         dev_raw    = open(os.path.join(out_data_dir,'ptb_dev.raw'),'w')
         test_raw   = open(os.path.join(out_data_dir,'ptb_test.raw'),'w')
         
         for d in train_dirs:
             print('Processing wsj-%s'%(d,),file=sys.stderr)
             print('\n'.join([str(t) for t in PennTreebank.preprocess_src_dir(str(os.path.join(ptb_root,d)))]),file=train_file)
+            print('\n'.join([' '.join(t.tokens(labels=True)) for t in PennTreebank.preprocess_src_dir(str(os.path.join(ptb_root,d)))]),file=train_raw)
 
             
         print('Processing wsj-%s'%(dev_dir,),file=sys.stderr)
@@ -363,6 +365,7 @@ class PennTreebank:
         train_file.close()
         dev_file.close()
         test_file.close()
+        train_raw.close()
         dev_raw.close()
         test_raw.close()
 

@@ -847,7 +847,7 @@ class RNNGparser:
         
         monitor =  OptimMonitor()
         for e in range(max_epochs):
-            print('\nEpoch %d'%(e,))
+            print('\nEpoch %d'%(e,),flush=True)
             for tree in train_bank:
                 dy.renew_cg()
                 ref_derivation  = self.oracle_derivation(tree)
