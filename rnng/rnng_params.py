@@ -8,7 +8,7 @@ class StructParams:
     STACK_HIDDEN_SIZE  = 256
     
 class TrainingParams:
-    LEX_MAX_SIZE      = 10000
+    LEX_MAX_SIZE      = 10000   #for full PTB training
     NUM_EPOCHS        = 5
     LEARNING_RATE     = 0.0001
     DROPOUT           = 0.3

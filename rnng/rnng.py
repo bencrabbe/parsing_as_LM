@@ -772,6 +772,8 @@ class RNNGparser:
         print('\n  Eval on dev...')
         
         monitor =  OptimMonitor()
+        D = self.dropout
+        self.dropout = 0.0
         for tree in dev_bank:
             dy.renew_cg()
             ref_derivation  = self.oracle_derivation(tree)
@@ -779,6 +781,7 @@ class RNNGparser:
             step, max_step  = (0,len(ref_derivation))
             C               = self.init_configuration(len(tok_codes))
             for ref_action in ref_derivation:
+                
                 loc_loss,correct = self.train_one(C,ref_action,backprop=False)
 
                 S,B,n,stackS,lab_state,score = C
@@ -799,6 +802,7 @@ class RNNGparser:
 
         L = monitor.get_global_loss()
         monitor.reset_all()
+        self.dropout = D
         return L
                         
     def train_generative_model(self,modelname,max_epochs,train_bank,dev_bank,lex_embeddings_file=None,learning_rate=0.001,dropout=0.3):
