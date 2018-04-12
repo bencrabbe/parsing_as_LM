@@ -874,6 +874,7 @@ class RNNGparser:
             devloss = self.eval_all(dev_bank)
             if devloss < best_model_loss :
                 best_model_loss=devloss
+                print("saving model")
                 self.save_model(modelname)
                 
         print()
