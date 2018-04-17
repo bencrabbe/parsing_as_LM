@@ -166,17 +166,20 @@ class RNNGparser:
         return derivation
 
     @staticmethod
-    def derivation2tree(derivation):
+    def derivation2tree(derivation,tokens):
         """
         Transforms a derivation back to a tree
         @param derivation: a derivation to use for generating a tree
+        @tokens : the source tokens of the sentence
         """
         stack = []
+        tok_idx   = 0
         prev_action = None
         for action in derivation:
             if prev_action == RNNGparser.SHIFT:
-                lex = ConsTree(action)
+                lex = ConsTree(tokens[tok_idx])
                 stack.append((lex,False))
+                tok_idx +=1
             elif prev_action == RNNGparser.OPEN:
                 lc_child = stack.pop()
                 lc_node,status = lc_child
@@ -616,7 +619,7 @@ class RNNGparser:
             best_deriv.append(current.incoming_action)
         best_deriv.reverse()
 
-        pred_tree = RNNGparser.derivation2tree(best_deriv)
+        pred_tree = RNNGparser.derivation2tree(best_deriv,tokens)
         pred_tree.expand_unaries() 
         if ref_tree:
             return ref_tree.compare(pred_tree)
@@ -663,7 +666,7 @@ class RNNGparser:
                         
         if get_derivation:
             return deriv
-        pred_tree  = RNNGparser.derivation2tree(deriv)
+        pred_tree  = RNNGparser.derivation2tree(deriv,tokens)
         if ref_tree:
             return ref_tree.compare(pred_tree)
         return pred_tree
