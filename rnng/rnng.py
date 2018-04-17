@@ -56,7 +56,8 @@ class OptimMonitor:
             sys.stdout.flush()
         self.reset_loss_counts()
         self.reset_acc_counts()
-
+        self.N = 0
+        
     def get_global_loss(self):
         return self.struct_loss+self.lex_loss+self.nt_loss
             
