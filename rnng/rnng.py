@@ -226,9 +226,9 @@ class RNNGparser:
         """
         Performs lookup and backs off unk words to the unk token
         @param token : the token to code
-        @return : identity for in-vocab tokens and unk word string for OOV tokens
+        @return : word_code for in-vocab tokens and word code of unk word string for OOV tokens
         """
-        return token if token in self.word_codes else RNNGparser.UNKNOWN_TOKEN
+        return self.word_codes[token] if token in self.word_codes else self.word_codes[RNNGparser.UNKNOWN_TOKEN]
         
     def code_nonterminals(self,treebank):
         """
@@ -275,7 +275,7 @@ class RNNGparser:
         """
         stackS = self.stack_rnn.initial_state()
 
-        word_idx = self.word_codes[RNNGparser.START_TOKEN]
+        word_idx = self.lex_lookup(RNNGparser.START_TOKEN)
         word_embedding = self.lex_embedding_matrix[word_idx]
         stackS = stackS.add_input(word_embedding)
 
@@ -386,12 +386,11 @@ class RNNGparser:
         
         return (S[:-midx]+[root_symbol],B,n-1,stack_state.add_input(tree_embedding),RNNGparser.NO_LABEL,score+local_score)
 
-    def structural_action_mask(self,configuration,last_structural_action,sentence):
+    def structural_action_mask(self,configuration,last_structural_action):
         """ 
         This returns a mask stating which abstract actions are possible for next round
         @param configuration: the current configuration
         @param last_structural_action: the last action performed.
-        @param sentence     : a list of strings, the tokens
         @return a mask for the possible next actions
         """
         #Assumes masking log probs
@@ -414,7 +413,7 @@ class RNNGparser:
         This predicts the next action distribution with the classifier and constrains it with the classifier structural rules
         @param configuration: the current configuration
         @param last_structural_action  : the last structural action performed by this parser
-        @param sentence : a list of string tokens
+        @param sentence : a list of token integer codes
         @param max_only : returns only the couple (action,logprob) with highest score
         @param ref_action : returns only the negative logprob of the reference action (NLL)
         @return a list of (action,logprob) legal at that state
@@ -432,7 +431,7 @@ class RNNGparser:
                 return dy.pickneglog_softmax( (W * dy.tanh(stack_state.output())) + b,correct_prediction).value()
             
             logprobs = dy.log_softmax(W * dy.tanh(stack_state.output()) + b).npvalue()
-            score = np.maximum(logprobs[self.word_codes[next_word]],np.log(np.finfo(float).eps))
+            score = np.maximum(logprobs[next_word],np.log(np.finfo(float).eps))
 
             if max_only :
                 return (next_word,score)
@@ -465,7 +464,7 @@ class RNNGparser:
             
             logprobs = dy.log_softmax(W * dy.tanh(stack_state.output()) + b).npvalue()
             #constraint + underflow prevention
-            logprobs = np.maximum(logprobs,np.log(np.finfo(float).eps)) + self.structural_action_mask(configuration,last_structural_action,sentence)
+            logprobs = np.maximum(logprobs,np.log(np.finfo(float).eps)) + self.structural_action_mask(configuration,last_structural_action)
             if max_only:
                 idx = np.argmax(logprobs)
                 #TODO here:if logprob == -inf raise parse failure 
@@ -485,7 +484,7 @@ class RNNGparser:
         if lab_state == RNNGparser.WORD_LABEL:
             W   = dy.parameter(self.lex_out)
             b   = dy.parameter(self.lex_bias)
-            correct_prediction = self.word_codes[ref_action]
+            correct_prediction = self.lex_lookup(ref_action)
         elif lab_state == RNNGparser.NT_LABEL:
             W   = dy.parameter(self.nt_out)
             b   = dy.parameter(self.nt_bias)
@@ -534,8 +533,7 @@ class RNNGparser:
                 return elt.local_score + prefix_score
                 
         dy.renew_cg()
-        tokens    = [self.lex_lookup(t) for t in tokens  ]
-        tok_codes = [self.word_codes[t] for t in tokens  ]    
+        tok_codes    = [self.lex_lookup(t) for t in tokens  ]
         start = BeamElement(None,'init','init',0)
         start.config = self.init_configuration(len(tokens))
 
@@ -549,7 +547,7 @@ class RNNGparser:
                     C = elt.config
                     _,_,_,_,lab_state,prefix_score = C
                     prev_s_action = elt.last_structural_action
-                    preds_distrib = self.predict_action_distrib(C,prev_s_action,tokens)
+                    preds_distrib = self.predict_action_distrib(C,prev_s_action,tok_codes)
                     #dispatch predicted items on relevant beams
                     if lab_state == RNNGparser.WORD_LABEL:
                         action,loc_score = preds_distrib[0]
@@ -635,8 +633,7 @@ class RNNGparser:
         @return a derivation, a ConsTree or some evaluation metrics
         """
         dy.renew_cg()
-        tokens    = [self.lex_lookup(t) for t in tokens  ]
-        tok_codes = [self.word_codes[t] for t in tokens  ]
+        tok_codes = [self.lex_lookup(t) for t in tokens  ]
         C         = self.init_configuration(len(tokens))
 
         last_struct_action = 'init'
@@ -644,7 +641,7 @@ class RNNGparser:
         S,B,n,stackS,lab_state,score = C
         deriv = [ ]
         while True:
-            (pred_action,score) = self.predict_action_distrib(C,last_struct_action,tokens,max_only=True)
+            (pred_action,score) = self.predict_action_distrib(C,last_struct_action,tok_codes,max_only=True)
             deriv.append(pred_action)
             if lab_state == RNNGparser.WORD_LABEL:
                 C = self.word_action(C,tok_codes,score)
@@ -833,13 +830,7 @@ class RNNGparser:
         self.make_structure()
 
         lexicon = set(self.rev_word_codes)
-        for t in train_bank:
-            #ConsTree.close_unaries(t)
-            t.normalize_OOV(lexicon,RNNGparser.UNKNOWN_TOKEN)
-        for t in dev_bank:
-            #ConsTree.close_unaries(t)
-            t.normalize_OOV(lexicon,RNNGparser.UNKNOWN_TOKEN)
-            
+        
         #training
         self.trainer = dy.AdamTrainer(self.model,alpha=learning_rate)
 
@@ -851,7 +842,7 @@ class RNNGparser:
             for tree in train_bank:
                 dy.renew_cg()
                 ref_derivation  = self.oracle_derivation(tree)
-                tok_codes = [self.word_codes[t] for t in tree.tokens()]   
+                tok_codes = [self.lex_lookup(t) for t in tree.tokens()]   
                 step, max_step  = (0,len(ref_derivation))
                 C               = self.init_configuration(len(tok_codes))
                 
