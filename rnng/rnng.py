@@ -946,7 +946,8 @@ if __name__ == '__main__':
     if model_name and raw_file:
         p = RNNGparser.load_model(model_name)
         test_istream  = open(raw_file)
-        test_ostream  = open(model_name+'-'+raw_file,'w') 
+        out_name = '.'.join(raw.file.split('.')[:-1]+['mrg'])
+        test_ostream  = open(model_name+'-'+out_name,'w') 
         for line in test_istream:
             #print(p.parse_sentence(line.split(),ref_tree=None))
             print(p.beam_parse(line.split(),all_beam_size=struct_beam,lex_beam_size=lex_beam),file=test_ostream)
