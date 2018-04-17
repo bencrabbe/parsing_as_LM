@@ -115,7 +115,7 @@ class ConsTree:
             child.normalize_OOV(lexicon,unk_token)
         return self
 
-    def add_dummy_tag(self,tag_label="DUMMY"):
+    def add_dummy_tag(self,tag_label="D"):
         """
         Adds dummy tags to the tree (for evalb compatibility).
         Destructive method.

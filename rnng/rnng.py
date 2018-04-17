@@ -950,7 +950,9 @@ if __name__ == '__main__':
         test_ostream  = open(model_name+'-'+out_name,'w') 
         for line in test_istream:
             #print(p.parse_sentence(line.split(),ref_tree=None))
-            print(p.beam_parse(line.split(),all_beam_size=struct_beam,lex_beam_size=lex_beam),file=test_ostream)
+            result = p.beam_parse(line.split(),all_beam_size=struct_beam,lex_beam_size=lex_beam)
+            result.add_dummy_tag()
+            print(,file=test_ostream)
         test_istream.close()
         test_ostream.close()
         
