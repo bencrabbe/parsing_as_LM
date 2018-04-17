@@ -123,7 +123,10 @@ class ConsTree:
         newchildren = []
         for child in self.children:
             if child.is_leaf():
-                dummy = ConsTree(tag_label,children=[child])
+                if child.label in ['.',',',':',"''","``"]:#evalb/COLLINS.prm intricacy
+                    dummy = ConsTree(tag_label,children=[child.label])
+                else:
+                    dummy = ConsTree(tag_label,children=[child])
                 newchildren.append(dummy)
             else:
                 newchildren.append(child)
