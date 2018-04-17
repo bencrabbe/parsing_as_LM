@@ -945,12 +945,13 @@ if __name__ == '__main__':
     #runs a test    
     if model_name and raw_file:
         p = RNNGparser.load_model(model_name)
-        test_stream = open(raw_file)
-        for line in test_stream:
+        test_istream  = open(raw_file)
+        test_ostream  = open(model_name+'-'+raw_file) 
+        for line in test_istream:
             #print(p.parse_sentence(line.split(),ref_tree=None))
-            print(p.beam_parse(line.split(),all_beam_size=struct_beam,lex_beam_size=lex_beam))
-        test_stream.close()
-
+            print(p.beam_parse(line.split(),all_beam_size=struct_beam,lex_beam_size=lex_beam),file=test_ostream)
+        test_istream.close()
+        test_ostream.close()
         
     #despaired debugging
     if not model_name:
