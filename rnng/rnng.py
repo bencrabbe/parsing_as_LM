@@ -536,8 +536,10 @@ class RNNGparser:
 
             def update_history(self,update_val = None):
                 if update_val is None:
-                    self.structural_history = self.prev_element.structural_history[:]
+                    #no copy in case the action is not structural
+                    self.structural_history = self.prev_element.structural_history
                 else:
+                    #copy in case the action **is** structural
                     self.structural_history = self.prev_element.structural_history + [update_val]
                 
             @staticmethod
