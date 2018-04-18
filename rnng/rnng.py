@@ -176,7 +176,6 @@ class RNNGparser:
         stack = []
         tok_idx   = 0
         prev_action = None
-        print(derivation)
         for action in derivation:
             if prev_action == RNNGparser.SHIFT:
                 lex = ConsTree(tokens[tok_idx])
