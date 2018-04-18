@@ -9,6 +9,6 @@ class StructParams:
     
 class TrainingParams:
     LEX_MAX_SIZE      = 10000   #for full PTB training
-    NUM_EPOCHS        = 50 
+    NUM_EPOCHS        = 100 
     LEARNING_RATE     = 0.0001
     DROPOUT           = 0.3
