@@ -411,12 +411,11 @@ class RNNGparser:
             MASK += self.close_mask
         return MASK
 
-    
-    def predict_action_distrib(self,configuration,last_structural_action,sentence,max_only=False,ref_action=None):
+    def predict_action_distrib(self,configuration,structural_history,sentence,max_only=False,ref_action=None):
         """
         This predicts the next action distribution with the classifier and constrains it with the classifier structural rules
         @param configuration: the current configuration
-        @param last_structural_action  : the last structural action performed by this parser
+        @param structural_history  : the sequence of structural actions performed so far by the parser
         @param sentence : a list of token integer codes
         @param max_only : returns only the couple (action,logprob) with highest score
         @param ref_action : returns only the negative logprob of the reference action (NLL)
@@ -461,7 +460,8 @@ class RNNGparser:
         else: #lab_state == RNNGparser.NO_LABEL perform a structural action
             W = dy.parameter(self.struct_out)
             b = dy.parameter(self.struct_bias)
-
+            last_structural_action = structural_history[-1]
+            
             if ref_action:
                 correct_prediction = self.action_codes[ref_action]
                 return dy.pickneglog_softmax( (W * dy.tanh(stack_state.output())) + b,correct_prediction).value()
@@ -475,6 +475,7 @@ class RNNGparser:
                 return (self.actions[idx],logprobs[idx])
         
             return [(act,logp) for act,logp in zip(self.actions,logprobs) if logp > -np.inf]
+
         
     def train_one(self,configuration,ref_action,backprop=True):
         """
@@ -523,24 +524,34 @@ class RNNGparser:
         class BeamElement:
             
             #representation used for lazy delayed exec of actions in the beam
-            def __init__(self,prev_item,last_structural_action,current_action,local_score):
+            def __init__(self,prev_item,current_action,local_score):
                 self.prev_element           = prev_item               #prev beam item (history)
-                self.last_structural_action = last_structural_action  #scheduling info
+                self.structural_history     = None                    #scheduling info
                 self.incoming_action        = current_action
                 self.config                 = None           
                 self.local_score            = local_score
+
+            def update_history(update_val = None):
+                if update_val is None:
+                    self.structural_history = self.prev_element.structural_history[:]
+                else:
+                    self.structural_history = self.prev_element.structural_history + [update_val]
+                
             @staticmethod
             def figure_of_merit(elt):
                 #provides a score for ranking the elements in the beam
                 #could add derivation length for further normalization (?)
                 _,_,_,_,lab_state,prefix_score = elt.prev_element.config
                 return elt.local_score + prefix_score
-                
+           
+               
         dy.renew_cg()
         tok_codes    = [self.lex_lookup(t) for t in tokens  ]
-        start = BeamElement(None,'init','init',0)
-        start.config = self.init_configuration(len(tokens))
 
+        start = BeamElement(None,'init',0)
+        start.config = self.init_configuration(len(tokens))
+        start.structural_history = ['init']
+        
         all_beam  = [ start ]
         next_lex_beam = [ ]
         
@@ -550,24 +561,23 @@ class RNNGparser:
                 for elt in all_beam:
                     C = elt.config
                     _,_,_,_,lab_state,prefix_score = C
-                    prev_s_action = elt.last_structural_action
-                    preds_distrib = self.predict_action_distrib(C,prev_s_action,tok_codes)
+                    preds_distrib = self.predict_action_distrib(C,elt.structural_history,tok_codes)
                     #dispatch predicted items on relevant beams
                     if lab_state == RNNGparser.WORD_LABEL:
                         action,loc_score = preds_distrib[0]
                         #print('lab lex',action)
-                        next_lex_beam.append(BeamElement(elt,prev_s_action,action,loc_score))
+                        next_lex_beam.append(BeamElement(elt,action,loc_score))
                     elif lab_state == RNNGparser.NT_LABEL:
                         for action,loc_score in preds_distrib:
                             #print('lab NT',action)
-                            next_all_beam.append(BeamElement(elt,prev_s_action,action,loc_score))
+                            next_all_beam.append(BeamElement(elt,action,loc_score))
                     else:
                         for action,loc_score in preds_distrib:
                             #print('struct',action)
                             if action == RNNGparser.TERMINATE:
-                                next_lex_beam.append(BeamElement(elt,prev_s_action, action,loc_score))
+                                next_lex_beam.append(BeamElement(elt, action,loc_score))
                             else:
-                                next_all_beam.append(BeamElement(elt,prev_s_action,action,loc_score))
+                                next_all_beam.append(BeamElement(elt,action,loc_score))
                 #prune and exec actions
                 next_all_beam.sort(key=lambda x:BeamElement.figure_of_merit(x),reverse=True)
                 next_all_beam = next_all_beam[:all_beam_size]
@@ -576,18 +586,17 @@ class RNNGparser:
                     action    = elt.incoming_action
                     C         = elt.prev_element.config
                     _,_,_,_,lab_state,prefix_score = C
-                    prev_s_action = elt.last_structural_action
                     if lab_state == RNNGparser.NT_LABEL:
                         elt.config = self.nonterminal_action(C,action,loc_score)
                     elif action == RNNGparser.CLOSE:
                         elt.config = self.close_action(C,loc_score)
-                        elt.last_structural_action = RNNGparser.CLOSE
+                        elt.update_history(RNNGparser.CLOSE)
                     elif action == RNNGparser.OPEN:
                         elt.config = self.open_action(C,loc_score)
-                        elt.last_structural_action = RNNGparser.OPEN
+                        elt.update_history(RNNGparser.OPEN)
                     elif action == RNNGparser.SHIFT:
                         elt.config = self.shift_action(C,loc_score)
-                        elt.last_structural_action = RNNGparser.SHIFT
+                        elt.update_history(RNNGparser.SHIFT)
                     else:
                         print('bug beam exec struct actions')
                 all_beam = next_all_beam
@@ -600,12 +609,11 @@ class RNNGparser:
                 action        = elt.incoming_action
                 C             = elt.prev_element.config
                 _,_,_,_,lab_state,prefix_score = C
-                prev_s_action = elt.last_structural_action
                 if lab_state == RNNGparser.WORD_LABEL:
                     elt.config = self.word_action(C,tok_codes,loc_score)
                 elif action == RNNGparser.TERMINATE:
                     elt.config = C
-                    elt.last_structural_action = RNNGparser.TERMINATE
+                    elt.update_history( RNNGparser.TERMINATE )
                 else:
                     print('bug beam exec lex actions')
             all_beam = next_lex_beam
@@ -640,12 +648,12 @@ class RNNGparser:
         tok_codes = [self.lex_lookup(t) for t in tokens  ]
         C         = self.init_configuration(len(tokens))
 
-        last_struct_action = 'init'
-         
+        struct_history = ['<init>'] 
         S,B,n,stackS,lab_state,score = C
         deriv = [ ]
+        
         while True:
-            (pred_action,score) = self.predict_action_distrib(C,last_struct_action,tok_codes,max_only=True)
+            (pred_action,score) = self.predict_action_distrib(C,struct_history,tok_codes,max_only=True)
             deriv.append(pred_action)
             if lab_state == RNNGparser.WORD_LABEL:
                 C = self.word_action(C,tok_codes,score)
@@ -653,13 +661,13 @@ class RNNGparser:
                 C = self.nonterminal_action(C,pred_action,score)
             elif pred_action == RNNGparser.CLOSE:
                 C = self.close_action(C,score)
-                last_struct_action = RNNGparser.CLOSE
+                struct_history.append( RNNGparser.CLOSE )
             elif pred_action == RNNGparser.OPEN:
                 C = self.open_action(C,score)
-                last_struct_action = RNNGparser.OPEN
+                struct_history.append( RNNGparser.OPEN )
             elif pred_action == RNNGparser.SHIFT:
                 C = self.shift_action(C,score)
-                last_struct_action = RNNGparser.SHIFT
+                struct_history.append( RNNGparser.SHIFT )
             elif pred_action == RNNGparser.TERMINATE:
                 break
             
@@ -778,7 +786,7 @@ class RNNGparser:
         for tree in dev_bank:
             dy.renew_cg()
             ref_derivation  = self.oracle_derivation(tree)
-            tok_codes       = [self.word_codes[t] for t in tree.tokens()]   
+            tok_codes       = [self.lex_lookup(t) for t in tree.tokens()]   
             step, max_step  = (0,len(ref_derivation))
             C               = self.init_configuration(len(tok_codes))
             for ref_action in ref_derivation:
@@ -890,7 +898,6 @@ if __name__ == '__main__':
 
     train_file = ''
     dev_file   = ''
-    out_file   = ''
     model_name = ''
     raw_file   = ''
     lex_beam   = 8  #40
@@ -898,7 +905,7 @@ if __name__ == '__main__':
     
     for opt, arg in opts:
         if opt in ['-h','--help']:
-            print ('rnng.py -t <inputfile> -d <inputfile> -r <inputfile> -o <outputfile> -m <model_name>')
+            print ('rnng.py -t <inputfile> -d <inputfile> -r <inputfile> -m <model_name>')
             sys.exit(0)
         elif opt in ['-t','--train']:
             train_file = arg
@@ -908,8 +915,6 @@ if __name__ == '__main__':
             raw_file = arg
         elif opt in ['-m','--model']:
             model_name = arg
-        elif opt in ['-o','--output']:
-            out_file = arg
         elif opt in ['--lex-beam']:
             lex_beam = int(arg)
         elif opt in ['--struct-beam']:
