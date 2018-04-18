@@ -567,7 +567,9 @@ class RNNGparser:
         next_lex_beam = [ ]
         
         for idx in range(len(tokens) + 1):
+            print(idx)
             while all_beam:
+                print(len(all_beam))
                 next_all_beam = []
                 for elt in all_beam:
                     C = elt.config
