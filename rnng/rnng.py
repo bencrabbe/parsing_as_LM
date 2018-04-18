@@ -593,6 +593,7 @@ class RNNGparser:
                     _,_,_,_,lab_state,prefix_score = C
                     if lab_state == RNNGparser.NT_LABEL:
                         elt.config = self.nonterminal_action(C,action,loc_score)
+                        elt.update_history()
                     elif action == RNNGparser.CLOSE:
                         elt.config = self.close_action(C,loc_score)
                         elt.update_history(RNNGparser.CLOSE)
@@ -616,6 +617,7 @@ class RNNGparser:
                 _,_,_,_,lab_state,prefix_score = C
                 if lab_state == RNNGparser.WORD_LABEL:
                     elt.config = self.word_action(C,tok_codes,loc_score)
+                    elt.update_history()
                 elif action == RNNGparser.TERMINATE:
                     elt.config = C
                     elt.update_history( RNNGparser.TERMINATE )
