@@ -567,9 +567,7 @@ class RNNGparser:
         next_lex_beam = [ ]
         
         for idx in range(len(tokens) + 1):
-            print(idx)
             while all_beam:
-                print(len(all_beam))
                 next_all_beam = []
                 for elt in all_beam:
                     C = elt.config
@@ -670,7 +668,6 @@ class RNNGparser:
         while True:
             (pred_action,score) = self.predict_action_distrib(C,struct_history,tok_codes,max_only=True)
             deriv.append(pred_action)
-            print(struct_history)
             if lab_state == RNNGparser.WORD_LABEL:
                 C = self.word_action(C,tok_codes,score)
             elif lab_state == RNNGparser.NT_LABEL:
@@ -986,4 +983,4 @@ if __name__ == '__main__':
         p.train_generative_model('none',TrainingParams.NUM_EPOCHS,train_treebank,[],learning_rate=TrainingParams.LEARNING_RATE,dropout=TrainingParams.DROPOUT)
         for t in train_treebank:
             print(p.parse_sentence(t.tokens()))         
-            #print(p.beam_parse(t.tokens(),all_beam_size=struct_beam,lex_beam_size=lex_beam))
+            print(p.beam_parse(t.tokens(),all_beam_size=struct_beam,lex_beam_size=lex_beam))
