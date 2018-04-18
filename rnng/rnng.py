@@ -534,7 +534,7 @@ class RNNGparser:
                 self.config                 = None           
                 self.local_score            = local_score
 
-            def update_history(update_val = None):
+            def update_history(self,update_val = None):
                 if update_val is None:
                     self.structural_history = self.prev_element.structural_history[:]
                 else:
