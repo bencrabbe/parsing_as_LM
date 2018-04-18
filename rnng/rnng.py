@@ -390,18 +390,21 @@ class RNNGparser:
         
         return (S[:-midx]+[root_symbol],B,n-1,stack_state.add_input(tree_embedding),RNNGparser.NO_LABEL,score+local_score)
 
-    def structural_action_mask(self,configuration,last_structural_action):
+    def structural_action_mask(self,configuration,structural_history):
         """ 
         This returns a mask stating which abstract actions are possible for next round
         @param configuration: the current configuration
-        @param last_structural_action: the last action performed.
+        @param structural_history: the structural actions history.
         @return a mask for the possible next actions
         """
         #Assumes masking log probs
         MASK = np.log([True] * len(self.actions))
         S,B,n,stack_state,lab_state,local_score = configuration
 
-        if not B or not S or last_structural_action == RNNGparser.OPEN:
+        hist_1  = structural_history[-1]
+        hist_2  = structural_history[-2] if len(history) >= 2 else None
+        
+        if not B or not S or (hist_1 == RNNGparser.OPEN and hist_2 != RNNGparser.SHIFT):
             MASK += self.open_mask
         if B or n > 0 or len(S) > 1:
             MASK += self.terminate_mask
