@@ -470,7 +470,6 @@ class RNNGparser:
         else: #lab_state == RNNGparser.NO_LABEL perform a structural action
             W = dy.parameter(self.struct_out)
             b = dy.parameter(self.struct_bias)
-            last_structural_action = structural_history[-1]
             
             if ref_action:
                 correct_prediction = self.action_codes[ref_action]
@@ -478,7 +477,7 @@ class RNNGparser:
             
             logprobs = dy.log_softmax(W * dy.tanh(stack_state.output()) + b).npvalue()
             #constraint + underflow prevention
-            logprobs = np.maximum(logprobs,np.log(np.finfo(float).eps)) + self.structural_action_mask(configuration,last_structural_action)
+            logprobs = np.maximum(logprobs,np.log(np.finfo(float).eps)) + self.structural_action_mask(configuration,structural_history)
             if max_only:
                 idx = np.argmax(logprobs)
                 #TODO here:if logprob == -inf raise parse failure 
