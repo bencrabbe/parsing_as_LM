@@ -671,6 +671,7 @@ class RNNGparser:
         while True:
             (pred_action,score) = self.predict_action_distrib(C,struct_history,tok_codes,max_only=True)
             deriv.append(pred_action)
+            print(struct_history)
             if lab_state == RNNGparser.WORD_LABEL:
                 C = self.word_action(C,tok_codes,score)
             elif lab_state == RNNGparser.NT_LABEL:
