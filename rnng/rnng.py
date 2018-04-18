@@ -337,9 +337,14 @@ class RNNGparser:
             nonterminal_embedding = dy.dropout(self.nt_embedding_matrix[nt_idx],self.dropout)
         else:
             nonterminal_embedding = self.nt_embedding_matrix[nt_idx]
-            
+
+        #We backup the current stack top
+        first_child = S[-1]
+        #We pop the first child, push the non terminal and re-push the first child 
+        stack_state = stack_state.prev()
         stack_state = stack_state.add_input(nonterminal_embedding)
-        return (S + [StackSymbol(X,StackSymbol.PREDICTED,nonterminal_embedding)],B,n+1,stack_state,RNNGparser.NO_LABEL,score+local_score)
+        stack_state = stack_state.add_input(first_child.embedding)
+        return (S[:-1] + [StackSymbol(X,StackSymbol.PREDICTED,nonterminal_embedding),first_child],B,n+1,stack_state,RNNGparser.NO_LABEL,score+local_score)
 
     
     def close_action(self,configuration,local_score):
@@ -351,18 +356,19 @@ class RNNGparser:
         """
         S,B,n,stack_state,lab_state,score = configuration
         assert( n > 0 )
-        #finds the closest predicted constituent in the stack and backtracks the stack lstm.
+        
+        #Finds the closest predicted constituent in the stack and backtracks the stack lstm.
         midx = -1
         for idx,symbol in enumerate(reversed(S)):
             if symbol.status == StackSymbol.PREDICTED:
-                midx = idx+2
+                root_idx = len(S)-idx-1
                 break
             else:
                 stack_state = stack_state.prev()
         stack_state = stack_state.prev()
-        root_symbol = S[-midx+1].copy()
+        root_symbol = S[root_idx].copy()
         root_symbol.complete()
-        children    = [S[-midx]]+S[-midx+2:]
+        children    = S[root_idx+1:]
             
         #compute the tree embedding with the tree_rnn
         nt_idx = self.nonterminals_codes[root_symbol.symbol]
@@ -373,22 +379,22 @@ class RNNGparser:
         s1 = self.fwd_tree_rnn.initial_state()
         s1 = s1.add_input(NT_embedding)
         for c in children:
-            s1 = s1.add_input(c.embedding) 
+            s1 = s1.add_input(c.embedding)
         fwd_tree_embedding = s1.output()
         s2 = self.bwd_tree_rnn.initial_state()
         s2 = s2.add_input(NT_embedding)
         for c in reversed(children):
-            s2 = s2.add_input(c.embedding) 
+            s2 = s2.add_input(c.embedding)
         bwd_tree_embedding = s2.output()
+        
         x = dy.concatenate([fwd_tree_embedding,bwd_tree_embedding])
         W = dy.parameter(self.tree_rnn_out)
-
         if self.dropout > 0.0:
             tree_embedding = dy.dropout(dy.tanh(W * x),self.dropout)
         else:
             tree_embedding = dy.tanh(W * x)
         
-        return (S[:-midx]+[root_symbol],B,n-1,stack_state.add_input(tree_embedding),RNNGparser.NO_LABEL,score+local_score)
+        return (S[:root_idx]+[root_symbol],B,n-1,stack_state.add_input(tree_embedding),RNNGparser.NO_LABEL,score+local_score)
 
     def structural_action_mask(self,configuration,structural_history):
         """ 
