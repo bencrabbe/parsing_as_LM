@@ -527,6 +527,8 @@ class RNNGparser:
         loss_val   = loss.value()
         if loss_val == np.inf:
             print('argh')
+            print(self.pretty_print_configuration(configuration))
+            print('ref',correct_prediction)
             exit(1)
         if backprop:
             loss.backward()
