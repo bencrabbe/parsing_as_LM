@@ -471,18 +471,18 @@ class RNNGparser:
         if lab_state == RNNGparser.WORD_LABEL:                             #generate wordform action
             W = dy.parameter(self.lex_out)
             b = dy.parameter(self.lex_bias)
-            return dy.log_softmax(W * self.rnng_dropout(dy.tanh(stack_state.output()) + b))
+            return dy.log_softmax(W * self.rnng_dropout(dy.tanh(stack_state.output())) + b)
         
         elif lab_state == RNNGparser.NT_LABEL:                             #generates a non terminal labelling
             W = dy.parameter(self.nt_out)
             b = dy.parameter(self.nt_bias)
-            return dy.log_softmax(W * self.rnng_dropout(dy.tanh(stack_state.output()) + b))
+            return dy.log_softmax(W * self.rnng_dropout(dy.tanh(stack_state.output())) + b)
             
         else:                                                               #lab_state == RNNGparser.NO_LABEL perform a structural action
             W = dy.parameter(self.struct_out)
             b = dy.parameter(self.struct_bias)
-            print(W.npvalue().shape,b.npvalue().shape,stack_state.output().npvalue().shape)
-            return dy.log_softmax(W * self.rnng_dropout(dy.tanh(stack_state.output()) + b),self.restrict_structural_actions(configuration,structural_history))
+            #print(W.npvalue().shape,b.npvalue().shape,stack_state.output().npvalue().shape)
+            return dy.log_softmax(W * self.rnng_dropout(dy.tanh(stack_state.output())) + b,self.restrict_structural_actions(configuration,structural_history))
 
     def predict_action_distrib(self,configuration,structural_history,sentence,max_only=False):
         """
