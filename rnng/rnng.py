@@ -393,7 +393,7 @@ class RNNGparser:
         MASK = np.array([True] * len(self.actions))
         S,B,n,stack_state,lab_state,local_score = configuration
 
-        #print(self.pretty_print_configuration(configuration))
+        print(self.pretty_print_configuration(configuration))
         
         hist_1  = structural_history[-1]
         hist_2  = structural_history[-2] if len(structural_history) >= 2 else None
@@ -409,7 +409,7 @@ class RNNGparser:
 
         #print (MASK)
         restr_list = [idx for idx,mval in enumerate(MASK) if mval]
-        #print('*',[self.actions[idx] for idx in restr_list])
+        print('*',[self.actions[idx] for idx in restr_list])
         return restr_list
     
         
