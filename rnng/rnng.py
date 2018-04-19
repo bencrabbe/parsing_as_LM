@@ -875,7 +875,7 @@ class RNNGparser:
             for idx,tree in enumerate(train_bank):
                 self.train_sentence(tree,monitor)
                 if idx % 1000 == 0:
-                     monitor.display_NLL_log() 
+                     monitor.display_NLL_log(tree_idx=idx) 
 
             monitor.display_NLL_log(reset=True)            
             devloss = self.eval_all(dev_bank)
