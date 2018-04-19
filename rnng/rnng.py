@@ -393,6 +393,8 @@ class RNNGparser:
         MASK = np.log([True] * len(self.actions))
         S,B,n,stack_state,lab_state,local_score = configuration
 
+        print(self.pretty_print_configuration(configuration))
+        
         hist_1  = structural_history[-1]
         hist_2  = structural_history[-2] if len(structural_history) >= 2 else None
         
@@ -404,9 +406,13 @@ class RNNGparser:
             MASK += self.shift_mask
         if not S or n == 0 or (hist_1 == RNNGparser.OPEN and hist_2 != RNNGparser.SHIFT):
             MASK += self.close_mask
-        
-        return [idx for idx,mval in enumerate(MASK) if mval]
 
+        print (MASK)
+        restr_list = [idx for idx,mval in enumerate(MASK) if mval]
+        print([self.actions[idx] for idx in restr_list])
+        return restr_list
+    
+        
     #Weighting & representation system
     def rnng_dropout(self,expr):
         """
