@@ -52,7 +52,7 @@ class OptimMonitor:
                                                                                                                         np.exp(self.nt_loss/self.ntN),
                                                                                                                         np.exp(self.struct_loss/self.structN)))
         else:
-            sys.stdout.write("\nMean NLL : %.5f, PPL : %.5f, Lex-PPL : %.5f, NT-PPL : %.5f, Struct-PPL: %.5f\n"%(global_nll/N,\
+            sys.stdout.write("\rMean NLL : %.5f, PPL : %.5f, Lex-PPL : %.5f, NT-PPL : %.5f, Struct-PPL: %.5f\n"%(global_nll/N,\
                                                                                                               np.exp(global_nll/N),\
                                                                                                               np.exp(self.lex_loss/self.lexN),
                                                                                                               np.exp(self.nt_loss/self.ntN),
@@ -882,9 +882,8 @@ class RNNGparser:
             print('\n--------------------------\nEpoch %d'%(e,),flush=True)
 
             for idx,tree in enumerate(train_bank):
-                #print(idx)
+                sys.stdout.write('\rtree #%d'%(idx))
                 self.train_sentence(tree,monitor)
-                
                 if idx+1 % 1000 == 0:
                      monitor.display_NLL_log(tree_idx=idx) 
                      
