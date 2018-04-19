@@ -938,7 +938,7 @@ class RNNGparser:
         for e in range(max_epochs):
             print('\nEpoch %d'%(e,),flush=True)
             for tree in train_bank:
-                self.train_sentence(ref_tree)
+                self.train_sentence(tree)
                 
             devloss = self.eval_all(dev_bank)
             if devloss < best_model_loss :
