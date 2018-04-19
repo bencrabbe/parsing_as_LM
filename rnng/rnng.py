@@ -68,7 +68,7 @@ class OptimMonitor:
         N = self.acc_lexN+self.acc_structN+self.acc_ntN 
         if N == 0:
             return
-        sys.stdout.write("Mean ACC : %.5f, Lex acc : %.5f, Struct acc : %.5f, NT acc : %.5f"%(global_acc/N,\
+        sys.stdout.write("\nMean ACC : %.5f, Lex acc : %.5f, Struct acc : %.5f, NT acc : %.5f\n"%(global_acc/N,\
                                                                                                     self.lex_acc/self.acc_lexN,\
                                                                                                     self.struct_acc/self.acc_structN,\
                                                                                                     self.nt_acc/self.acc_ntN))
