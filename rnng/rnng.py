@@ -1018,10 +1018,10 @@ if __name__ == '__main__':
         t3 = ConsTree.read_tree('(S (NP La souris (Srel qui (VP dort (PP sur (NP le paillasson))))) (VP sera mangée (PP par (NP le chat ))))')
 
 
-        t4 = ConsTree.read_tree("(TOP (PRN (ADVP (ADVP So long) (SBAR as (S you (VP do n't (VP look down)))) .)))")
+        t4 = ConsTree.read_tree("(TOP (PRN (ADVP (ADVP So long) (SBAR as (S you (VP do nt (VP look down)))) .)))")
         t4.close_unaries()
         print(t4)
-        t5 = ConsTree.read_tree("(TOP (PRN hello))")
+        t5 = ConsTree.read_tree("(TOP (X (PRN hello dude)))")
         t5.close_unaries()
         print(t5)
         exit(0)
