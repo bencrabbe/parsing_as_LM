@@ -261,7 +261,8 @@ class RNNGparser:
         self.close_mask      = np.array([True,True,False,True])
         self.terminate_mask  = np.array([True,True,True,False])
 
-        
+
+                
     #transition system
     def init_configuration(self,N):
         """
@@ -855,7 +856,7 @@ class RNNGparser:
             return ref_tree.compare(pred_tree)
         return pred_tree
 
-   def train_sentence(self,ref_tree):
+    def train_sentence(self,ref_tree):
         """
         Trains the model on a single sentence
         """
