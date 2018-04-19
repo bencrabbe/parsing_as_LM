@@ -390,7 +390,7 @@ class RNNGparser:
         @return a list of integers, indexes of legal actions
         """
         #Assumes masking log probs
-        MASK = np.log([True] * len(self.actions))
+        MASK = np.array([True] * len(self.actions))
         S,B,n,stack_state,lab_state,local_score = configuration
 
         print(self.pretty_print_configuration(configuration))
