@@ -41,7 +41,9 @@ class OptimMonitor:
         
     def display_NLL_log(self,reset=False):
         global_nll = self.lex_loss+self.struct_loss+self.nt_loss
-        N =  self.lexN + self.structN + self.ntN 
+        N =  self.lexN + self.structN + self.ntN
+        if N == 0:
+            return
         sys.stdout.write("\nMean NLL : %.5f, PPL : %.5f, Lex-PPL : %.5f, NT-PPL : %.5f, Struct-PPL: %.5f\n"%(global_nll/N,\
                                                                                                               np.exp(global_nll/N),\
                                                                                                               np.exp(self.lex_loss/self.lexN),
@@ -56,7 +58,8 @@ class OptimMonitor:
     def display_ACC_log(self,reset=False):
         global_acc = self.struct_acc+self.lex_acc+self.nt_acc
         N = self.acc_lexN+self.acc_structN+self.acc_ntN 
-       
+        if N == 0:
+            return
         sys.stdout.write("\rMean acc : %.5f, Lex acc : %.5f, Struct acc : %.5f, NT acc : %.5f"%(global_acc/N,\
                                                                                                     self.lex_acc/self.acc_lexN,\
                                                                                                     self.struct_acc/self.acc_structN,\
