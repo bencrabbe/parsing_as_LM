@@ -525,6 +525,9 @@ class RNNGparser:
         iscorrect = (correct_prediction == best_prediction)
         loss       = dy.pick(-log_probs,correct_prediction)
         loss_val   = loss.value()
+        if loss_val == -np.inf:
+            print('argh')
+            exit(1)
         if backprop:
             loss.backward()
             self.trainer.update()
