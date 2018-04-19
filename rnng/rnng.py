@@ -484,10 +484,11 @@ class RNNGparser:
             return [(act,logp) for act,logp in zip(self.actions,logprobs) if logp > -np.inf]
 
         
-    def train_one(self,configuration,ref_action,backprop=True):
+    def train_one(self,configuration,structural_history,ref_action,backprop=True):
         """
         This performs a forward, backward and update pass on the network for this action.
         @param configuration: the current configuration
+        @param structural history: the list of strcutural actions performed so far
         @param ref_action  : the reference action
         @return : the loss (NLL) for this action and a boolean indicating if the prediction argmax is correct or not
         """
@@ -507,9 +508,9 @@ class RNNGparser:
             correct_prediction = self.action_codes[ref_action]
 
         if backprop:
-            log_probs = dy.log_softmax( (W * dy.dropout(dy.tanh(stack_state.output()),self.dropout)) + b)
+            log_probs = dy.log_softmax( (W * dy.dropout(dy.tanh(stack_state.output()),self.dropout)) + b,restrict_structural_actions(configuration,structural_history))
         else:
-            log_probs = dy.log_softmax( (W * dy.tanh(stack_state.output())) + b)
+            log_probs = dy.log_softmax( (W * dy.tanh(stack_state.output())) + b,restrict_structural_actions(configuration,structural_history))
             
         best_prediction = np.argmax(log_probs.npvalue())
         iscorrect = (correct_prediction == best_prediction)
@@ -868,7 +869,8 @@ class RNNGparser:
                 tok_codes = [self.lex_lookup(t) for t in tree.tokens()]   
                 step, max_step  = (0,len(ref_derivation))
                 C               = self.init_configuration(len(tok_codes))
-                
+
+                struct_history = ['<init>'] 
                 for ref_action in ref_derivation:
                     loc_loss,correct = self.train_one(C,ref_action)
 
@@ -881,10 +883,13 @@ class RNNGparser:
                         C = self.nonterminal_action(C,ref_action,0)
                     elif ref_action == RNNGparser.CLOSE:
                         C = self.close_action(C,0)
+                        struct_history.append( RNNGparser.CLOSE )
                     elif ref_action == RNNGparser.OPEN:
                         C = self.open_action(C,0)
+                        struct_history.append( RNNGparser.OPEN )
                     elif ref_action == RNNGparser.SHIFT:
                         C = self.shift_action(C,0)
+                        struct_history.append( RNNGparser.SHIFT )
                     elif ref_action == RNNGparser.TERMINATE:
                         break
                     
