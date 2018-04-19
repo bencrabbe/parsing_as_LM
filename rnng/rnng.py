@@ -877,7 +877,7 @@ class RNNGparser:
                 self.save_model(modelname)
                 
         print()
-        monitor.save_accuracy_curves(modelname+'learningcurves.csv')
+        monitor.save_loss_curves(modelname+'learningcurves.csv')
         self.save_model(modelname+'.final')
         self.dropout = 0.0  #prevents dropout to be applied at decoding
             
