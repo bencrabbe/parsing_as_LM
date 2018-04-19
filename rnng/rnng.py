@@ -519,7 +519,7 @@ class RNNGparser:
             log_probs = dy.log_softmax( (W * dy.tanh(stack_state.output())) + b,self.restrict_structural_actions(configuration,structural_history))
         if lab_state != RNNGparser.WORD_LABEL and lab_state != RNNGparser.NT_LABEL:
             print('scores',np.exp(log_probs.npvalue()))
-            if max(np.exp(log_probs.npvalue())) == -np.inf:
+            if max(np.exp(log_probs.npvalue())) == 0.0:
                 exit(1)
         best_prediction = np.argmax(log_probs.npvalue())
         iscorrect = (correct_prediction == best_prediction)
