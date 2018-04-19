@@ -499,7 +499,7 @@ class RNNGparser:
         """
         S,B,n,stack_state,lab_state,local_score = configuration
         logprobs = self.raw_action_distrib(configuration,structural_history).npvalue()
-        if not logprobs:#parse failure
+        if logprobs == None:#parse failure
             print('failed')
             return []
         if lab_state == RNNGparser.WORD_LABEL:        
