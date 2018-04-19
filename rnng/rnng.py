@@ -507,7 +507,7 @@ class RNNGparser:
             if restr:
                 return dy.log_softmax(W * self.rnng_dropout(dy.tanh(stack_state.output())) + b,restr)
             #parse failure (parser trapped)
-            print('oops. parse failure...')
+            print('oops. parser trapped (to be fixed)...')
             return None
         
     def predict_action_distrib(self,configuration,structural_history,sentence,max_only=False):
@@ -1016,6 +1016,12 @@ if __name__ == '__main__':
         t  = ConsTree.read_tree('(S (NP Le chat ) (VP mange  (NP la souris)))')
         t2 = ConsTree.read_tree('(S (NP Le chat ) (VP voit  (NP le chien) (PP sur (NP le paillasson))))')
         t3 = ConsTree.read_tree('(S (NP La souris (Srel qui (VP dort (PP sur (NP le paillasson))))) (VP sera mangée (PP par (NP le chat ))))')
+
+
+        t4 = ConsTree.read_tree("(TOP@PRN (ADVP (ADVP So long) (SBAR as (S you (VP do n't (VP look down)))) .))")
+        t4.close_unaries()
+        print(t4)
+        exit(0)
         train_treebank = [t,t2,t3]
         
         p = RNNGparser(max_vocabulary_size=TrainingParams.LEX_MAX_SIZE,\
