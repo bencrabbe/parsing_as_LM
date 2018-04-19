@@ -530,7 +530,7 @@ class RNNGparser:
         else:
             ref_prediction = self.action_codes[ref_action]
             
-        loss       = -dy.pick(log_probs,ref_prediction)
+        loss       = -dy.pick(logprobs,ref_prediction)
         loss_val   = loss.value()
         loss.backward()
         self.trainer.update()
