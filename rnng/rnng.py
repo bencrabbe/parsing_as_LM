@@ -405,7 +405,7 @@ class RNNGparser:
         if not S or n == 0 or (hist_1 == RNNGparser.OPEN and hist_2 != RNNGparser.SHIFT):
             MASK += self.close_mask
         
-        return [idx for idx,mval in enumerate(MASK) if not mval]
+        return [idx for idx,mval in enumerate(MASK) if mval]
 
     #Weighting & representation system
     def rnng_dropout(self,expr):
