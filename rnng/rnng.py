@@ -789,8 +789,8 @@ class RNNGparser:
         """
         dy.renew_cg()
         ref_derivation  = self.oracle_derivation(ref_tree)
-        print(ref_tree)
-        print(ref_derivation)
+        #print(ref_tree)
+        #print(ref_derivation)
         tok_codes = [self.lex_lookup(t) for t in ref_tree.tokens()]   
         step, max_step  = (0,len(ref_derivation))
         C               = self.init_configuration(len(tok_codes))
