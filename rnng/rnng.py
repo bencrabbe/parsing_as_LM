@@ -498,10 +498,11 @@ class RNNGparser:
         @return a list of (action,scores) or a single tuple if max_only is True
         """
         S,B,n,stack_state,lab_state,local_score = configuration
-        logprobs = self.raw_action_distrib(configuration,structural_history).npvalue()
+        logprobs = self.raw_action_distrib(configuration,structural_history)
         if logprobs == None:#parse failure
             print('failed')
             return []
+        logprobs = logprobs.npvalue()
         if lab_state == RNNGparser.WORD_LABEL:        
             next_word = sentence[B[0]]
             score = logprobs[next_word]
