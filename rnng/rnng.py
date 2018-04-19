@@ -789,8 +789,6 @@ class RNNGparser:
         """
         dy.renew_cg()
         ref_derivation  = self.oracle_derivation(ref_tree)
-        #print(ref_tree)
-        #print(ref_derivation)
         tok_codes = [self.lex_lookup(t) for t in ref_tree.tokens()]   
         step, max_step  = (0,len(ref_derivation))
         C               = self.init_configuration(len(tok_codes))
@@ -884,7 +882,7 @@ class RNNGparser:
             print('\n--------------------------\nEpoch %d'%(e,),flush=True)
 
             for idx,tree in enumerate(train_bank):
-                print(idx)
+                #print(idx)
                 self.train_sentence(tree,monitor)
                 
                 if idx+1 % 1000 == 0:
