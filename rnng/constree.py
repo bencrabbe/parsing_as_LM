@@ -307,10 +307,11 @@ class PennTreebank:
         That's an inplace destructive function removing PTBIII trees node label decorations (such as functions etc).
         @param ctree: a ConsTree object.
         """
-        ctree.label = ctree.label.split('-')[0]
-        ctree.label = ctree.label.split('=')[0]
-        for child in ctree.children:
-            PennTreebank.strip_decoration(child)
+        if not (len(ctree.children) == 1 and ctree.get_child().is_leaf()):#if it is a tag stop recursion
+            ctree.label = ctree.label.split('-')[0]
+            ctree.label = ctree.label.split('=')[0]
+            for child in ctree.children:
+                PennTreebank.strip_decoration(child)
         
     @staticmethod
     def strip_traces(ctree):
