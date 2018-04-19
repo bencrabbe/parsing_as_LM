@@ -7,9 +7,6 @@ from collections import Counter
 from constree import *
 from rnng_params import *
 
-#TODO check unary management by removing unary closure from constree module
-#probably requires to add a unary kind of action
-
 class StackSymbol:
     """
     A convenience class for stack symbols
@@ -38,29 +35,40 @@ class StackSymbol:
 
 #Monitoring loss & accurracy
 class OptimMonitor:
-    def __init__(self,step_size=1000):
-        self.step_size = step_size
-        self.N = 0
+    def __init__(self):
         self.reset_all()
-        self.acc_dataset = []
+        self.ppl_dataset = []
+        
+    def display_NLL_log(self,reset=False):
+        global_nll = self.lex_loss+self.struct_loss+self.nt_loss
+        N =  self.lexN + self.structN + self.ntN 
+        sys.stdout.write("\nMean NLL : %.5f, PPL : %.5f, Lex-PPL : %.5f, NT-PPL : %.5f, Struct-PPL: %.5f\n"%(global_nll/N,\
+                                                                                                              np.exp(global_nll/N),\
+                                                                                                              np.exp(self.lex_loss/self.lexN),
+                                                                                                              np.exp(self.nt_loss/self.ntN),
+                                                                                                              np.exp(self.struct_loss/self.structN)))
+        sys.stdout.flush()
+        self.ppl_dataset.append((np.exp(global_nll/N),np.exp(self.lex_loss/self.lexN),np.exp(self.struct_loss/self.structN),np.exp(self.struct_loss/self.structN)))
+
+        if reset:
+            self.reset_loss_counts()
+        
+    def display_acc_log(,reset=False):
+        global_acc = self.struct_acc+self.lex_acc+self.nt_acc
+        N = self.acc_lexN+self.acc_structN+self.acc_ntN 
+       
+        sys.stdout.write("\rMean acc : %.5f, Lex acc : %.5f, Struct acc : %.5f, NT acc : %.5f"%(global_acc/N,\
+                                                                                                    self.lex_acc/self.acc_lexN,\
+                                                                                                    self.struct_acc/self.acc_structN,\
+                                                                                                    self.nt_acc/self.acc_ntN))
+        sys.stdout.flush()
+        if reset:
+            self.reset_acc_counts()
         
     def reset_all(self):
-        if self.N > 0:
-            global_nll = self.struct_loss+self.lex_loss+self.nt_loss
-            N = self.lexN+self.ntN+self.structN
-            sys.stdout.write("\nMean NLL : %.5f, PPL : %.5f, Lex-PPL : %.5f, NT-PPL : %.5f, Struct-PPL: %.5f\n"%(global_nll/self.N,\
-                                                                                                               np.exp(global_nll/N),\
-                                                                                                               self.lex_loss/self.lexN,
-                                                                                                               self.nt_loss/self.ntN,
-                                                                                                               self.struct_loss/self.structN))
-            sys.stdout.flush()
         self.reset_loss_counts()
         self.reset_acc_counts()
-        self.N = 0
         
-    def get_global_loss(self):
-        return self.struct_loss+self.lex_loss+self.nt_loss
-            
     def reset_loss_counts(self):
         self.lex_loss    = 0
         self.struct_loss = 0
@@ -74,44 +82,49 @@ class OptimMonitor:
         self.acc_lexN,self.acc_structN,self.acc_ntN = 0,0,0
         
         
-    def save_accuracy_curves(self,filename):
-        df = pd.DataFrame.from_records(self.acc_dataset,columns=['g-acc','lex-acc','struct-acc','nt-acc'])
+    def save_loss_curves(self,filename):
+        df = pd.DataFrame.from_records(self.ppl_dataset,columns=['ppl','lex-ppl','struct-ppl','nt-ppl'])
         df.to_csv(filename)
 
-        
-    def add_datum(self,datum_loss,datum_correct,datum_type):
+    def add_ACC_datum(self,datum_correct,configuration):
         """
-        @param datum_loss: the -logprob of the correct action
+        Accurracy logging
         @param datum_correct: last prediction was correct ?
-        @param datum_type : an parser state symbol value
+        @param configuration : the configuration used to make the prediction
         """
-        self.N     +=1
+        S,B,n,stack_state,datum_type,score = configuration
+        if datum_type  == RNNGparser.WORD_LABEL:
+            self.lex_acc  += datum_correct
+            self.acc_lexN += 1
+        elif datum_type == RNNGparser.NT_LABEL:
+            self.nt_acc  += datum_correct
+            self.acc_ntN += 1
+        elif datum_type == RNNGparser.NO_LABEL:
+            self.struct_acc  += datum_correct
+            self.acc_structN += 1
+
+            
+    def add_NLL_datum(self,datum_loss,configuration):
+        """
+        NLL logging
+        @param datum_loss: the -logprob of the correct action
+        @param configuration : the configuration used to make the prediction
+        """
+        S,B,n,stack_state,datum_type,score = configuration
+        
         if datum_type  == RNNGparser.WORD_LABEL:
             self.lex_loss += datum_loss
-            self.lex_acc  += datum_correct
             self.lexN     += 1
-            self.acc_lexN += 1
             
         elif datum_type == RNNGparser.NT_LABEL:
             self.nt_loss += datum_loss
-            self.nt_acc  += datum_correct
             self.ntN     +=1
-            self.acc_ntN += 1
             
         elif datum_type == RNNGparser.NO_LABEL:
             self.struct_loss += datum_loss
-            self.struct_acc  += datum_correct
             self.structN     +=1
-            self.acc_structN += 1
 
-        if self.N % self.step_size == 0:
-            global_acc = self.struct_acc+self.lex_acc+self.nt_acc
-            N =  self.acc_lexN+self.acc_structN+self.acc_ntN 
-            acc,lex_acc,struct_acc,nt_acc = global_acc/N,self.lex_acc/self.acc_lexN,self.struct_acc/self.acc_structN,self.nt_acc/self.acc_ntN
-            self.acc_dataset.append(( acc,lex_acc,struct_acc,nt_acc))
-            sys.stdout.write("\r    Mean acc : %.5f, Lex acc : %.5f, Struct acc : %.5f, NT acc : %.5f (last %d datums)"%(acc,lex_acc,struct_acc,nt_acc,self.step_size))
-            self.reset_acc_counts()
-    
+            
 class RNNGparser:
     """
     This is RNNG with in-order tree traversal.
@@ -601,117 +614,7 @@ class RNNGparser:
             C = configuration
             
         return C,struct_history        
-        
-    # def predict_action_distrib(self,configuration,structural_history,sentence=None,max_only=False,ref_action=None):
-    #     """
-    #     This predicts the next action distribution with the classifier and constrains it with the classifier structural rules
-    #     @param configuration: the current configuration
-    #     @param structural_history  : the sequence of structural actions performed so far by the parser
-    #     @param sentence : a list of token integer codes
-    #     @param max_only : returns only the couple (action,logprob) with highest score
-    #     @param ref_action : returns only the negative logprob of the reference action (NLL)
-    #     @return a list of (action,logprob) legal at that state
-    #     """        
-    #     S,B,n,stack_state,lab_state,local_score = configuration
-
-    #     if lab_state == RNNGparser.WORD_LABEL: #generate wordform action
-    #         next_word = sentence[B[0]]
-    #         W = dy.parameter(self.lex_out)
-    #         b = dy.parameter(self.lex_bias)
-
-    #         if ref_action:
-    #             correct_prediction = self.word_codes[ref_action]
-    #             return dy.pickneglog_softmax( (W * dy.tanh(stack_state.output())) + b,correct_prediction).value()
-            
-    #         logprobs = dy.log_softmax(W * dy.tanh(stack_state.output()) + b).npvalue()
-    #         score = np.maximum(logprobs[next_word],np.log(np.finfo(float).eps))
-
-    #         if max_only :
-    #             return (next_word,score)
-            
-    #         return [(next_word,score)]
-            
-    #     elif lab_state == RNNGparser.NT_LABEL: #label NT action
-    #         W = dy.parameter(self.nt_out)
-    #         b = dy.parameter(self.nt_bias)
-
-    #         if ref_action:
-    #             correct_prediction = self.nonterminals_codes[ref_action]
-    #             return dy.pickneglog_softmax( (W * dy.tanh(stack_state.output())) + b,correct_prediction).value()
-            
-    #         logprobs = dy.log_softmax(W * dy.tanh(stack_state.output()) + b).npvalue()
-            
-    #         if max_only:
-    #             idx = np.argmax(logprobs)
-    #             return (self.nonterminals[idx],logprobs[idx])
-            
-    #         return list(zip(self.nonterminals,logprobs))
-        
-    #     else: #lab_state == RNNGparser.NO_LABEL perform a structural action
-    #         W = dy.parameter(self.struct_out)
-    #         b = dy.parameter(self.struct_bias)
-            
-    #         if ref_action:
-    #             correct_prediction = self.action_codes[ref_action]
-    #             return dy.pick(-log_softmax( (W * dy.tanh(stack_state.output())) + b,self.restrict_structural_actions(configuration,structural_history)),correct_prediction).value()
-            
-    #         logprobs = dy.log_softmax(W * dy.tanh(stack_state.output()) + b,self.restrict_structural_actions(configuration,structural_history)).npvalue()
-    #         #constraint + underflow prevention
-    #         #logprobs = np.maximum(logprobs,np.log(np.finfo(float).eps))
-    #         if max_only:
-    #             idx = np.argmax(logprobs)
-    #             #TODO here:if logprob == -inf raise parse failure 
-    #             return (self.actions[idx],logprobs[idx])
-        
-    #         return [(act,logp) for act,logp in zip(self.actions,logprobs) if logp > -np.inf]
-
-        
-    # def train_one(self,configuration,structural_history,ref_action,backprop=True):
-    #     """
-    #     This performs a forward, backward and update pass on the network for this action.
-    #     @param configuration: the current configuration
-    #     @param structural history: the list of strcutural actions performed so far
-    #     @param ref_action  : the reference action
-    #     @return : the loss (NLL) for this action and a boolean indicating if the prediction argmax is correct or not
-    #     """
-    #     S,B,n,stack_state,lab_state,local_score = configuration
-
-    #     if lab_state == RNNGparser.WORD_LABEL:
-    #         W   = dy.parameter(self.lex_out)
-    #         b   = dy.parameter(self.lex_bias)
-    #         correct_prediction = self.lex_lookup(ref_action)
-    #         if backprop:
-    #             log_probs = dy.log_softmax( (W * dy.dropout(dy.tanh(stack_state.output()),self.dropout)) + b)
-    #         else:
-    #             log_probs = dy.log_softmax( (W * dy.tanh(stack_state.output())) + b)
-
-    #     elif lab_state == RNNGparser.NT_LABEL:
-    #         W   = dy.parameter(self.nt_out)
-    #         b   = dy.parameter(self.nt_bias)
-    #         correct_prediction = self.nonterminals_codes[ref_action]
-    #         if backprop:
-    #             log_probs = dy.log_softmax( (W * dy.dropout(dy.tanh(stack_state.output()),self.dropout)) + b)
-    #         else:
-    #             log_probs = dy.log_softmax( (W * dy.tanh(stack_state.output())) + b)
-
-    #     else:
-    #         W   = dy.parameter(self.struct_out)
-    #         b   = dy.parameter(self.struct_bias)
-    #         correct_prediction = self.action_codes[ref_action]
-    #         if backprop:
-    #             log_probs = dy.log_softmax( (W * dy.dropout(dy.tanh(stack_state.output()),self.dropout)) + b,self.restrict_structural_actions(configuration,structural_history))
-    #         else:
-    #             log_probs = dy.log_softmax( (W * dy.tanh(stack_state.output())) + b,self.restrict_structural_actions(configuration,structural_history))
-
-    #     best_prediction = np.argmax(log_probs.npvalue())
-    #     iscorrect = (correct_prediction == best_prediction)
-    #     loss       = -dy.pick(log_probs,correct_prediction)
-    #     loss_val   = loss.value()
-    #     if backprop:
-    #         loss.backward()
-    #         self.trainer.update()
-    #     return loss_val,iscorrect
-    
+   
     def beam_parse(self,tokens,all_beam_size,lex_beam_size,ref_tree=None):
         """
         This parses a sentence with word sync beam search.
@@ -868,9 +771,11 @@ class RNNGparser:
             return ref_tree.compare(pred_tree)
         return pred_tree
 
-    def train_sentence(self,ref_tree):
+    def train_sentence(self,ref_tree,monitor):
         """
         Trains the model on a single sentence
+        @param ref_tree: a tree to train from
+        @param monitor: a monitor for logging the training process
         """
         dy.renew_cg()
         ref_derivation  = self.oracle_derivation(ref_tree)
@@ -880,11 +785,15 @@ class RNNGparser:
         struct_history = ['<init>'] 
         for ref_action in ref_derivation:
             NLL = self.backprop_action_distrib(C,struct_history,ref_action)
+            monitor.add_NLL_datum(NLL,C)
             C,struct_history = self.move_state(tok_codes,C,struct_history,ref_action,-NLL)
-    
-    def eval_sentence(self,ref_tree):
+
+            
+    def eval_sentence(self,ref_tree,monitor):
         """
         Evaluates a single sentence from dev set.
+        @param ref_tree: a tree to eval against
+        @param monitor: a monitor for logging the eval process
         """
         dy.renew_cg()
         ref_derivation  = self.oracle_derivation(ref_tree)
@@ -895,7 +804,9 @@ class RNNGparser:
         NLL = 0 
         for ref_action in ref_derivation:
             loc_NLL,correct = self.eval_action_distrib(C,struct_history,ref_action)
-            C,struct_history = self.move_state(tok_codes,C,struct_history,ref_action,-NLL)
+            monitor.add_NLL_datum(loc_NLL,C)
+            monitor.add_ACC_datum(correct,C)
+            C,struct_history = self.move_state(tok_codes,C,struct_history,ref_action,-loc_NLL)
             NLL += loc_NLL
         return NLL
     
@@ -904,13 +815,16 @@ class RNNGparser:
         """
         Evaluates the model on a development treebank
         """
-        print('\n  Eval on dev...')
-        
+        print('\nEval on dev...')
+        monitor =  OptimMonitor()
         D = self.dropout
         self.dropout = 0.0
         L = 0
         for tree in dev_bank:
-           L += self.eval_sentence(tree)
+           L += self.eval_sentence(tree,monitor)
+           
+        monitor.display_NLL_log(reset=True)
+        monitor.display_ACC_log(reset=True)
         self.dropout = D
         return L
 
@@ -948,10 +862,11 @@ class RNNGparser:
         best_model_loss = np.inf #stores the best model on dev
         monitor =  OptimMonitor()
         for e in range(max_epochs):
-            print('\nEpoch %d'%(e,),flush=True)
+            print('\n--------------------------\nEpoch %d'%(e,),flush=True)
             for tree in train_bank:
-                self.train_sentence(tree)
-                
+                self.train_sentence(tree,monitor)
+
+            monitor.display_NLL_log(reset=True)            
             devloss = self.eval_all(dev_bank)
             if devloss < best_model_loss :
                 best_model_loss=devloss
@@ -966,7 +881,7 @@ class RNNGparser:
     #I/O etc.
     def print_summary(self):
         """
-        Prints the summary of the parser setup
+        Prints a summary of the parser structure
         """
         print('Num lexical actions     :',len(self.rev_word_codes),flush=True)
         print('Num NT actions          :',len(self.nonterminals),flush=True)
