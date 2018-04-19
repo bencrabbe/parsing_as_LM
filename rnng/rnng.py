@@ -505,21 +505,30 @@ class RNNGparser:
             W   = dy.parameter(self.lex_out)
             b   = dy.parameter(self.lex_bias)
             correct_prediction = self.lex_lookup(ref_action)
+            if backprop:
+                log_probs = dy.log_softmax( (W * dy.dropout(dy.tanh(stack_state.output()),self.dropout)) + b)
+            else:
+                log_probs = dy.log_softmax( (W * dy.tanh(stack_state.output())) + b)
+
         elif lab_state == RNNGparser.NT_LABEL:
             print('nt')
             W   = dy.parameter(self.nt_out)
             b   = dy.parameter(self.nt_bias)
             correct_prediction = self.nonterminals_codes[ref_action]
+            if backprop:
+                log_probs = dy.log_softmax( (W * dy.dropout(dy.tanh(stack_state.output()),self.dropout)) + b)
+            else:
+                log_probs = dy.log_softmax( (W * dy.tanh(stack_state.output())) + b)
+
         else:
             print('s')
             W   = dy.parameter(self.struct_out)
             b   = dy.parameter(self.struct_bias)
             correct_prediction = self.action_codes[ref_action]
-
-        if backprop:
-            log_probs = dy.log_softmax( (W * dy.dropout(dy.tanh(stack_state.output()),self.dropout)) + b,self.restrict_structural_actions(configuration,structural_history))
-        else:
-            log_probs = dy.log_softmax( (W * dy.tanh(stack_state.output())) + b,self.restrict_structural_actions(configuration,structural_history))
+            if backprop:
+                log_probs = dy.log_softmax( (W * dy.dropout(dy.tanh(stack_state.output()),self.dropout)) + b,self.restrict_structural_actions(configuration,structural_history))
+            else:
+                log_probs = dy.log_softmax( (W * dy.tanh(stack_state.output())) + b,self.restrict_structural_actions(configuration,structural_history))
         if lab_state != RNNGparser.WORD_LABEL and lab_state != RNNGparser.NT_LABEL:
             print('scores',np.exp(log_probs.npvalue()))
             if max(np.exp(log_probs.npvalue())) == 0.0:
