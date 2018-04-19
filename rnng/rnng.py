@@ -409,7 +409,7 @@ class RNNGparser:
 
         #print (MASK)
         restr_list = [idx for idx,mval in enumerate(MASK) if mval]
-        print('*',[self.actions[idx] for idx in restr_list])
+        #print('*',[self.actions[idx] for idx in restr_list])
         return restr_list
     
         
@@ -517,8 +517,8 @@ class RNNGparser:
             log_probs = dy.log_softmax( (W * dy.dropout(dy.tanh(stack_state.output()),self.dropout)) + b,self.restrict_structural_actions(configuration,structural_history))
         else:
             log_probs = dy.log_softmax( (W * dy.tanh(stack_state.output())) + b,self.restrict_structural_actions(configuration,structural_history))
-        if lab_state != RNNGparser.WORD_LABEL and lab_state != RNNGparser.NT_LABEL:
-            print('scores',np.exp(log_probs.npvalue()))
+        #if lab_state != RNNGparser.WORD_LABEL and lab_state != RNNGparser.NT_LABEL:
+        #    print('scores',np.exp(log_probs.npvalue()))
         best_prediction = np.argmax(log_probs.npvalue())
         iscorrect = (correct_prediction == best_prediction)
         loss       = dy.pick(-log_probs,correct_prediction)
