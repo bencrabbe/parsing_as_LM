@@ -1024,6 +1024,9 @@ if __name__ == '__main__':
         t5 = ConsTree.read_tree("(TOP (X (PRN hello dude)))")
         t5.close_unaries()
         print(t5)
+        t6 = ConsTree.read_tree("(TOP (X (PRN hello)))")
+        t6.close_unaries()
+        print(t6)
         exit(0)
         train_treebank = [t,t2,t3]
         
