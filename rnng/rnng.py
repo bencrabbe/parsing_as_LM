@@ -399,13 +399,13 @@ class RNNGparser:
         hist_2  = structural_history[-2] if len(structural_history) >= 2 else None
         
         if not B or not S or hist_1 == RNNGparser.OPEN:
-            MASK += self.open_mask
+            MASK *= self.open_mask
         if B or n > 0 or len(S) > 1:
-            MASK += self.terminate_mask
+            MASK *= self.terminate_mask
         if not B:
-            MASK += self.shift_mask
+            MASK *= self.shift_mask
         if not S or n == 0 or (hist_1 == RNNGparser.OPEN and hist_2 != RNNGparser.SHIFT):
-            MASK += self.close_mask
+            MASK *= self.close_mask
 
         print (MASK)
         restr_list = [idx for idx,mval in enumerate(MASK) if mval]
