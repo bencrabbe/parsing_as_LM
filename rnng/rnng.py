@@ -501,14 +501,17 @@ class RNNGparser:
         S,B,n,stack_state,lab_state,local_score = configuration
 
         if lab_state == RNNGparser.WORD_LABEL:
+            print('w')
             W   = dy.parameter(self.lex_out)
             b   = dy.parameter(self.lex_bias)
             correct_prediction = self.lex_lookup(ref_action)
         elif lab_state == RNNGparser.NT_LABEL:
+            print('nt')
             W   = dy.parameter(self.nt_out)
             b   = dy.parameter(self.nt_bias)
             correct_prediction = self.nonterminals_codes[ref_action]
         else:
+            print('s')
             W   = dy.parameter(self.struct_out)
             b   = dy.parameter(self.struct_bias)
             correct_prediction = self.action_codes[ref_action]
