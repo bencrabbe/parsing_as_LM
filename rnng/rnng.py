@@ -507,6 +507,7 @@ class RNNGparser:
             if restr:
                 return dy.log_softmax(W * self.rnng_dropout(dy.tanh(stack_state.output())) + b,restr)
             #parse failure (parser trapped)
+            print('oops. parse failure...')
             return None
         
     def predict_action_distrib(self,configuration,structural_history,sentence,max_only=False):
