@@ -499,9 +499,11 @@ class RNNGparser:
         """
         S,B,n,stack_state,lab_state,local_score = configuration
         logprobs = self.raw_action_distrib(configuration,structural_history)
-        if logprobs == None:#parse failure
-            print('failed')
-            return []
+        if logprobs == None: #dead end
+            if max_only:
+                print('sorry, parser trapped. aborting.')
+                exit(1)
+            return [] #in a beam context parsing can continue...
         logprobs = logprobs.npvalue()
         if lab_state == RNNGparser.WORD_LABEL:        
             next_word = sentence[B[0]]
