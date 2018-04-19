@@ -39,12 +39,20 @@ class OptimMonitor:
         self.reset_all()
         self.ppl_dataset = []
         
-    def display_NLL_log(self,reset=False):
+    def display_NLL_log(self,tree_idx=None,reset=False):
         global_nll = self.lex_loss+self.struct_loss+self.nt_loss
         N =  self.lexN + self.structN + self.ntN
         if N == 0:
             return
-        sys.stdout.write("\nMean NLL : %.5f, PPL : %.5f, Lex-PPL : %.5f, NT-PPL : %.5f, Struct-PPL: %.5f\n"%(global_nll/N,\
+        if tree_idx:
+            sys.stdout.write("\rTree #%d Mean NLL : %.5f, PPL : %.5f, Lex-PPL : %.5f, NT-PPL : %.5f, Struct-PPL: %.5f\n"%(tree_idx,\
+                                                                                                                        global_nll/N,\
+                                                                                                                        np.exp(global_nll/N),\
+                                                                                                                        np.exp(self.lex_loss/self.lexN),
+                                                                                                                        np.exp(self.nt_loss/self.ntN),
+                                                                                                                        np.exp(self.struct_loss/self.structN)))
+        else:
+            sys.stdout.write("\nMean NLL : %.5f, PPL : %.5f, Lex-PPL : %.5f, NT-PPL : %.5f, Struct-PPL: %.5f\n"%(global_nll/N,\
                                                                                                               np.exp(global_nll/N),\
                                                                                                               np.exp(self.lex_loss/self.lexN),
                                                                                                               np.exp(self.nt_loss/self.ntN),
@@ -60,7 +68,7 @@ class OptimMonitor:
         N = self.acc_lexN+self.acc_structN+self.acc_ntN 
         if N == 0:
             return
-        sys.stdout.write("\rMean acc : %.5f, Lex acc : %.5f, Struct acc : %.5f, NT acc : %.5f"%(global_acc/N,\
+        sys.stdout.write("Mean acc : %.5f, Lex acc : %.5f, Struct acc : %.5f, NT acc : %.5f"%(global_acc/N,\
                                                                                                     self.lex_acc/self.acc_lexN,\
                                                                                                     self.struct_acc/self.acc_structN,\
                                                                                                     self.nt_acc/self.acc_ntN))
@@ -105,7 +113,6 @@ class OptimMonitor:
         elif datum_type == RNNGparser.NO_LABEL:
             self.struct_acc  += datum_correct
             self.acc_structN += 1
-
             
     def add_NLL_datum(self,datum_loss,configuration):
         """
@@ -126,7 +133,6 @@ class OptimMonitor:
         elif datum_type == RNNGparser.NO_LABEL:
             self.struct_loss += datum_loss
             self.structN     +=1
-
             
 class RNNGparser:
     """
@@ -866,8 +872,10 @@ class RNNGparser:
         monitor =  OptimMonitor()
         for e in range(max_epochs):
             print('\n--------------------------\nEpoch %d'%(e,),flush=True)
-            for tree in train_bank:
+            for idx,tree in enumerate(train_bank):
                 self.train_sentence(tree,monitor)
+                if idx % 1000 == 0:
+                     monitor.display_NLL_log() 
 
             monitor.display_NLL_log(reset=True)            
             devloss = self.eval_all(dev_bank)
