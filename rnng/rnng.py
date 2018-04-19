@@ -482,9 +482,12 @@ class RNNGparser:
         else:                                                               #lab_state == RNNGparser.NO_LABEL perform a structural action
             W = dy.parameter(self.struct_out)
             b = dy.parameter(self.struct_bias)
-            #print(W.npvalue().shape,b.npvalue().shape,stack_state.output().npvalue().shape)
-            return dy.log_softmax(W * self.rnng_dropout(dy.tanh(stack_state.output())) + b,self.restrict_structural_actions(configuration,structural_history))
-
+            restr = self.restrict_structural_actions(configuration,structural_history)
+            if restr:
+                return dy.log_softmax(W * self.rnng_dropout(dy.tanh(stack_state.output())) + b,restr)
+            #parse failure (parser trapped)
+            return None
+        
     def predict_action_distrib(self,configuration,structural_history,sentence,max_only=False):
         """
         Predicts the action distribution for testing purposes.
@@ -497,6 +500,8 @@ class RNNGparser:
         """
         S,B,n,stack_state,lab_state,local_score = configuration
         logprobs = self.raw_action_distrib(configuration,structural_history).npvalue()
+        if not logprobs:#parse failure
+            return []
         if lab_state == RNNGparser.WORD_LABEL:        
             next_word = sentence[B[0]]
             score = logprobs[next_word]
