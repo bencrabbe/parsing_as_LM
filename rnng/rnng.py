@@ -872,11 +872,14 @@ class RNNGparser:
         monitor =  OptimMonitor()
         for e in range(max_epochs):
             print('\n--------------------------\nEpoch %d'%(e,),flush=True)
+
             for idx,tree in enumerate(train_bank):
+                
                 self.train_sentence(tree,monitor)
+                
                 if idx+1 % 1000 == 0:
                      monitor.display_NLL_log(tree_idx=idx) 
-
+                     
             monitor.display_NLL_log(reset=True)            
             devloss = self.eval_all(dev_bank)
             if devloss < best_model_loss :
