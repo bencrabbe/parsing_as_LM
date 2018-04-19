@@ -874,7 +874,7 @@ class RNNGparser:
             print('\n--------------------------\nEpoch %d'%(e,),flush=True)
 
             for idx,tree in enumerate(train_bank):
-                
+                print(idx)
                 self.train_sentence(tree,monitor)
                 
                 if idx+1 % 1000 == 0:
