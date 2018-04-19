@@ -1021,6 +1021,9 @@ if __name__ == '__main__':
         t4 = ConsTree.read_tree("(TOP (PRN (ADVP (ADVP So long) (SBAR as (S you (VP do n't (VP look down)))) .)))")
         t4.close_unaries()
         print(t4)
+        t5 = ConsTree.read_tree("(TOP (PRN hello))")
+        t5.close_unaries()
+        print(t5)
         exit(0)
         train_treebank = [t,t2,t3]
         
