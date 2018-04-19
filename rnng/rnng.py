@@ -824,7 +824,7 @@ class RNNGparser:
         """
         Evaluates the model on a development treebank
         """
-        print('\nEval on dev...')
+        print('\nEval on dev...',flush=True)
         monitor =  OptimMonitor()
         D = self.dropout
         self.dropout = 0.0
