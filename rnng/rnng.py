@@ -409,7 +409,7 @@ class RNNGparser:
 
         print (MASK)
         restr_list = [idx for idx,mval in enumerate(MASK) if mval]
-        print([self.action_codes[idx] for idx in restr_list])
+        print('*',[self.actions[idx] for idx in restr_list])
         return restr_list
     
         
