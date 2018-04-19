@@ -53,7 +53,7 @@ class OptimMonitor:
         if reset:
             self.reset_loss_counts()
         
-    def display_acc_log(,reset=False):
+    def display_ACC_log(self,reset=False):
         global_acc = self.struct_acc+self.lex_acc+self.nt_acc
         N = self.acc_lexN+self.acc_structN+self.acc_ntN 
        
