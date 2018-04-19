@@ -884,7 +884,7 @@ class RNNGparser:
             for idx,tree in enumerate(train_bank):
 
                 sys.stdout.write('\rtree #%d'%(idx))
-                sys.sdtdout.flush()
+                sys.stdout.flush()
                 
                 self.train_sentence(tree,monitor)
                 if idx+1 % 1000 == 0:
