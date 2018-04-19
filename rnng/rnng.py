@@ -498,6 +498,7 @@ class RNNGparser:
         logprobs = self.raw_action_distrib(configuration,structural_history).npvalue()
         if lab_state == RNNGparser.WORD_LABEL:        
             next_word = sentence[B[0]]
+            score = logprobs[next_word]
             if max_only :
                 return (next_word,score)
             return [(next_word,score)]
@@ -844,10 +845,10 @@ class RNNGparser:
         C         = self.init_configuration(len(tokens))
         struct_history = ['<init>'] 
         deriv = [ ]
-        
+        pred_action = None
         while pred_action != RNNGparser.TERMINATE :
 
-            (pred_action,score) = self.predict_action_distrib(C,struct_history,tok_codes,max_only=True)
+            pred_action,score = self.predict_action_distrib(C,struct_history,tok_codes,max_only=True)
             deriv.append(pred_action)
             C,struct_history = self.move_state(tok_codes,C,struct_history,pred_action,score)
 
