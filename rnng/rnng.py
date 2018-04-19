@@ -588,7 +588,8 @@ class RNNGparser:
             C = self.shift_action(configuration,score)
             struct_history.append( RNNGparser.SHIFT )
         elif action == RNNGparser.TERMINATE:
-            pass
+            C = configuration
+            
         return C,struct_history        
         
     # def predict_action_distrib(self,configuration,structural_history,sentence=None,max_only=False,ref_action=None):
