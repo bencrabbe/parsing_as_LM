@@ -147,6 +147,8 @@ class RNNGparser:
         self.hidden_size          = hidden_size
         self.dropout = 0.0
 
+        
+    #oracle, derivation and trees
     def oracle_derivation(self,ref_tree,root=True):
         """
         Returns an oracle derivation given a reference tree
@@ -207,7 +209,9 @@ class RNNGparser:
         stack  = ','.join([str(elt) for elt in S])
         bfr    = ','.join([str(elt) for elt in B])
         return '< (%s) , (%s) , %d>'%(stack,bfr,n)
-    
+
+
+    #coding    
     def code_lexicon(self,treebank,max_vocab_size):
         """
         Codes a lexicon (x-data) on integers indexes.
@@ -409,10 +413,43 @@ class RNNGparser:
         return restr_list
     
         
-    #Weighting & representation system
+    #scoring & representation system
+    def make_structure(self):
+        """
+        Allocates the network structure
+        """
+        lexicon_size = len(self.rev_word_codes)
+        actions_size = len(self.actions)
+        nt_size      = len(self.nonterminals)
+
+        #Model structure
+        self.model                 = dy.ParameterCollection()
+        
+        #top level task predictions
+        self.struct_out             = self.model.add_parameters((actions_size,self.hidden_size),init='glorot')          #struct action output layer
+        self.struct_bias            = self.model.add_parameters((actions_size),init='glorot')
+
+        self.lex_out                = self.model.add_parameters((lexicon_size,self.hidden_size),init='glorot')          #lex action output layer
+        self.lex_bias               = self.model.add_parameters((lexicon_size),init='glorot')
+
+        self.nt_out                 = self.model.add_parameters((nt_size,self.hidden_size),init='glorot')               #nonterminal action output layer
+        self.nt_bias                = self.model.add_parameters((nt_size),init='glorot')
+
+        
+        #embeddings
+        self.lex_embedding_matrix  = self.model.add_lookup_parameters((lexicon_size,self.stack_embedding_size),init='glorot')       # symbols embeddings
+        self.nt_embedding_matrix   = self.model.add_lookup_parameters((nt_size,self.stack_embedding_size),init='glorot')
+        #stack rnn 
+        self.stack_rnn             = dy.LSTMBuilder(1,self.stack_embedding_size, self.stack_hidden_size,self.model)        # main stack rnn
+        #tree rnn
+        self.fwd_tree_rnn          = dy.LSTMBuilder(1,self.stack_embedding_size, self.stack_hidden_size,self.model)        # bi-rnn for tree embeddings
+        self.bwd_tree_rnn          = dy.LSTMBuilder(1,self.stack_embedding_size, self.stack_hidden_size,self.model)
+        self.tree_rnn_out          = self.model.add_parameters((self.stack_embedding_size,self.stack_hidden_size*2),init='glorot')       # out layer merging the tree bi-rnn output
+
+        
     def rnng_dropout(self,expr):
         """
-        That is a condiational dropout that applies dropout to a dynet expression only at training time
+        That is a conditional dropout that applies dropout to a dynet expression only at training time
         @param expr: a dynet expression
         @return a dynet expression
         """
@@ -420,116 +457,247 @@ class RNNGparser:
             return expr
         else:
             return dy.dropout(expr,self.dropout)
-        
-    def predict_action_distrib(self,configuration,structural_history,sentence,max_only=False,ref_action=None):
+
+    def raw_action_distrib(self,configuration,structural_history): #max_prediction=False,ref_action=None,backprop=True):
         """
-        This predicts the next action distribution with the classifier and constrains it with the classifier structural rules
+        This predicts the next action distribution and constrains it given the configuration context.
+        @param configuration: the current configuration
+        @param structural_history  : the sequence of structural actions performed so far by the parser
+        @return a dynet expression
+        """        
+        S,B,n,stack_state,lab_state,local_score = configuration
+        
+        if lab_state == RNNGparser.WORD_LABEL:                             #generate wordform action
+            W = dy.parameter(self.lex_out)
+            b = dy.parameter(self.lex_bias)
+            return dy.log_softmax(W * self.rnng_dropout(dy.tanh(stack_state.output()) + b))
+        
+        elif lab_state == RNNGparser.NT_LABEL:                             #generates a non terminal labelling
+            W = dy.parameter(self.nt_out)
+            b = dy.parameter(self.nt_bias)
+            return dy.log_softmax(W * self.rnng_dropout(dy.tanh(stack_state.output()) + b))
+            
+        else:                                                               #lab_state == RNNGparser.NO_LABEL perform a structural action
+            W = dy.parameter(self.struct_out)
+            b = dy.parameter(self.struct_bias)
+            return dy.log_softmax(W * self.rnng_dropout(dy.tanh(stack_state.output()) + b),self.restrict_structural_actions(configuration,structural_history))
+
+    def predict_action_distrib(self,configuration,structural_history,sentence,max_only=False):
+        """
+        Predicts the action distribution for testing purposes.
         @param configuration: the current configuration
         @param structural_history  : the sequence of structural actions performed so far by the parser
         @param sentence : a list of token integer codes
         @param max_only : returns only the couple (action,logprob) with highest score
-        @param ref_action : returns only the negative logprob of the reference action (NLL)
-        @return a list of (action,logprob) legal at that state
-        """        
+        
+        @return a list of (action,scores) or a single tuple if max_only is True
+        """
         S,B,n,stack_state,lab_state,local_score = configuration
-
-        if lab_state == RNNGparser.WORD_LABEL: #generate wordform action
+        logprobs = self.raw_action_distrib(configuration,structural_history).npvalue()
+        if lab_state == RNNGparser.WORD_LABEL:        
             next_word = sentence[B[0]]
-            W = dy.parameter(self.lex_out)
-            b = dy.parameter(self.lex_bias)
-
-            if ref_action:
-                correct_prediction = self.word_codes[ref_action]
-                return dy.pickneglog_softmax( (W * dy.tanh(stack_state.output())) + b,correct_prediction).value()
-            
-            logprobs = dy.log_softmax(W * dy.tanh(stack_state.output()) + b).npvalue()
-            score = np.maximum(logprobs[next_word],np.log(np.finfo(float).eps))
-
             if max_only :
                 return (next_word,score)
-            
             return [(next_word,score)]
-            
         elif lab_state == RNNGparser.NT_LABEL: #label NT action
-            W = dy.parameter(self.nt_out)
-            b = dy.parameter(self.nt_bias)
-
-            if ref_action:
-                correct_prediction = self.nonterminals_codes[ref_action]
-                return dy.pickneglog_softmax( (W * dy.tanh(stack_state.output())) + b,correct_prediction).value()
-            
-            logprobs = dy.log_softmax(W * dy.tanh(stack_state.output()) + b).npvalue()
-            
             if max_only:
                 idx = np.argmax(logprobs)
                 return (self.nonterminals[idx],logprobs[idx])
-            
-            return list(zip(self.nonterminals,logprobs))
-        
-        else: #lab_state == RNNGparser.NO_LABEL perform a structural action
-            W = dy.parameter(self.struct_out)
-            b = dy.parameter(self.struct_bias)
-            
-            if ref_action:
-                correct_prediction = self.action_codes[ref_action]
-                return dy.pick(-log_softmax( (W * dy.tanh(stack_state.output())) + b,self.restrict_structural_actions(configuration,structural_history)),correct_prediction).value()
-            
-            logprobs = dy.log_softmax(W * dy.tanh(stack_state.output()) + b,self.restrict_structural_actions(configuration,structural_history)).npvalue()
-            #constraint + underflow prevention
-            #logprobs = np.maximum(logprobs,np.log(np.finfo(float).eps))
+            return list(zip(self.nonterminals,logprobs))            
+        else:                               #lab_state == RNNGparser.NO_LABEL perform a structural action
             if max_only:
                 idx = np.argmax(logprobs)
-                #TODO here:if logprob == -inf raise parse failure 
                 return (self.actions[idx],logprobs[idx])
-        
             return [(act,logp) for act,logp in zip(self.actions,logprobs) if logp > -np.inf]
 
-        
-    def train_one(self,configuration,structural_history,ref_action,backprop=True):
+    def backprop_action_distrib(self,configuration,structural_history,ref_action):
         """
-        This performs a forward, backward and update pass on the network for this action.
+        This performs a forward, backward and update pass on the network for this datum.
         @param configuration: the current configuration
-        @param structural history: the list of strcutural actions performed so far
+        @param structural history: the list of structural actions performed so far
         @param ref_action  : the reference action
-        @return : the loss (NLL) for this action and a boolean indicating if the prediction argmax is correct or not
+        @return : the loss (NLL) for this action
+        """
+        S,B,n,stack_state,lab_state,local_score = configuration
+        logprobs = self.raw_action_distrib(configuration,structural_history)
+
+        if lab_state == RNNGparser.WORD_LABEL:
+            ref_prediction = self.lex_lookup(ref_action)            
+        elif lab_state == RNNGparser.NT_LABEL:
+            ref_prediction = self.nonterminals_codes[ref_action]
+        else:
+            ref_prediction = self.action_codes[ref_action]
+            
+        loss       = -dy.pick(log_probs,ref_prediction)
+        loss_val   = loss.value()
+        loss.backward()
+        self.trainer.update()
+        return loss_val
+    
+    def eval_action_distrib(self,configuration,structural_history,ref_action):
+        """
+        This performs a forward pass on the network for this datum and returns the ref_action NLL
+        @param configuration: the current configuration
+        @param structural history: the list of structural actions performed so far
+        @param ref_action  : the reference action
+        @return : (NLL,correct) where NLL for the ref action and correct is true if the argmax of the distrib = ref_action
+        """
+        S,B,n,stack_state,lab_state,local_score = configuration
+        logprobs = self.raw_action_distrib(configuration,structural_history)
+
+        if lab_state == RNNGparser.WORD_LABEL:
+            ref_prediction = self.lex_lookup(ref_action)            
+        elif lab_state == RNNGparser.NT_LABEL:
+            ref_prediction = self.nonterminals_codes[ref_action]
+        else:
+            ref_prediction = self.action_codes[ref_action]
+            
+        loss       = -dy.pick(log_probs,ref_prediction)
+        loss_val   = loss.value()
+        best_pred  = np.argmax(logprobs.npvalue())
+        return loss_val,(best_pred==ref_prediction)
+
+
+
+    #parsing, training, eval one sentence        
+    def move_state(self,tok_codes,configuration,struct_history,action,score):
+        """
+        Applies an action to config. Use it only in greedy contexts, not with beam.
+        @param tok_codes: the integer list of word codes of the current sentence
+        @param configuration: a current config
+        @param struct_history: a current struct history
+        @param action: the action to execute
+        @param score: the score of the action
+        @return (C,H) an updated Configuration and update History resulting from applying action to prev configuration
         """
         S,B,n,stack_state,lab_state,local_score = configuration
 
         if lab_state == RNNGparser.WORD_LABEL:
-            W   = dy.parameter(self.lex_out)
-            b   = dy.parameter(self.lex_bias)
-            correct_prediction = self.lex_lookup(ref_action)
-            if backprop:
-                log_probs = dy.log_softmax( (W * dy.dropout(dy.tanh(stack_state.output()),self.dropout)) + b)
-            else:
-                log_probs = dy.log_softmax( (W * dy.tanh(stack_state.output())) + b)
-
+            C = self.word_action(C,tok_codes,score)
         elif lab_state == RNNGparser.NT_LABEL:
-            W   = dy.parameter(self.nt_out)
-            b   = dy.parameter(self.nt_bias)
-            correct_prediction = self.nonterminals_codes[ref_action]
-            if backprop:
-                log_probs = dy.log_softmax( (W * dy.dropout(dy.tanh(stack_state.output()),self.dropout)) + b)
-            else:
-                log_probs = dy.log_softmax( (W * dy.tanh(stack_state.output())) + b)
+            C = self.nonterminal_action(C,action,score)
+        elif action == RNNGparser.CLOSE:
+            C = self.close_action(C,score)
+            struct_history.append( RNNGparser.CLOSE )
+        elif action == RNNGparser.OPEN:
+            C = self.open_action(C,score)
+            struct_history.append( RNNGparser.OPEN )
+        elif action == RNNGparser.SHIFT:
+            C = self.shift_action(C,score)
+            struct_history.append( RNNGparser.SHIFT )
+        elif action == RNNGparser.TERMINATE:
+            pass
+        return C,struct_history        
+        
+    # def predict_action_distrib(self,configuration,structural_history,sentence=None,max_only=False,ref_action=None):
+    #     """
+    #     This predicts the next action distribution with the classifier and constrains it with the classifier structural rules
+    #     @param configuration: the current configuration
+    #     @param structural_history  : the sequence of structural actions performed so far by the parser
+    #     @param sentence : a list of token integer codes
+    #     @param max_only : returns only the couple (action,logprob) with highest score
+    #     @param ref_action : returns only the negative logprob of the reference action (NLL)
+    #     @return a list of (action,logprob) legal at that state
+    #     """        
+    #     S,B,n,stack_state,lab_state,local_score = configuration
 
-        else:
-            W   = dy.parameter(self.struct_out)
-            b   = dy.parameter(self.struct_bias)
-            correct_prediction = self.action_codes[ref_action]
-            if backprop:
-                log_probs = dy.log_softmax( (W * dy.dropout(dy.tanh(stack_state.output()),self.dropout)) + b,self.restrict_structural_actions(configuration,structural_history))
-            else:
-                log_probs = dy.log_softmax( (W * dy.tanh(stack_state.output())) + b,self.restrict_structural_actions(configuration,structural_history))
+    #     if lab_state == RNNGparser.WORD_LABEL: #generate wordform action
+    #         next_word = sentence[B[0]]
+    #         W = dy.parameter(self.lex_out)
+    #         b = dy.parameter(self.lex_bias)
 
-        best_prediction = np.argmax(log_probs.npvalue())
-        iscorrect = (correct_prediction == best_prediction)
-        loss       = -dy.pick(log_probs,correct_prediction)
-        loss_val   = loss.value()
-        if backprop:
-            loss.backward()
-            self.trainer.update()
-        return loss_val,iscorrect
+    #         if ref_action:
+    #             correct_prediction = self.word_codes[ref_action]
+    #             return dy.pickneglog_softmax( (W * dy.tanh(stack_state.output())) + b,correct_prediction).value()
+            
+    #         logprobs = dy.log_softmax(W * dy.tanh(stack_state.output()) + b).npvalue()
+    #         score = np.maximum(logprobs[next_word],np.log(np.finfo(float).eps))
+
+    #         if max_only :
+    #             return (next_word,score)
+            
+    #         return [(next_word,score)]
+            
+    #     elif lab_state == RNNGparser.NT_LABEL: #label NT action
+    #         W = dy.parameter(self.nt_out)
+    #         b = dy.parameter(self.nt_bias)
+
+    #         if ref_action:
+    #             correct_prediction = self.nonterminals_codes[ref_action]
+    #             return dy.pickneglog_softmax( (W * dy.tanh(stack_state.output())) + b,correct_prediction).value()
+            
+    #         logprobs = dy.log_softmax(W * dy.tanh(stack_state.output()) + b).npvalue()
+            
+    #         if max_only:
+    #             idx = np.argmax(logprobs)
+    #             return (self.nonterminals[idx],logprobs[idx])
+            
+    #         return list(zip(self.nonterminals,logprobs))
+        
+    #     else: #lab_state == RNNGparser.NO_LABEL perform a structural action
+    #         W = dy.parameter(self.struct_out)
+    #         b = dy.parameter(self.struct_bias)
+            
+    #         if ref_action:
+    #             correct_prediction = self.action_codes[ref_action]
+    #             return dy.pick(-log_softmax( (W * dy.tanh(stack_state.output())) + b,self.restrict_structural_actions(configuration,structural_history)),correct_prediction).value()
+            
+    #         logprobs = dy.log_softmax(W * dy.tanh(stack_state.output()) + b,self.restrict_structural_actions(configuration,structural_history)).npvalue()
+    #         #constraint + underflow prevention
+    #         #logprobs = np.maximum(logprobs,np.log(np.finfo(float).eps))
+    #         if max_only:
+    #             idx = np.argmax(logprobs)
+    #             #TODO here:if logprob == -inf raise parse failure 
+    #             return (self.actions[idx],logprobs[idx])
+        
+    #         return [(act,logp) for act,logp in zip(self.actions,logprobs) if logp > -np.inf]
+
+        
+    # def train_one(self,configuration,structural_history,ref_action,backprop=True):
+    #     """
+    #     This performs a forward, backward and update pass on the network for this action.
+    #     @param configuration: the current configuration
+    #     @param structural history: the list of strcutural actions performed so far
+    #     @param ref_action  : the reference action
+    #     @return : the loss (NLL) for this action and a boolean indicating if the prediction argmax is correct or not
+    #     """
+    #     S,B,n,stack_state,lab_state,local_score = configuration
+
+    #     if lab_state == RNNGparser.WORD_LABEL:
+    #         W   = dy.parameter(self.lex_out)
+    #         b   = dy.parameter(self.lex_bias)
+    #         correct_prediction = self.lex_lookup(ref_action)
+    #         if backprop:
+    #             log_probs = dy.log_softmax( (W * dy.dropout(dy.tanh(stack_state.output()),self.dropout)) + b)
+    #         else:
+    #             log_probs = dy.log_softmax( (W * dy.tanh(stack_state.output())) + b)
+
+    #     elif lab_state == RNNGparser.NT_LABEL:
+    #         W   = dy.parameter(self.nt_out)
+    #         b   = dy.parameter(self.nt_bias)
+    #         correct_prediction = self.nonterminals_codes[ref_action]
+    #         if backprop:
+    #             log_probs = dy.log_softmax( (W * dy.dropout(dy.tanh(stack_state.output()),self.dropout)) + b)
+    #         else:
+    #             log_probs = dy.log_softmax( (W * dy.tanh(stack_state.output())) + b)
+
+    #     else:
+    #         W   = dy.parameter(self.struct_out)
+    #         b   = dy.parameter(self.struct_bias)
+    #         correct_prediction = self.action_codes[ref_action]
+    #         if backprop:
+    #             log_probs = dy.log_softmax( (W * dy.dropout(dy.tanh(stack_state.output()),self.dropout)) + b,self.restrict_structural_actions(configuration,structural_history))
+    #         else:
+    #             log_probs = dy.log_softmax( (W * dy.tanh(stack_state.output())) + b,self.restrict_structural_actions(configuration,structural_history))
+
+    #     best_prediction = np.argmax(log_probs.npvalue())
+    #     iscorrect = (correct_prediction == best_prediction)
+    #     loss       = -dy.pick(log_probs,correct_prediction)
+    #     loss_val   = loss.value()
+    #     if backprop:
+    #         loss.backward()
+    #         self.trainer.update()
+    #     return loss_val,iscorrect
     
     def beam_parse(self,tokens,all_beam_size,lex_beam_size,ref_tree=None):
         """
@@ -566,6 +734,7 @@ class RNNGparser:
            
                
         dy.renew_cg()
+        
         tok_codes    = [self.lex_lookup(t) for t in tokens  ]
 
         start = BeamElement(None,'init',0)
@@ -655,10 +824,10 @@ class RNNGparser:
         if ref_tree:
             return ref_tree.compare(pred_tree)
         return pred_tree
-
+        
     def parse_sentence(self,tokens,get_derivation=False,ref_tree=None):
         """
-        Parses a sentence. if a ref_tree is provided, return Prec,Rec
+        Parses a sentence greedily. if a ref_tree is provided, return Prec,Rec
         and a Fscore else returns a Constree object, the predicted
         parse tree.        
         @param tokens: a list of strings
@@ -667,34 +836,18 @@ class RNNGparser:
         @return a derivation, a ConsTree or some evaluation metrics
         """
         dy.renew_cg()
+
         tok_codes = [self.lex_lookup(t) for t in tokens  ]
         C         = self.init_configuration(len(tokens))
-
         struct_history = ['<init>'] 
-        S,B,n,stackS,lab_state,score = C
         deriv = [ ]
         
-        while True:
+        while pred_action != RNNGparser.TERMINATE :
+
             (pred_action,score) = self.predict_action_distrib(C,struct_history,tok_codes,max_only=True)
             deriv.append(pred_action)
-            if lab_state == RNNGparser.WORD_LABEL:
-                C = self.word_action(C,tok_codes,score)
-            elif lab_state == RNNGparser.NT_LABEL:
-                C = self.nonterminal_action(C,pred_action,score)
-            elif pred_action == RNNGparser.CLOSE:
-                C = self.close_action(C,score)
-                struct_history.append( RNNGparser.CLOSE )
-            elif pred_action == RNNGparser.OPEN:
-                C = self.open_action(C,score)
-                struct_history.append( RNNGparser.OPEN )
-            elif pred_action == RNNGparser.SHIFT:
-                C = self.shift_action(C,score)
-                struct_history.append( RNNGparser.SHIFT )
-            elif pred_action == RNNGparser.TERMINATE:
-                break
-            
-            S,B,n,stackS,lab_state,score = C
-                        
+            C,struct_history = self.move_state(tok_codes,C,struct_history,pred_action,score)
+
         if get_derivation:
             return deriv
         pred_tree  = RNNGparser.derivation2tree(deriv,tokens)
@@ -702,6 +855,102 @@ class RNNGparser:
             return ref_tree.compare(pred_tree)
         return pred_tree
 
+   def train_sentence(self,ref_tree):
+        """
+        Trains the model on a single sentence
+        """
+        dy.renew_cg()
+        ref_derivation  = self.oracle_derivation(ref_tree)
+        tok_codes = [self.lex_lookup(t) for t in ref_tree.tokens()]   
+        step, max_step  = (0,len(ref_derivation))
+        C               = self.init_configuration(len(tok_codes))
+        struct_history = ['<init>'] 
+        for ref_action in ref_derivation:
+            NLL = self.backprop_action_distrib(C,struct_history,ref_action)
+            C,struct_history = self.move_state(tok_codes,C,struct_history,ref_action,-NLL)
+    
+    def eval_sentence(self,ref_tree):
+        """
+        Evaluates a single sentence from dev set.
+        """
+        dy.renew_cg()
+        ref_derivation  = self.oracle_derivation(ref_tree)
+        tok_codes       = [self.lex_lookup(t) for t in ref_tree.tokens()]   
+        step, max_step  = (0,len(ref_derivation))
+        C               = self.init_configuration(len(tok_codes))
+        struct_history = ['<init>']
+        NLL = 0 
+        for ref_action in ref_derivation:
+            loc_NLL,correct = self.eval_action_distrib(C,struct_history,ref_action)
+            C,struct_history = self.move_state(tok_codes,C,struct_history,ref_action,-NLL)
+            NLL += loc_NLL
+        return NLL
+    
+    #parsing, training etc on a full treebank
+    def eval_all(self,dev_bank):
+        """
+        Evaluates the model on a development treebank
+        """
+        print('\n  Eval on dev...')
+        
+        D = self.dropout
+        self.dropout = 0.0
+        L = 0
+        for tree in dev_bank:
+           L += self.eval_sentence(tree)
+        self.dropout = D
+        return L
+
+    def train_generative_model(self,modelname,max_epochs,train_bank,dev_bank,lex_embeddings_file=None,learning_rate=0.001,dropout=0.3):
+        """
+        This trains an RNNG model on a treebank
+        @param model_name: a string for the fileprefix where to store the model
+        @param learning_rate: the learning rate for SGD
+        @param max_epochs: the max number of epochs
+        @param train_bank: a list of ConsTree
+        @param dev_bank  : a list of ConsTree
+        @param lex_embeddings_file: an external word embeddings filename
+        @return a dynet model
+        """
+        self.dropout = dropout
+        
+        #Coding
+        self.code_lexicon(train_bank,self.max_vocab_size)
+        self.code_nonterminals(train_bank)
+        self.code_struct_actions()
+
+        self.print_summary()
+        print('---------------------------')
+        print('num epochs          :',max_epochs)
+        print('learning rate       :',learning_rate)
+        print('dropout             :',self.dropout)        
+        print('num training trees  :',len(train_bank),flush=True)
+
+        self.make_structure()
+
+        lexicon = set(self.rev_word_codes)
+        
+        #training
+        self.trainer = dy.AdamTrainer(self.model,alpha=learning_rate)
+        best_model_loss = np.inf #stores the best model on dev
+        monitor =  OptimMonitor()
+        for e in range(max_epochs):
+            print('\nEpoch %d'%(e,),flush=True)
+            for tree in train_bank:
+                self.train_sentence(ref_tree)
+                
+            devloss = self.eval_all(dev_bank)
+            if devloss < best_model_loss :
+                best_model_loss=devloss
+                print(" => saving model, loss =",devloss)
+                self.save_model(modelname)
+                
+        print()
+        monitor.save_accuracy_curves(modelname+'learningcurves.csv')
+        self.save_model(modelname+'.final')
+        self.dropout = 0.0  #prevents dropout to be applied at decoding
+            
+    #I/O etc.
     def print_summary(self):
         """
         Prints the summary of the parser setup
@@ -713,38 +962,7 @@ class RNNGparser:
         print('Stack embedding size    :',self.stack_embedding_size,flush=True)
         print('Stack hidden size       :',self.stack_hidden_size,flush=True)
 
-    def make_structure(self):
-        """
-        Allocates the network structure
-        """
-        lexicon_size = len(self.rev_word_codes)
-        actions_size = len(self.actions)
-        nt_size      = len(self.nonterminals)
-
-        #Model structure
-        self.model                 = dy.ParameterCollection()
-        
-        #top level task predictions
-        self.struct_out             = self.model.add_parameters((actions_size,self.hidden_size),init='glorot')          #struct action output layer
-        self.struct_bias            = self.model.add_parameters((actions_size),init='glorot')
-
-        self.lex_out                = self.model.add_parameters((lexicon_size,self.hidden_size),init='glorot')          #lex action output layer
-        self.lex_bias               = self.model.add_parameters((lexicon_size),init='glorot')
-
-        self.nt_out                 = self.model.add_parameters((nt_size,self.hidden_size),init='glorot')               #nonterminal action output layer
-        self.nt_bias                = self.model.add_parameters((nt_size),init='glorot')
-
-        
-        #embeddings
-        self.lex_embedding_matrix  = self.model.add_lookup_parameters((lexicon_size,self.stack_embedding_size),init='glorot')       # symbols embeddings
-        self.nt_embedding_matrix   = self.model.add_lookup_parameters((nt_size,self.stack_embedding_size),init='glorot')
-        #stack rnn 
-        self.stack_rnn             = dy.LSTMBuilder(1,self.stack_embedding_size, self.stack_hidden_size,self.model)        # main stack rnn
-        #tree rnn
-        self.fwd_tree_rnn          = dy.LSTMBuilder(1,self.stack_embedding_size, self.stack_hidden_size,self.model)        # bi-rnn for tree embeddings
-        self.bwd_tree_rnn          = dy.LSTMBuilder(1,self.stack_embedding_size, self.stack_hidden_size,self.model)
-        self.tree_rnn_out          = self.model.add_parameters((self.stack_embedding_size,self.stack_hidden_size*2),init='glorot')       # out layer merging the tree bi-rnn output
-
+   
     @staticmethod
     def load_model(model_name):
         """
@@ -779,145 +997,7 @@ class RNNGparser:
         self.model.save(model_name+'.prm')
 
         
-    def eval_trees(self,ref_treebank,all_beam_size,lex_beam_size):
-        """
-        Returns a pseudo f-score of the model against ref_treebank
-        with all_beam_size and lex_beam_size.
-        This F-score is not equivalent to evalb f-score and should be regarded as indicative only.
-        @param ref_treebank : the treebank to evaluate on
-        @return Prec,Recall,F-score
-        """
-        P,R,F = 0.0,0.0,0.0
-        N     = len(ref_treebank) 
-        for tree in ref_treebank:
-            p,r,f = self.beam_parse(tree.tokens(),all_beam_size,lex_beam_size,ref_tree=tree)
-            P+=p
-            R+=r
-            F+=f
-        return P/N,R/N,F/N
-    
-    def eval_all(self,dev_bank):
-        """
-        Evaluates the model on a development treebank
-        """
-        print('\n  Eval on dev...')
-        
-        monitor =  OptimMonitor()
-        D = self.dropout
-        self.dropout = 0.0
-        for tree in dev_bank:
-            dy.renew_cg()
-            ref_derivation  = self.oracle_derivation(tree)
-            tok_codes       = [self.lex_lookup(t) for t in tree.tokens()]   
-            step, max_step  = (0,len(ref_derivation))
-            C               = self.init_configuration(len(tok_codes))
-            struct_history = ['<init>'] 
-            for ref_action in ref_derivation:
-                
-                loc_loss,correct = self.train_one(C,struct_history,ref_action,backprop=False)
-
-                S,B,n,stackS,lab_state,score = C
-                monitor.add_datum(loc_loss,correct,lab_state)
-
-                if lab_state == RNNGparser.WORD_LABEL:
-                    C = self.word_action(C,tok_codes,0)
-                elif lab_state == RNNGparser.NT_LABEL:
-                    C = self.nonterminal_action(C,ref_action,0)
-                elif ref_action == RNNGparser.CLOSE:
-                    C = self.close_action(C,0)
-                    struct_history.append( RNNGparser.CLOSE ) 
-                elif ref_action == RNNGparser.OPEN:
-                    C = self.open_action(C,0)
-                    struct_history.append( RNNGparser.OPEN ) 
-                elif ref_action == RNNGparser.SHIFT:
-                    C = self.shift_action(C,0)
-                    struct_history.append( RNNGparser.SHIFT ) 
-                elif ref_action == RNNGparser.TERMINATE:
-                    break
-
-        L = monitor.get_global_loss()
-        monitor.reset_all()
-        self.dropout = D
-        return L
-                        
-    def train_generative_model(self,modelname,max_epochs,train_bank,dev_bank,lex_embeddings_file=None,learning_rate=0.001,dropout=0.3):
-        """
-        This trains an RNNG model on a treebank
-        @param model_name: a string for the fileprefix where to store the model
-        @param learning_rate: the learning rate for SGD
-        @param max_epochs: the max number of epochs
-        @param train_bank: a list of ConsTree
-        @param dev_bank  : a list of ConsTree
-        @param lex_embeddings_file: an external word embeddings filename
-        @return a dynet model
-        """
-        self.dropout = dropout
-        
-        #Coding
-        self.code_lexicon(train_bank,self.max_vocab_size)
-        self.code_nonterminals(train_bank)
-        self.code_struct_actions()
-
-        self.print_summary()
-        print('---------------------------')
-        print('num epochs          :',max_epochs)
-        print('learning rate       :',learning_rate)
-        print('dropout             :',self.dropout)        
-        print('num training trees  :',len(train_bank),flush=True)
-
-        self.make_structure()
-
-        lexicon = set(self.rev_word_codes)
-        
-        #training
-        self.trainer = dy.AdamTrainer(self.model,alpha=learning_rate)
-
-        best_model_loss = np.inf #stores the best model on dev
-        
-        monitor =  OptimMonitor()
-        for e in range(max_epochs):
-            print('\nEpoch %d'%(e,),flush=True)
-            for tree in train_bank:
-                dy.renew_cg()
-                ref_derivation  = self.oracle_derivation(tree)
-                tok_codes = [self.lex_lookup(t) for t in tree.tokens()]   
-                step, max_step  = (0,len(ref_derivation))
-                C               = self.init_configuration(len(tok_codes))
-
-                struct_history = ['<init>'] 
-                for ref_action in ref_derivation:
-                    loc_loss,correct = self.train_one(C,struct_history,ref_action)
-
-                    S,B,n,stackS,lab_state,score = C
-                    monitor.add_datum(loc_loss,correct,lab_state)
-                    
-                    if lab_state == RNNGparser.WORD_LABEL:
-                        C = self.word_action(C,tok_codes,0)
-                    elif lab_state == RNNGparser.NT_LABEL:
-                        C = self.nonterminal_action(C,ref_action,0)
-                    elif ref_action == RNNGparser.CLOSE:
-                        C = self.close_action(C,0)
-                        struct_history.append( RNNGparser.CLOSE )
-                    elif ref_action == RNNGparser.OPEN:
-                        C = self.open_action(C,0)
-                        struct_history.append( RNNGparser.OPEN )
-                    elif ref_action == RNNGparser.SHIFT:
-                        C = self.shift_action(C,0)
-                        struct_history.append( RNNGparser.SHIFT )
-                    elif ref_action == RNNGparser.TERMINATE:
-                        break
-                    
-            monitor.reset_all()
-            devloss = self.eval_all(dev_bank)
-            if devloss < best_model_loss :
-                best_model_loss=devloss
-                print("saving model")
-                self.save_model(modelname)
-                
-        print()
-        self.dropout = 0.0  #prevents dropout to be applied at decoding
-        monitor.save_accuracy_curves(modelname+'learningcurves.csv')
-        self.save_model(modelname+'.final')
+   
         
 if __name__ == '__main__':
     try:
