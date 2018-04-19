@@ -294,10 +294,10 @@ class PennTreebank:
             PennTreebank.normalize_numbers(tree,num_token='<num>')
             PennTreebank.strip_traces(tree)
             PennTreebank.strip_decoration(tree)
-            if close_unaries:
-                ConsTree.close_unaries(tree)
             if strip_tags:
                 ConsTree.strip_tags(tree)
+            if close_unaries:
+                ConsTree.close_unaries(tree)
             yield tree
         ifile.close()
 
