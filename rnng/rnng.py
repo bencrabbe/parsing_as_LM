@@ -529,6 +529,7 @@ class RNNGparser:
             print('argh')
             print(self.pretty_print_configuration(configuration))
             print('ref',correct_prediction)
+            print(structural_history)
             exit(1)
         if backprop:
             loss.backward()
