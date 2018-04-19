@@ -305,10 +305,7 @@ class RNNGparser:
         """
         S,B,n,stack_state,lab_state,score = configuration
         word_idx = sentence[B[0]]
-        if self.dropout > 0.0:
-            word_embedding = dy.dropout(self.lex_embedding_matrix[word_idx],self.dropout)
-        else: 
-            word_embedding = self.lex_embedding_matrix[word_idx]
+        word_embedding = self.rnng_dropout(self.lex_embedding_matrix[word_idx])
         return (S + [StackSymbol(B[0],StackSymbol.COMPLETED,word_embedding)],B[1:],n,stack_state.add_input(word_embedding),RNNGparser.NO_LABEL,score+local_score)
 
     def open_action(self,configuration,local_score):
@@ -332,11 +329,7 @@ class RNNGparser:
         S,B,n,stack_state,lab_state,score = configuration
 
         nt_idx = self.nonterminals_codes[X]
-
-        if self.dropout > 0.0:
-            nonterminal_embedding = dy.dropout(self.nt_embedding_matrix[nt_idx],self.dropout)
-        else:
-            nonterminal_embedding = self.nt_embedding_matrix[nt_idx]
+        nonterminal_embedding = self.rnng_dropout(self.nt_embedding_matrix[nt_idx])
 
         #We backup the current stack top
         first_child = S[-1]
@@ -372,10 +365,7 @@ class RNNGparser:
             
         #compute the tree embedding with the tree_rnn
         nt_idx = self.nonterminals_codes[root_symbol.symbol]
-        if self.dropout > 0.0:
-            NT_embedding = self.nt_embedding_matrix[nt_idx]
-        else:
-            NT_embedding = dy.dropout(self.nt_embedding_matrix[nt_idx],self.dropout)
+        NT_embedding = self.rnng_dropout(self.nt_embedding_matrix[nt_idx])
         s1 = self.fwd_tree_rnn.initial_state()
         s1 = s1.add_input(NT_embedding)
         for c in children:
@@ -389,19 +379,15 @@ class RNNGparser:
         
         x = dy.concatenate([fwd_tree_embedding,bwd_tree_embedding])
         W = dy.parameter(self.tree_rnn_out)
-        if self.dropout > 0.0:
-            tree_embedding = dy.dropout(dy.tanh(W * x),self.dropout)
-        else:
-            tree_embedding = dy.tanh(W * x)
-        
+        tree_embedding = self.rnng_dropout(dy.tanh(W * x))
         return (S[:root_idx]+[root_symbol],B,n-1,stack_state.add_input(tree_embedding),RNNGparser.NO_LABEL,score+local_score)
 
-    def structural_action_mask(self,configuration,structural_history):
+    def restrict_structural_actions(self,configuration,structural_history):
         """ 
-        This returns a mask stating which abstract actions are possible for next round
+        This returns a list of integers stating which structural actions are legal for a given configuration
         @param configuration: the current configuration
         @param structural_history: the structural actions history.
-        @return a mask for the possible next actions
+        @return a list of integers, indexes of legal actions
         """
         #Assumes masking log probs
         MASK = np.log([True] * len(self.actions))
@@ -418,8 +404,21 @@ class RNNGparser:
             MASK += self.shift_mask
         if not S or n == 0 or (hist_1 == RNNGparser.OPEN and hist_2 != RNNGparser.SHIFT):
             MASK += self.close_mask
-        return MASK
+        
+        return [idx for idx,mval in enumerate(MASK) if not mval]
 
+    #Weighting & representation system
+    def rnng_dropout(self,expr):
+        """
+        That is a condiational dropout that applies dropout to a dynet expression only at training time
+        @param expr: a dynet expression
+        @return a dynet expression
+        """
+        if self.dropout == 0:
+            return expr
+        else:
+            return dy.dropout(expr,self.dropout)
+        
     def predict_action_distrib(self,configuration,structural_history,sentence,max_only=False,ref_action=None):
         """
         This predicts the next action distribution with the classifier and constrains it with the classifier structural rules
@@ -474,9 +473,9 @@ class RNNGparser:
                 correct_prediction = self.action_codes[ref_action]
                 return dy.pickneglog_softmax( (W * dy.tanh(stack_state.output())) + b,correct_prediction).value()
             
-            logprobs = dy.log_softmax(W * dy.tanh(stack_state.output()) + b).npvalue()
+            logprobs = dy.log_softmax(W * dy.tanh(stack_state.output()) + b,self.restrict_structural_actions(configuration,structural_history)).npvalue()
             #constraint + underflow prevention
-            logprobs = np.maximum(logprobs,np.log(np.finfo(float).eps)) + self.structural_action_mask(configuration,structural_history)
+            #logprobs = np.maximum(logprobs,np.log(np.finfo(float).eps))
             if max_only:
                 idx = np.argmax(logprobs)
                 #TODO here:if logprob == -inf raise parse failure 
