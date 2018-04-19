@@ -477,7 +477,7 @@ class RNNGparser:
             
             if ref_action:
                 correct_prediction = self.action_codes[ref_action]
-                return dy.pickneglog_softmax( (W * dy.tanh(stack_state.output())) + b,correct_prediction).value()
+                return dy.pick(-log_softmax( (W * dy.tanh(stack_state.output())) + b,self.restrict_structural_actions(configuration,structural_history)),correct_prediction).value()
             
             logprobs = dy.log_softmax(W * dy.tanh(stack_state.output()) + b,self.restrict_structural_actions(configuration,structural_history)).npvalue()
             #constraint + underflow prevention
