@@ -411,6 +411,7 @@ class RNNGparser:
             MASK *= self.close_mask
 
         restr_list = [idx for idx,mval in enumerate(MASK) if mval]
+        print(restr_list)
         return restr_list
     
         
