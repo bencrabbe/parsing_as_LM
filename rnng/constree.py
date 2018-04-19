@@ -307,7 +307,7 @@ class PennTreebank:
         That's an inplace destructive function removing PTBIII trees node label decorations (such as functions etc).
         @param ctree: a ConsTree object.
         """
-        if not (len(ctree.children) == 1 and ctree.get_child().is_leaf()):#if it is a tag stop recursion
+        if not (len(ctree.children) == 1 and ctree.get_child().is_leaf()):#if this is a tag stop recursion
             ctree.label = ctree.label.split('-')[0]
             ctree.label = ctree.label.split('=')[0]
             for child in ctree.children:
@@ -370,11 +370,11 @@ class PennTreebank:
         for d in train_dirs:
             print('Processing wsj-%s'%(d,),file=sys.stderr)
             print('\n'.join([str(t) for t in PennTreebank.preprocess_src_dir(str(os.path.join(ptb_root,d)))]),file=train_file)
-            print('\n'.join([' '.join(t.tokens(labels=True)) for t in PennTreebank.preprocess_src_dir(str(os.path.join(ptb_root,d)))]),file=train_raw)
+            print('\n'.join([' '.join(t.tokens(labels=True)) for t in PennTreebank.preprocess_src_dir(str(os.path.join(ptb_root,d)),close_unaries=False,strip_tags=False)]),file=train_raw)
 
             
         print('Processing wsj-%s'%(dev_dir,),file=sys.stderr)
-        devtrees = PennTreebank.preprocess_src_dir(str(os.path.join(ptb_root,dev_dir)))
+        devtrees = PennTreebank.preprocess_src_dir(str(os.path.join(ptb_root,dev_dir)),close_unaries=False,strip_tags=False)
         print('\n'.join([str(t) for t in devtrees]),file=dev_file)
         print('\n'.join([' '.join(t.tokens(labels=True)) for t in devtrees]),file=dev_raw)
         print('Processing wsj-%s'%(test_dir,),file=sys.stderr)
