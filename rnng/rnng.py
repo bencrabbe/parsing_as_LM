@@ -801,9 +801,10 @@ class RNNGparser:
             tok_codes       = [self.lex_lookup(t) for t in tree.tokens()]   
             step, max_step  = (0,len(ref_derivation))
             C               = self.init_configuration(len(tok_codes))
+            struct_history = ['<init>'] 
             for ref_action in ref_derivation:
                 
-                loc_loss,correct = self.train_one(C,ref_action,backprop=False)
+                loc_loss,correct = self.train_one(C,struct_history,ref_action,backprop=False)
 
                 S,B,n,stackS,lab_state,score = C
                 monitor.add_datum(loc_loss,correct,lab_state)
@@ -814,10 +815,13 @@ class RNNGparser:
                     C = self.nonterminal_action(C,ref_action,0)
                 elif ref_action == RNNGparser.CLOSE:
                     C = self.close_action(C,0)
+                    struct_history.append( RNNGparser.CLOSE ) 
                 elif ref_action == RNNGparser.OPEN:
                     C = self.open_action(C,0)
+                    struct_history.append( RNNGparser.OPEN ) 
                 elif ref_action == RNNGparser.SHIFT:
                     C = self.shift_action(C,0)
+                    struct_history.append( RNNGparser.SHIFT ) 
                 elif ref_action == RNNGparser.TERMINATE:
                     break
 
@@ -872,7 +876,7 @@ class RNNGparser:
 
                 struct_history = ['<init>'] 
                 for ref_action in ref_derivation:
-                    loc_loss,correct = self.train_one(C,ref_action)
+                    loc_loss,correct = self.train_one(C,struct_history,ref_action)
 
                     S,B,n,stackS,lab_state,score = C
                     monitor.add_datum(loc_loss,correct,lab_state)
