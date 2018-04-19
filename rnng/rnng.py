@@ -888,7 +888,8 @@ class RNNGparser:
                 
                 self.train_sentence(tree,monitor)
                 if idx+1 % 1000 == 0:
-                     monitor.display_NLL_log(tree_idx=idx) 
+                    print()
+                    monitor.display_NLL_log(tree_idx=idx) 
                      
             monitor.display_NLL_log(reset=True)            
             devloss = self.eval_all(dev_bank)
