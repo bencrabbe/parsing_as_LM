@@ -882,15 +882,14 @@ class RNNGparser:
             print('\n--------------------------\nEpoch %d'%(e,),flush=True)
 
             for idx,tree in enumerate(train_bank):
-
-                sys.stdout.write('\rtree #%d'%(idx))
+                sys.stdout.write('\rtree #%d/%d'%(idx,len(train_bank)))
                 sys.stdout.flush()
                 
                 self.train_sentence(tree,monitor)
+                
                 if idx+1 % 1000 == 0:
                     monitor.display_NLL_log(tree_idx=idx)
                     print()
-
                      
             monitor.display_NLL_log(reset=True)            
             devloss = self.eval_all(dev_bank)
@@ -1025,18 +1024,6 @@ if __name__ == '__main__':
         t  = ConsTree.read_tree('(S (NP Le chat ) (VP mange  (NP la souris)))')
         t2 = ConsTree.read_tree('(S (NP Le chat ) (VP voit  (NP le chien) (PP sur (NP le paillasson))))')
         t3 = ConsTree.read_tree('(S (NP La souris (Srel qui (VP dort (PP sur (NP le paillasson))))) (VP sera mangée (PP par (NP le chat ))))')
-
-
-        t4 = ConsTree.read_tree("(TOP (PRN (ADVP (ADVP So long) (SBAR as (S you (VP do nt (VP look down)))) .)))")
-        t4.close_unaries()
-        print(t4)
-        t5 = ConsTree.read_tree("(TOP (X (PRN hello dude)))")
-        t5.close_unaries()
-        print(t5)
-        t6 = ConsTree.read_tree("(TOP (X (PRN hello)))")
-        t6.close_unaries()
-        print(t6)
-        exit(0)
         train_treebank = [t,t2,t3]
         
         p = RNNGparser(max_vocabulary_size=TrainingParams.LEX_MAX_SIZE,\
