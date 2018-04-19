@@ -481,6 +481,7 @@ class RNNGparser:
         else:                                                               #lab_state == RNNGparser.NO_LABEL perform a structural action
             W = dy.parameter(self.struct_out)
             b = dy.parameter(self.struct_bias)
+            print(W,b)
             return dy.log_softmax(W * self.rnng_dropout(dy.tanh(stack_state.output()) + b),self.restrict_structural_actions(configuration,structural_history))
 
     def predict_action_distrib(self,configuration,structural_history,sentence,max_only=False):
