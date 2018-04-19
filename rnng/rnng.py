@@ -575,17 +575,17 @@ class RNNGparser:
         S,B,n,stack_state,lab_state,local_score = configuration
 
         if lab_state == RNNGparser.WORD_LABEL:
-            C = self.word_action(C,tok_codes,score)
+            C = self.word_action(configuration,tok_codes,score)
         elif lab_state == RNNGparser.NT_LABEL:
-            C = self.nonterminal_action(C,action,score)
+            C = self.nonterminal_action(configuration,action,score)
         elif action == RNNGparser.CLOSE:
-            C = self.close_action(C,score)
+            C = self.close_action(configuration,score)
             struct_history.append( RNNGparser.CLOSE )
         elif action == RNNGparser.OPEN:
-            C = self.open_action(C,score)
+            C = self.open_action(configuration,score)
             struct_history.append( RNNGparser.OPEN )
         elif action == RNNGparser.SHIFT:
-            C = self.shift_action(C,score)
+            C = self.shift_action(configuration,score)
             struct_history.append( RNNGparser.SHIFT )
         elif action == RNNGparser.TERMINATE:
             pass
