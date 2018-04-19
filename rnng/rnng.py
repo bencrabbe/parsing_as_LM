@@ -508,9 +508,9 @@ class RNNGparser:
             correct_prediction = self.action_codes[ref_action]
 
         if backprop:
-            log_probs = dy.log_softmax( (W * dy.dropout(dy.tanh(stack_state.output()),self.dropout)) + b,restrict_structural_actions(configuration,structural_history))
+            log_probs = dy.log_softmax( (W * dy.dropout(dy.tanh(stack_state.output()),self.dropout)) + b,self.restrict_structural_actions(configuration,structural_history))
         else:
-            log_probs = dy.log_softmax( (W * dy.tanh(stack_state.output())) + b,restrict_structural_actions(configuration,structural_history))
+            log_probs = dy.log_softmax( (W * dy.tanh(stack_state.output())) + b,self.restrict_structural_actions(configuration,structural_history))
             
         best_prediction = np.argmax(log_probs.npvalue())
         iscorrect = (correct_prediction == best_prediction)
