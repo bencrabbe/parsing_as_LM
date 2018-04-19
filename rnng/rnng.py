@@ -556,11 +556,17 @@ class RNNGparser:
         logprobs = self.raw_action_distrib(configuration,structural_history)
 
         if lab_state == RNNGparser.WORD_LABEL:
-            ref_prediction = self.lex_lookup(ref_action)            
+            ref_prediction = self.lex_lookup(ref_action)
+            if ref_prediction >= len(self.rev_word_codes):
+                print('lex',ref_prediction)
         elif lab_state == RNNGparser.NT_LABEL:
             ref_prediction = self.nonterminals_codes[ref_action]
+            if ref_prediction >= len(self.nonterminals_codes):
+                print('nt',ref_prediction)
         else:
             ref_prediction = self.action_codes[ref_action]
+            if ref_prediction >= len(self.action_codes):
+                print(ref_prediction,len(self.action_codes))
             
         loss       = -dy.pick(logprobs,ref_prediction)
         loss_val   = loss.value()
