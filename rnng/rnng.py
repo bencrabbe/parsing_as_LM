@@ -411,7 +411,6 @@ class RNNGparser:
             MASK *= self.close_mask
 
         restr_list = [idx for idx,mval in enumerate(MASK) if mval]
-        print(restr_list)
         return restr_list
     
         
@@ -501,6 +500,7 @@ class RNNGparser:
         S,B,n,stack_state,lab_state,local_score = configuration
         logprobs = self.raw_action_distrib(configuration,structural_history).npvalue()
         if not logprobs:#parse failure
+            print('failed')
             return []
         if lab_state == RNNGparser.WORD_LABEL:        
             next_word = sentence[B[0]]
