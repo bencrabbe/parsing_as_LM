@@ -254,7 +254,6 @@ class RNNGparser:
             self.bclusters.append(RNNGparser.START_TOKEN)
             self.bclusters_size   = len(self.bclusters)
             self.bclusters_codes  = dict([(s,idx) for (idx,s) in enumerate(self.bclusters)])
-            print(self.bclusters_codes)
         #normal lexicon
         lexicon = Counter()
         for tree in treebank:
@@ -282,9 +281,7 @@ class RNNGparser:
         @param token : the string token for which to find the cluster idx
         @return : cluster code for in-vocab tokens and cluster code of unk words for OOV tokens
         """
-        print(token,self.bclusters_codes)
         C = self.blex.get_cls(token,defaultval=RNNGparser.UNKNOWN_TOKEN)
-        print(C)
         return self.bclusters_codes[C]
 
     def code_nonterminals(self,treebank):
