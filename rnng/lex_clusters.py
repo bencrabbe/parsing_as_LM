@@ -74,7 +74,8 @@ class BrownLexicon:
         """
         jfile = open(filename+'.json','w')
         jfile.write(json.dumps({'word_counts':self.word_counts,\
-                                'w2cls':self.w2cls}))
+                                'w2cls':self.w2cls,\
+                                'ordered_cls':self.ordered_cls_list}))
         jfile.close()
         
     def load_clusters(self,filename):
@@ -82,8 +83,10 @@ class BrownLexicon:
         Loads the clusters from a json format
         """
         struct = json.loads(open(filename+'.json').read())
-        return BrownLexicon(struct['w2cls'],struct['word_counts'],freq_threshold=0)
-                
+        blex =  BrownLexicon(struct['w2cls'],struct['word_counts'],freq_threshold=0)
+        blex.ordered_cls_list = struct['ordered_cls']
+        return blex
+    
     @staticmethod
     def read_clusters(cls_filename,freq_thresh=1):
         """
