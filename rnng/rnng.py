@@ -113,6 +113,7 @@ class OptimMonitor:
         elif datum_type == RNNGparser.NO_LABEL:
             self.struct_acc  += datum_correct
             self.acc_structN += 1
+
             
     def add_NLL_datum(self,datum_loss,configuration):
         """
