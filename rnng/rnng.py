@@ -1029,6 +1029,7 @@ if __name__ == '__main__':
             struct_beam = int(arg)
         elif opt in ['-b','--brown']:
             brown_file = arg
+            print(brown_file)
             
     train_treebank = []
 
