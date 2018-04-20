@@ -22,11 +22,11 @@ class BrownLexicon:
         self.cls_counts   = {}          #raw counts of the clusters in the corpus
         for word,clust in self.w2cls.items():
             C = self.get_cls(word,defaultval=None)
-            if C :
+            if not C is None :
                 self.cls_counts[C] = self.cls_counts.get(C,0) + self.word_counts[word]
 
         self.ordered_cls_list = list(self.cls_counts.keys())
-
+        
     def display_summary(self):
         return """Using Brown Clusters with %d cluster and %d word forms"""%(len(self.ordered_cls_list),len(self.w2cls))
         
