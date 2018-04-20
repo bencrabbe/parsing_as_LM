@@ -29,7 +29,7 @@ class BrownLexicon:
         self.ordered_cls_list = list(self.cls_counts.keys())
         
     def display_summary(self):
-        return """Using Brown Clusters with %d cluster and %d word forms"""%(len(self.ordered_cls_list),len(self.w2cls))
+        return """Using Brown Clusters with %d clusters and a lexicon of %d word forms"""%(len(self.ordered_cls_list),len(self.w2cls))
         
     def cls_list(self):
         """
