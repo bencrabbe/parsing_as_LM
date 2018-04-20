@@ -282,7 +282,7 @@ class RNNGparser:
         @param token : the string token for which to find the cluster idx
         @return : cluster code for in-vocab tokens and cluster code of unk words for OOV tokens
         """
-        C = self.bclusters.get_cls(token,defaultval=RNNGparser.UNKNOWN_TOKEN)
+        C = self.blex.get_cls(token,defaultval=RNNGparser.UNKNOWN_TOKEN)
         return self.bclusters_codes[C]
 
     def code_nonterminals(self,treebank):
