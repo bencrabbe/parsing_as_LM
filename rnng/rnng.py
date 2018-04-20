@@ -995,6 +995,9 @@ class RNNGparser:
    
         
 if __name__ == '__main__':
+
+    warnings.simplefilter("ignore")
+    
     try:
         opts, args = getopt.getopt(sys.argv[1:],"ht:o:d:r:m:b:")
     except getopt.GetoptError:
