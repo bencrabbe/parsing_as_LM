@@ -74,7 +74,7 @@ class BrownLexicon:
         """
         jfile = open(filename+'.json','w')
         jfile.write(json.dumps({'word_counts':self.word_counts,\
-                                'w2cls':self.w2cls))
+                                'w2cls':self.w2cls}))
         jfile.close()
         
     def load_clusters(self,filename):
