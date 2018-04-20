@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 from collections import Counter
 import json
+import numpy as np
 
 class BrownLexicon:
     """
