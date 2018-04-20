@@ -1,5 +1,6 @@
 #! /usr/bin/env python
 from collections import Counter
+import json
 
 class BrownLexicon:
     """
@@ -24,6 +25,14 @@ class BrownLexicon:
             if C :
                 self.cls_counts[C] = self.cls_counts.get(C,0) + self.word_counts[word]
 
+        self.ordered_cls_list = list(self.cls_counts.keys())
+
+    def cls_list(self):
+        """
+        Returns an ordered list of clusters
+        """
+        return self.ordered_cls_list
+         
     def __str__(self):
         return '\n'.join( ['P(%s|%d) = %f'%(w,C,self.word_emission_prob(w,logprob=False)) for w,C in self.w2cls.items()])
         
@@ -56,6 +65,22 @@ class BrownLexicon:
             #if the word is not in a cluster, we assume it is part of the UNK cluster with only 1 element the UNK word 
             return 0.0 if logprob else 1.0
         
+    def save_clusters(self,filename):
+        """
+        Saves the clusters in a json format
+        """
+        jfile = open(filename+'.json','w')
+        jfile.write(json.dumps({'word_counts':self.word_counts,\
+                                'w2cls':self.w2cls))
+        jfile.close()
+        
+    def load_clusters(self,filename):
+        """
+        Loads the clusters from a json format
+        """
+        struct = json.loads(open(filename+'.json').read())
+        return BrownLexicon(struct['w2cls'],struct['word_counts'],freq_threshold=0)
+                
     @staticmethod
     def read_clusters(cls_filename,freq_thresh=1):
         """

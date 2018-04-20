@@ -5,6 +5,7 @@ import json
 import pandas as pd
 from collections import Counter
 from constree import *
+from lex_clusters import *
 from rnng_params import *
 
 class StackSymbol:
@@ -172,7 +173,9 @@ class RNNGparser:
         self.hidden_size          = hidden_size
         self.dropout = 0.0
 
-        
+        #Extras (brown lexicon and external embeddings)
+        self.blex = None
+
     #oracle, derivation and trees
     def oracle_derivation(self,ref_tree,root=True):
         """
@@ -243,6 +246,15 @@ class RNNGparser:
         @param treebank: the treebank where to extract the data from
         @param max_vocab_size: the upper bound on the size of the vocabulary
         """
+        if self.blex:
+            #brown clusters
+            self.bclusters       = self.blex.cls_list()
+            self.bclusters.append(RNNGparser.UNKNOWN_TOKEN)
+            self.bclusters.append(RNNGparser.START_TOKEN)
+            self.bclusters_size   = len(self.bclusters)
+            self.bclusters_codes  = dict([(s,idx) for (idx,s) in enumerate(self.bclusters)])
+            
+        #normal lexicon
         lexicon = Counter()
         for tree in treebank:
             sentence = tree.tokens(labels=True) 
@@ -258,11 +270,20 @@ class RNNGparser:
     def lex_lookup(self,token):
         """
         Performs lookup and backs off unk words to the unk token
-        @param token : the token to code
+        @param token : the string token to code
         @return : word_code for in-vocab tokens and word code of unk word string for OOV tokens
         """
         return self.word_codes[token] if token in self.word_codes else self.word_codes[RNNGparser.UNKNOWN_TOKEN]
-        
+
+    def cls_lookup(self,token):
+        """
+        Performs lookup for clusters
+        @param token : the string token for which to find the cluster idx
+        @return : cluster code for in-vocab tokens and cluster code of unk words for OOV tokens
+        """
+        C = self.bclusters.get_cls(token,defaultval=RNNGparser.UNKNOWN_TOKEN)
+        return self.bclusters_codes[C]
+
     def code_nonterminals(self,treebank):
         """
         Extracts the nonterminals from a treebank.
@@ -329,12 +350,12 @@ class RNNGparser:
         """
         That's the word labelling action (implements a traditional shift).
         @param configuration : a configuration tuple
-        @param sentence: the list of words of the sentence as a list of word idxes
+        @param sentence: the list of words of the sentence as a list of string tokens
         @param local_score: the local score of the action (logprob)
         @return a configuration resulting from shifting the next word into the stack 
         """
         S,B,n,stack_state,lab_state,score = configuration
-        word_idx = sentence[B[0]]
+        word_idx = self.lex_lookup(sentence[B[0]])
         word_embedding = self.rnng_dropout(self.lex_embedding_matrix[word_idx])
         return (S + [StackSymbol(B[0],StackSymbol.COMPLETED,word_embedding)],B[1:],n,stack_state.add_input(word_embedding),RNNGparser.NO_LABEL,score+local_score)
 
@@ -455,8 +476,13 @@ class RNNGparser:
         self.struct_out             = self.model.add_parameters((actions_size,self.hidden_size),init='glorot')          #struct action output layer
         self.struct_bias            = self.model.add_parameters((actions_size),init='glorot')
 
-        self.lex_out                = self.model.add_parameters((lexicon_size,self.hidden_size),init='glorot')          #lex action output layer
-        self.lex_bias               = self.model.add_parameters((lexicon_size),init='glorot')
+        if self.blex:
+            cls_size = len(self.bclusters)
+            self.lex_out            = self.model.add_parameters((cls_size,self.hidden_size),init='glorot')          #lex action output layer
+            self.lex_bias           = self.model.add_parameters((cls_size),init='glorot')
+        else:
+            self.lex_out            = self.model.add_parameters((lexicon_size,self.hidden_size),init='glorot')          #lex action output layer
+            self.lex_bias           = self.model.add_parameters((lexicon_size),init='glorot')
 
         self.nt_out                 = self.model.add_parameters((nt_size,self.hidden_size),init='glorot')               #nonterminal action output layer
         self.nt_bias                = self.model.add_parameters((nt_size),init='glorot')
@@ -471,7 +497,6 @@ class RNNGparser:
         self.fwd_tree_rnn          = dy.LSTMBuilder(1,self.stack_embedding_size, self.stack_hidden_size,self.model)        # bi-rnn for tree embeddings
         self.bwd_tree_rnn          = dy.LSTMBuilder(1,self.stack_embedding_size, self.stack_hidden_size,self.model)
         self.tree_rnn_out          = self.model.add_parameters((self.stack_embedding_size,self.stack_hidden_size*2),init='glorot')       # out layer merging the tree bi-rnn output
-
         
     def rnng_dropout(self,expr):
         """
@@ -518,7 +543,7 @@ class RNNGparser:
         Predicts the action distribution for testing purposes.
         @param configuration: the current configuration
         @param structural_history  : the sequence of structural actions performed so far by the parser
-        @param sentence : a list of token integer codes
+        @param sentence : a list of tokens as strings
         @param max_only : returns only the couple (action,logprob) with highest score
         
         @return a list of (action,scores) or a single tuple if max_only is True
@@ -532,8 +557,8 @@ class RNNGparser:
             return [] #in a beam context parsing can continue...
         logprobs = logprobs.npvalue()
         if lab_state == RNNGparser.WORD_LABEL:        
-            next_word = sentence[B[0]]
-            score = logprobs[next_word]
+            next_word = self.lex_lookup(sentence[B[0]]) if not self.blex else self.cls_lookup(sentence[B[0]])
+            score = logprobs[next_word] if not self.blex else logprobs[next_word]+self.blex.word_emission_prob(sentence[B[0]]) 
             if max_only :
                 return (next_word,score)
             return [(next_word,score)]
@@ -560,7 +585,7 @@ class RNNGparser:
         logprobs = self.raw_action_distrib(configuration,structural_history)
 
         if lab_state == RNNGparser.WORD_LABEL:
-            ref_prediction = self.lex_lookup(ref_action)
+            ref_prediction = self.lex_lookup(ref_action) if not self.blex else self.cls_lookup(ref_action)
         elif lab_state == RNNGparser.NT_LABEL:
             ref_prediction = self.nonterminals_codes[ref_action]
         else:
@@ -584,7 +609,7 @@ class RNNGparser:
         logprobs = self.raw_action_distrib(configuration,structural_history)
 
         if lab_state == RNNGparser.WORD_LABEL:
-            ref_prediction = self.lex_lookup(ref_action)            
+            ref_prediction = self.lex_lookup(ref_action) if not self.blex else self.cls_lookup(ref_action)        
         elif lab_state == RNNGparser.NT_LABEL:
             ref_prediction = self.nonterminals_codes[ref_action]
         else:
@@ -598,10 +623,10 @@ class RNNGparser:
 
 
     #parsing, training, eval one sentence        
-    def move_state(self,tok_codes,configuration,struct_history,action,score):
+    def move_state(self,tokens,configuration,struct_history,action,score):
         """
         Applies an action to config. Use it only in greedy contexts, not with beam.
-        @param tok_codes: the integer list of word codes of the current sentence
+        @param tokens: the list of word tokens (as strings) of the current sentence
         @param configuration: a current config
         @param struct_history: a current struct history
         @param action: the action to execute
@@ -611,7 +636,7 @@ class RNNGparser:
         S,B,n,stack_state,lab_state,local_score = configuration
 
         if lab_state == RNNGparser.WORD_LABEL:
-            C = self.word_action(configuration,tok_codes,score)
+            C = self.word_action(configuration,tokens,score)
         elif lab_state == RNNGparser.NT_LABEL:
             C = self.nonterminal_action(configuration,action,score)
         elif action == RNNGparser.CLOSE:
@@ -664,8 +689,6 @@ class RNNGparser:
                
         dy.renew_cg()
         
-        tok_codes    = [self.lex_lookup(t) for t in tokens  ]
-
         start = BeamElement(None,'init',0)
         start.config = self.init_configuration(len(tokens))
         start.structural_history = ['init']
@@ -679,7 +702,7 @@ class RNNGparser:
                 for elt in all_beam:
                     C = elt.config
                     _,_,_,_,lab_state,prefix_score = C
-                    preds_distrib = self.predict_action_distrib(C,elt.structural_history,tok_codes)
+                    preds_distrib = self.predict_action_distrib(C,elt.structural_history,tokens)
                     #dispatch predicted items on relevant beams
                     if lab_state == RNNGparser.WORD_LABEL:
                         action,loc_score = preds_distrib[0]
@@ -729,7 +752,7 @@ class RNNGparser:
                 C             = elt.prev_element.config
                 _,_,_,_,lab_state,prefix_score = C
                 if lab_state == RNNGparser.WORD_LABEL:
-                    elt.config = self.word_action(C,tok_codes,loc_score)
+                    elt.config = self.word_action(C,tokens,loc_score)
                     elt.update_history()
                 elif action == RNNGparser.TERMINATE:
                     elt.config = C
@@ -766,16 +789,15 @@ class RNNGparser:
         """
         dy.renew_cg()
 
-        tok_codes = [self.lex_lookup(t) for t in tokens  ]
         C         = self.init_configuration(len(tokens))
         struct_history = ['<init>'] 
         deriv = [ ]
         pred_action = None
         while pred_action != RNNGparser.TERMINATE :
 
-            pred_action,score = self.predict_action_distrib(C,struct_history,tok_codes,max_only=True)
+            pred_action,score = self.predict_action_distrib(C,struct_history,tokens,max_only=True)
             deriv.append(pred_action)
-            C,struct_history = self.move_state(tok_codes,C,struct_history,pred_action,score)
+            C,struct_history = self.move_state(tokens,C,struct_history,pred_action,score)
 
         if get_derivation:
             return deriv
@@ -792,16 +814,14 @@ class RNNGparser:
         """
         dy.renew_cg()
         ref_derivation  = self.oracle_derivation(ref_tree)
-        tok_codes = [self.lex_lookup(t) for t in ref_tree.tokens()]   
         step, max_step  = (0,len(ref_derivation))
-        C               = self.init_configuration(len(tok_codes))
+        C               = self.init_configuration(len(tokens))
         struct_history = ['<init>'] 
         for ref_action in ref_derivation:
             NLL = self.backprop_action_distrib(C,struct_history,ref_action)
             monitor.add_NLL_datum(NLL,C)
-            C,struct_history = self.move_state(tok_codes,C,struct_history,ref_action,-NLL)
+            C,struct_history = self.move_state(tokens,C,struct_history,ref_action,-NLL)
 
-            
     def eval_sentence(self,ref_tree,monitor):
         """
         Evaluates a single sentence from dev set.
@@ -810,16 +830,15 @@ class RNNGparser:
         """
         dy.renew_cg()
         ref_derivation  = self.oracle_derivation(ref_tree)
-        tok_codes       = [self.lex_lookup(t) for t in ref_tree.tokens()]   
         step, max_step  = (0,len(ref_derivation))
-        C               = self.init_configuration(len(tok_codes))
+        C               = self.init_configuration(len(tokens))
         struct_history = ['<init>']
         NLL = 0 
         for ref_action in ref_derivation:
             loc_NLL,correct = self.eval_action_distrib(C,struct_history,ref_action)
             monitor.add_NLL_datum(loc_NLL,C)
             monitor.add_ACC_datum(correct,C)
-            C,struct_history = self.move_state(tok_codes,C,struct_history,ref_action,-loc_NLL)
+            C,struct_history = self.move_state(tokens,C,struct_history,ref_action,-loc_NLL)
             NLL += loc_NLL
         return NLL
     
@@ -841,7 +860,7 @@ class RNNGparser:
         self.dropout = D
         return L
 
-    def train_generative_model(self,modelname,max_epochs,train_bank,dev_bank,lex_embeddings_file=None,learning_rate=0.001,dropout=0.3):
+    def train_generative_model(self,modelname,max_epochs,train_bank,dev_bank,lex_embeddings_filename=None,cls_filename=None,learning_rate=0.001,dropout=0.3):
         """
         This trains an RNNG model on a treebank
         @param model_name: a string for the fileprefix where to store the model
@@ -850,9 +869,11 @@ class RNNGparser:
         @param train_bank: a list of ConsTree
         @param dev_bank  : a list of ConsTree
         @param lex_embeddings_file: an external word embeddings filename
+        @param cls_file: a path file generated by Liang's clustering package 
         @return a dynet model
         """
         self.dropout = dropout
+        
         #Trees preprocessing
         for t in train_bank:
             ConsTree.strip_tags(t)
@@ -860,7 +881,10 @@ class RNNGparser:
         for t in dev_bank:
             ConsTree.strip_tags(t)
             ConsTree.close_unaries(t)
-        
+
+        if cls_file:
+            self.blex = BrownLexicon.read_clusters(cls_filename,freq_thresh=1)
+            
         #Coding
         self.code_lexicon(train_bank,self.max_vocab_size)
         self.code_nonterminals(train_bank)
@@ -874,8 +898,6 @@ class RNNGparser:
         print('num training trees  :',len(train_bank),flush=True)
 
         self.make_structure()
-
-        lexicon = set(self.rev_word_codes)
         
         #training
         self.trainer = dy.AdamTrainer(self.model,alpha=learning_rate)
@@ -923,12 +945,25 @@ class RNNGparser:
     def load_model(model_name):
         """
         Loads the whole shebang and returns a parser.
-        """
+        """            
         struct = json.loads(open(model_name+'.json').read())
         parser = RNNGparser(max_vocabulary_size=struct['max_vocabulary_size'],
                  hidden_size = struct['hidden_size'],
                  stack_embedding_size = struct['stack_embedding_size'],
                  stack_memory_size= struct['stack_hidden_size'])
+        try:
+            
+            parser.blex = BrownLexicon.load_clusters(model_name+'.cls')
+            parser.bclusters       = parser.blex.cls_list()
+            parser.bclusters.append(RNNGparser.UNKNOWN_TOKEN)
+            parser.bclusters.append(RNNGparser.START_TOKEN)
+            parser.bclusters_size   = len(parser.bclusters)
+            parser.bclusters_codes  = dict([(s,idx) for (idx,s) in enumerate(parser.bclusters)])
+                        
+        except FileNotFoundError:
+            print('No clusters found',file=sys.stderr)
+            self.blex = None
+
         parser.rev_word_codes     = struct['rev_word_codes']
         parser.nonterminals       = struct['nonterminals']
         parser.nonterminals_codes = dict([(sym,idx) for (idx,sym) in enumerate(parser.nonterminals)])
@@ -951,7 +986,8 @@ class RNNGparser:
                                 'nonterminals': self.nonterminals,
                                 'rev_word_codes':self.rev_word_codes}))
         self.model.save(model_name+'.prm')
-
+        if self.blex:
+            self.blex.save(model_name+'.cls')
         
    
         
