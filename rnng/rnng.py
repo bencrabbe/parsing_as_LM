@@ -1030,7 +1030,6 @@ if __name__ == '__main__':
             struct_beam = int(arg)
         elif opt in ['-b','--brown']:
             brown_file = arg
-            print(brown_file)
             
     train_treebank = []
 
@@ -1047,6 +1046,8 @@ if __name__ == '__main__':
             for line in dev_stream:
                 dev_treebank.append(ConsTree.read_tree(line))
             dev_stream.close()
+
+        print('><>',brown_file)
             
         p = RNNGparser(max_vocabulary_size=TrainingParams.LEX_MAX_SIZE,\
                         hidden_size=StructParams.OUTER_HIDDEN_SIZE,\
