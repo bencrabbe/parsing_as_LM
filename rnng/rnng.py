@@ -988,7 +988,7 @@ class RNNGparser:
                                 'rev_word_codes':self.rev_word_codes}))
         self.model.save(model_name+'.prm')
         if self.blex:
-            self.blex.save(model_name+'.cls')
+            self.blex.save_clusters(model_name+'.cls')
         
    
         
