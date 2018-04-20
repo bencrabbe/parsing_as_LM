@@ -884,7 +884,7 @@ class RNNGparser:
 
         if cls_file:
             self.blex = BrownLexicon.read_clusters(cls_filename,freq_thresh=1)
-            
+            print(self.blex.display_summary())
         #Coding
         self.code_lexicon(train_bank,self.max_vocab_size)
         self.code_nonterminals(train_bank)
@@ -1001,6 +1001,7 @@ if __name__ == '__main__':
     train_file = ''
     dev_file   = ''
     model_name = ''
+    brown_file = None 
     raw_file   = ''
     lex_beam   = 8  #40
     struct_beam = 64 #400
@@ -1021,6 +1022,8 @@ if __name__ == '__main__':
             lex_beam = int(arg)
         elif opt in ['--struct-beam']:
             struct_beam = int(arg)
+        elif opt in ['--brown']:
+            brown_file = arg
             
     train_treebank = []
 
@@ -1042,7 +1045,13 @@ if __name__ == '__main__':
                         hidden_size=StructParams.OUTER_HIDDEN_SIZE,\
                         stack_embedding_size=StructParams.STACK_EMB_SIZE,\
                         stack_memory_size=StructParams.STACK_HIDDEN_SIZE)
-        p.train_generative_model(model_name,TrainingParams.NUM_EPOCHS,train_treebank,dev_treebank,learning_rate=TrainingParams.LEARNING_RATE,dropout=TrainingParams.DROPOUT)
+        p.train_generative_model(model_name,\
+                                 TrainingParams.NUM_EPOCHS,\
+                                 train_treebank,\
+                                 dev_treebank,\
+                                 learning_rate=TrainingParams.LEARNING_RATE,\
+                                 dropout=TrainingParams.DROPOUT,\
+                                 cls_filename=brown_file)
         
     #runs a test    
     if model_name and raw_file:
