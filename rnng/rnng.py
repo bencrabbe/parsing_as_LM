@@ -989,14 +989,21 @@ class RNNGparser:
         if self.blex:
             self.blex.save_clusters(model_name+'.cls')
         
-   
-        
+    def load_embedding_file(self,filename):
+        """
+        This loads an embedding file and inits the word embedding params with it
+        @param filename
+        """
+        pass #TODO loop over the selected vocabulary and select embeddings that match word entries, fill a numpy array and
+        #then plug the whole thing into a parameter box
+
+    
 if __name__ == '__main__':
 
     warnings.simplefilter("ignore")
     
     try:
-        opts, args = getopt.getopt(sys.argv[1:],"ht:o:d:r:m:b:")
+        opts, args = getopt.getopt(sys.argv[1:],"ht:o:d:r:m:b:L:S:")
     except getopt.GetoptError:
         print ('rnng.py -t <inputfile> -d <inputfile> -r <inputfile> -o <outputfile> -m <model_file>')
         sys.exit(0)
@@ -1021,9 +1028,9 @@ if __name__ == '__main__':
             raw_file = arg
         elif opt in ['-m','--model']:
             model_name = arg
-        elif opt in ['--lex-beam']:
+        elif opt in ['-L','--lex-beam']:
             lex_beam = int(arg)
-        elif opt in ['--struct-beam']:
+        elif opt in ['-S','--struct-beam']:
             struct_beam = int(arg)
         elif opt in ['-b','--brown']:
             brown_file = arg
