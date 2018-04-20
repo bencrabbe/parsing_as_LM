@@ -121,6 +121,8 @@ class OptimMonitor:
         @param configuration : the configuration used to make the prediction
         """
         S,B,n,stack_state,datum_type,score = configuration
+
+        datum_loss = - max(-datum_loss,np.log(np.finfo(float).eps)) #smoothes potential zeroes
         
         if datum_type  == RNNGparser.WORD_LABEL:
             self.lex_loss += datum_loss
