@@ -882,7 +882,7 @@ class RNNGparser:
             ConsTree.strip_tags(t)
             ConsTree.close_unaries(t)
 
-        if cls_file:
+        if cls_filename:
             self.blex = BrownLexicon.read_clusters(cls_filename,freq_thresh=1)
             print(self.blex.display_summary())
         #Coding
