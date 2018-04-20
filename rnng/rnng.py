@@ -813,6 +813,7 @@ class RNNGparser:
         @param monitor: a monitor for logging the training process
         """
         dy.renew_cg()
+        tokens          = ref_tree.tokens()
         ref_derivation  = self.oracle_derivation(ref_tree)
         step, max_step  = (0,len(ref_derivation))
         C               = self.init_configuration(len(tokens))
@@ -829,6 +830,7 @@ class RNNGparser:
         @param monitor: a monitor for logging the eval process
         """
         dy.renew_cg()
+        tokens          = ref_tree.tokens()
         ref_derivation  = self.oracle_derivation(ref_tree)
         step, max_step  = (0,len(ref_derivation))
         C               = self.init_configuration(len(tokens))
