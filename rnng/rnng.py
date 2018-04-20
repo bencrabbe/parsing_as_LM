@@ -621,8 +621,6 @@ class RNNGparser:
         best_pred  = np.argmax(logprobs.npvalue())
         return loss_val,(best_pred==ref_prediction)
 
-
-
     #parsing, training, eval one sentence        
     def move_state(self,tokens,configuration,struct_history,action,score):
         """
@@ -888,6 +886,7 @@ class RNNGparser:
         if cls_filename:
             self.blex = BrownLexicon.read_clusters(cls_filename,freq_thresh=1)
             print(self.blex.display_summary())
+            exit(1)
         #Coding
         self.code_lexicon(train_bank,self.max_vocab_size)
         self.code_nonterminals(train_bank)
