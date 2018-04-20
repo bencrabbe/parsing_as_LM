@@ -254,7 +254,7 @@ class RNNGparser:
             self.bclusters.append(RNNGparser.START_TOKEN)
             self.bclusters_size   = len(self.bclusters)
             self.bclusters_codes  = dict([(s,idx) for (idx,s) in enumerate(self.bclusters)])
-            
+            print(self.bclusters_codes)
         #normal lexicon
         lexicon = Counter()
         for tree in treebank:
