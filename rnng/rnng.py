@@ -4,6 +4,7 @@ import getopt
 import json
 import pandas as pd
 from collections import Counter
+import warnings
 from constree import *
 from lex_clusters import *
 from rnng_params import *
@@ -535,7 +536,7 @@ class RNNGparser:
             if restr:
                 return dy.log_softmax(W * self.rnng_dropout(dy.tanh(stack_state.output())) + b,restr)
             #parse failure (parser trapped)
-            print('oops. parser trapped (to be fixed)...')
+            warnings.warn('oops. parser trapped (to be fixed)...',RuntimeWarning)
             return None
         
     def predict_action_distrib(self,configuration,structural_history,sentence,max_only=False):
