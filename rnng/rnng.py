@@ -882,12 +882,12 @@ class RNNGparser:
             print('\n--------------------------\nEpoch %d'%(e,),flush=True)
 
             for idx,tree in enumerate(train_bank):
-                sys.stdout.write('\rtree #%d/%d'%(idx,len(train_bank)))
+                sys.stdout.write('\rtree #%d/%d        '%(idx,len(train_bank)))
                 sys.stdout.flush()
                 
                 self.train_sentence(tree,monitor)
                 
-                if idx+1 % 1000 == 0:
+                if (idx+1) % 1000 == 0:
                     monitor.display_NLL_log(tree_idx=idx)
                     print()
                      
