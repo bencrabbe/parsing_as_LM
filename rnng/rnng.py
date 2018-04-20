@@ -993,7 +993,7 @@ class RNNGparser:
         
 if __name__ == '__main__':
     try:
-        opts, args = getopt.getopt(sys.argv[1:],"ht:o:d:r:m:")
+        opts, args = getopt.getopt(sys.argv[1:],"ht:o:d:r:m:b:")
     except getopt.GetoptError:
         print ('rnng.py -t <inputfile> -d <inputfile> -r <inputfile> -o <outputfile> -m <model_file>')
         sys.exit(0)
@@ -1022,7 +1022,7 @@ if __name__ == '__main__':
             lex_beam = int(arg)
         elif opt in ['--struct-beam']:
             struct_beam = int(arg)
-        elif opt in ['--brown']:
+        elif opt in ['-b','--brown']:
             brown_file = arg
             
     train_treebank = []
