@@ -649,8 +649,6 @@ class RNNGparser:
         loss       = -dy.pick(logprobs,ref_prediction)
         loss_val   = loss.value()
         best_pred  = np.argmax(logprobs.npvalue())
-        if best_pred != ref_prediction:
-            print("wrong",best_pred,ref_prediction)
         return loss_val,(best_pred==ref_prediction)
 
     #parsing, training, eval one sentence        
@@ -874,6 +872,8 @@ class RNNGparser:
         NLL = 0 
         for ref_action in ref_derivation:
             loc_NLL,correct = self.eval_action_distrib(C,struct_history,ref_action)
+            if not correct:
+                print(ref_action)
             monitor.add_NLL_datum(loc_NLL,C)
             monitor.add_ACC_datum(correct,C)
             C,struct_history = self.move_state(tokens,C,struct_history,ref_action,-loc_NLL)
