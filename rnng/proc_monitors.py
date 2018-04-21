@@ -24,7 +24,7 @@ class AbstractTracker(object):
     def log_configuration(self,configuration):
         """
         This tracks all the stats of interest from a lexical configuration at time step t
-        @param configuration: a configuration of the parser at time step t
+        @param configuration: a configuration of the parser at time step t (after generating a word)
         """
         pass
 
