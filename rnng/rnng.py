@@ -568,6 +568,7 @@ class RNNGparser:
             b = dy.parameter(self.struct_bias)
             restr = self.restrict_structural_actions(configuration,structural_history)
             if restr:
+                print(stack_state.output().npvalue().shape)
                 return dy.log_softmax(W * self.rnng_dropout(dy.tanh(stack_state.output())) + b,restr)
             #parse failure (parser trapped)
             warnings.warn('oops. parser trapped (to be fixed)...',RuntimeWarning)
