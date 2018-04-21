@@ -7,7 +7,6 @@ import numpy as np
 This module intersects the nomenclature of a word embedding dictionary
 with an existing nomenclature, hence generating a lightweight dictionary.
 """
-
 def ptb_nomenclature(infilename):
     """
     Reads a ptb raw file and returns the nomenclature as a list of
@@ -38,8 +37,8 @@ def filter_w2v_nomenclature(w2vfilename,filter_nomenclature):
     for line in istream:
         fields = line.split()
         word = fields[0]
-        vec  = np.array([float(elt) for elt in fields[1:]])
         if word in V:
+            vec  = np.array([float(elt) for elt in fields[1:]])
             wordlist.append(word)
             veclist.append(vec)
     istream.close()
