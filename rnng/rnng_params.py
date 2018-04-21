@@ -4,7 +4,7 @@
 class StructParams:
 
     OUTER_HIDDEN_SIZE  = 256
-    STACK_EMB_SIZE     = 100 
+    STACK_EMB_SIZE     = 300 
     STACK_HIDDEN_SIZE  = 256
     
 class TrainingParams:

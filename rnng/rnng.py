@@ -177,6 +177,7 @@ class RNNGparser:
         #Extras (brown lexicon and external embeddings)
         self.blex = None
         self.ext_embeddings = False
+        self.tied = False
 
     #oracle, derivation and trees
     def oracle_derivation(self,ref_tree,root=True):
@@ -358,7 +359,7 @@ class RNNGparser:
         S,B,n,stack_state,lab_state,score = configuration
         word_idx = self.lex_lookup(sentence[B[0]])
         word_embedding = self.rnng_dropout(self.lex_embedding_matrix[word_idx])
-        word_embedding = self.rnng_nobackprop(word_embedding) #we do not want to backprop when using external embeddings
+        word_embedding = self.rnng_nobackprop(word_embedding,sentence[B[0]]) #we do not want to backprop when using external embeddings
         return (S + [StackSymbol(B[0],StackSymbol.COMPLETED,word_embedding)],B[1:],n,stack_state.add_input(word_embedding),RNNGparser.NO_LABEL,score+local_score)
 
     def open_action(self,configuration,local_score):
@@ -501,7 +502,9 @@ class RNNGparser:
             self.stack_embedding_size = embed_dim
             E = self.init_ext_embedding_matrix(self,W,M)
             self.lex_embedding_matrix = self.model.lookup_parameters_from_numpy(E)
-            self.ext_embeddings       =  True    
+            self.ext_embeddings       =  True
+            if not self.blex:#no clusters ? -> tie input and ouptut lexical parameters
+                self.tied=True
         else:
             self.lex_embedding_matrix  = self.model.add_lookup_parameters((lexicon_size,self.stack_embedding_size),init='glorot')  
 
@@ -523,13 +526,14 @@ class RNNGparser:
         else:
             return dy.dropout(expr,self.dropout)
 
-    def rnng_nobackprop(self,expr):
+    def rnng_nobackprop(self,expr,word_token):
         """
         Function controlling whether to block backprop or not on lexical embeddings
         @param expr: a dynet expression
+        @param word_token: the lexical token 
         @return a dynet expression
         """
-        if self.ext_embeddings:
+        if self.ext_embeddings and word_token in self.word_codes: #do not backprop if word is known
             return dy.nobackprop(expr)
         else:
             return expr
@@ -545,7 +549,8 @@ class RNNGparser:
         S,B,n,stack_state,lab_state,local_score = configuration
         
         if lab_state == RNNGparser.WORD_LABEL:                             #generate wordform action
-            W = dy.parameter(self.lex_out)
+            
+            W = dy.parameter(lex_embedding_matrix) if self.tied else dy.parameter(self.lex_out)
             b = dy.parameter(self.lex_bias)
             return dy.log_softmax(W * self.rnng_dropout(dy.tanh(stack_state.output())) + b)
         
