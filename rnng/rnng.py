@@ -1160,6 +1160,7 @@ if __name__ == '__main__':
                         stack_embedding_size=StructParams.STACK_EMB_SIZE,\
                         stack_memory_size=StructParams.STACK_HIDDEN_SIZE)
         p.train_generative_model('none',TrainingParams.NUM_EPOCHS,train_treebank,train_treebank,learning_rate=TrainingParams.LEARNING_RATE,dropout=TrainingParams.DROPOUT,cls_filename=brown_file,lex_embeddings_filename=embedding_file)
+        dtracker = DefaultTracker('cog_stats.csv')
         for t in train_treebank:
             print(p.parse_sentence(t.tokens()))         
-            print(p.beam_parse(t.tokens(),all_beam_size=struct_beam,lex_beam_size=lex_beam))
+            print(p.beam_parse(t.tokens(),all_beam_size=struct_beam,lex_beam_size=lex_beam,tracker=dtracker))

@@ -29,10 +29,9 @@ class DefaultTracker(AbstractTracker):
     minimal interface and provides an example for getting measures
     from a parser. Meant to be subclassed.   
     """
-    def __init__(self,filename,wordlist):
+    def __init__(self,filename):
         """
         @param filename: file where to save the data
-        @param wordlist: the list of word entries known to the parser
         """
         self.filename = filename
         self.vocabulary = set([])
