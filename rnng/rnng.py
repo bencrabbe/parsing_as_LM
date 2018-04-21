@@ -282,6 +282,7 @@ class RNNGparser:
         @return : cluster code for in-vocab tokens and cluster code of unk words for OOV tokens
         """
         C = self.blex.get_cls(token,defaultval=RNNGparser.UNKNOWN_TOKEN)
+        print(token,'cls',C)
         return self.bclusters_codes[C]
 
     def code_nonterminals(self,treebank):
@@ -486,7 +487,7 @@ class RNNGparser:
             E = self.init_ext_embedding_matrix(W,M)
             self.lex_embedding_matrix = self.model.parameters_from_numpy(E)
             self.ext_embeddings       =  True
-            if not self.blex:                                            #no clusters ? -> tie input and ouptut lexical parameters
+            if not self.blex:                                            #no clusters ? -> tie input and output lexical parameters
                 print('Using tied lexical parameters',flush=True)
                 self.tied=True
                 self.stack_hidden_size = self.stack_embedding_size  #the stack memory/output must have the #input dimension of the embeddings
