@@ -282,7 +282,6 @@ class RNNGparser:
         @return : cluster code for in-vocab tokens and cluster code of unk words for OOV tokens
         """
         C = self.blex.get_cls(token,defaultval=RNNGparser.UNKNOWN_TOKEN)
-        print(token,'cls',C)
         return self.bclusters_codes[C]
 
     def code_nonterminals(self,treebank):
@@ -650,6 +649,8 @@ class RNNGparser:
         loss       = -dy.pick(logprobs,ref_prediction)
         loss_val   = loss.value()
         best_pred  = np.argmax(logprobs.npvalue())
+        if best_pred != ref_prediction:
+            print("wrong",best_pred,ref_prediction)
         return loss_val,(best_pred==ref_prediction)
 
     #parsing, training, eval one sentence        
