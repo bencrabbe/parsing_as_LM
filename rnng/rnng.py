@@ -1049,7 +1049,7 @@ if __name__ == '__main__':
     warnings.simplefilter("ignore")
     
     try:
-        opts, args = getopt.getopt(sys.argv[1:],"ht:o:d:r:m:b:L:S:")
+        opts, args = getopt.getopt(sys.argv[1:],"ht:o:d:r:m:b:L:S:e:")
     except getopt.GetoptError:
         print ('rnng.py -t <inputfile> -d <inputfile> -r <inputfile> -o <outputfile> -m <model_file>')
         sys.exit(0)
@@ -1057,7 +1057,8 @@ if __name__ == '__main__':
     train_file = ''
     dev_file   = ''
     model_name = ''
-    brown_file = None 
+    brown_file = None
+    embedding_file = None 
     raw_file   = ''
     lex_beam   = 8  #40
     struct_beam = 64 #400
@@ -1080,7 +1081,8 @@ if __name__ == '__main__':
             struct_beam = int(arg)
         elif opt in ['-b','--brown']:
             brown_file = arg
-            
+        elif opt in ['-e','--embedding']:
+            embedding_file = arg
     train_treebank = []
 
     if train_file and model_name: #train
@@ -1107,7 +1109,8 @@ if __name__ == '__main__':
                                  dev_treebank,\
                                  learning_rate=TrainingParams.LEARNING_RATE,\
                                  dropout=TrainingParams.DROPOUT,\
-                                 cls_filename=brown_file)
+                                 cls_filename=brown_file,\
+                                 lex_embeddings_filename=embedding_file)
         
     #runs a test    
     if model_name and raw_file:
@@ -1134,7 +1137,7 @@ if __name__ == '__main__':
                         hidden_size=StructParams.OUTER_HIDDEN_SIZE,\
                         stack_embedding_size=StructParams.STACK_EMB_SIZE,\
                         stack_memory_size=StructParams.STACK_HIDDEN_SIZE)
-        p.train_generative_model('none',TrainingParams.NUM_EPOCHS,train_treebank,train_treebank,learning_rate=TrainingParams.LEARNING_RATE,dropout=TrainingParams.DROPOUT,cls_filename=brown_file)
+        p.train_generative_model('none',TrainingParams.NUM_EPOCHS,train_treebank,train_treebank,learning_rate=TrainingParams.LEARNING_RATE,dropout=TrainingParams.DROPOUT,cls_filename=brown_file,lex_embeddings_filename=embedding_file)
         for t in train_treebank:
             print(p.parse_sentence(t.tokens()))         
             print(p.beam_parse(t.tokens(),all_beam_size=struct_beam,lex_beam_size=lex_beam))
