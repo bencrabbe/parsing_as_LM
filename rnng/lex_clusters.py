@@ -18,7 +18,7 @@ class BrownLexicon:
         """
         self.word_counts = dict( [ (w,count) for (w,count) in word_counts.items() if count > freq_threshold])
         self.w2cls       = dict(  [ (w,C) for (w,C) in w2cls.items() if w in self.word_counts])
-
+    
         #computes the counts of the clusters
         self.cls_counts   = {}          #raw counts of the clusters in the corpus
         for word,clust in self.w2cls.items():
@@ -27,7 +27,8 @@ class BrownLexicon:
                 self.cls_counts[C] = self.cls_counts.get(C,0) + self.word_counts[word]
 
         self.ordered_cls_list = list(self.cls_counts.keys())
-        
+    
+            
     def display_summary(self):
         return """Using Brown Clusters with %d clusters and a lexicon of %d word forms"""%(len(self.ordered_cls_list),len(self.w2cls))
         
@@ -60,7 +61,7 @@ class BrownLexicon:
         @param logprob:
         """
         C = self.get_cls(wordform,None)
-        if C :
+        if C is not None:
             N = self.cls_counts[C]
             w = self.word_counts[wordform]
             p = w/N

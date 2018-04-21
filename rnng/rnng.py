@@ -686,7 +686,10 @@ class RNNGparser:
            
                
         dy.renew_cg()
-        
+
+        #monitor.next_sentence(tokens)
+
+                
         start = BeamElement(None,'init',0)
         start.config = self.init_configuration(len(tokens))
         start.structural_history = ['init']
@@ -752,6 +755,8 @@ class RNNGparser:
                 if lab_state == RNNGparser.WORD_LABEL:
                     elt.config = self.word_action(C,tokens,loc_score)
                     elt.update_history()
+                    #here :  extract stats from the completed configuration
+                    #monitor.
                 elif action == RNNGparser.TERMINATE:
                     elt.config = C
                     elt.update_history( RNNGparser.TERMINATE )
@@ -759,6 +764,7 @@ class RNNGparser:
                     print('bug beam exec lex actions')
             all_beam = next_lex_beam
             next_lex_beam = [ ]
+            #monitor.next_word(tokens)
         if not all_beam:
             return None
         #backtrace
