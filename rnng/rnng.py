@@ -356,7 +356,7 @@ class RNNGparser:
         """
         S,B,n,stack_state,lab_state,score = configuration
         word_idx = self.lex_lookup(sentence[B[0]])
-        word_embedding = self.rnng_dropout(self.lex_embedding_matrix[word_idx])
+        word_embedding = self.rnng_dropout(self.lex_embedding_matrix[word_idx]) 
         word_embedding = self.rnng_nobackprop(word_embedding,sentence[B[0]]) #we do not want to backprop when using external embeddings
         return (S + [StackSymbol(B[0],StackSymbol.COMPLETED,word_embedding)],B[1:],n,stack_state.add_input(word_embedding),RNNGparser.NO_LABEL,score+local_score)
 
@@ -484,7 +484,7 @@ class RNNGparser:
             embed_dim = M.shape[1]
             self.stack_embedding_size = embed_dim
             E = self.init_ext_embedding_matrix(W,M)
-            self.lex_embedding_matrix = self.model.lookup_parameters_from_numpy(E)
+            self.lex_embedding_matrix = self.model.parameters_from_numpy(E)
             self.ext_embeddings       =  True
             if not self.blex:                                            #no clusters ? -> tie input and ouptut lexical parameters
                 print('Using tied lexical parameters',flush=True)
