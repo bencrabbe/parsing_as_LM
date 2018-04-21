@@ -55,7 +55,7 @@ def dump_w2vdictionary(outfilename,wordlist,matrix):
     ostream = open(outfilename,'w')
     print('%d %d'%(len(wordlist),matrix.shape[1]),file=ostream)
     for word,vec in zip(wordlist,matrix):
-        print(' '.join([word]+ [ str(elt) for elt in vec]))
+        print(' '.join([word]+ [ str(elt) for elt in vec]),file=ostream)
     ostream.close()
     
     

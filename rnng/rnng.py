@@ -949,7 +949,12 @@ class RNNGparser:
         print('Stack embedding size    :',self.stack_embedding_size,flush=True)
         print('Stack hidden size       :',self.stack_hidden_size,flush=True)
 
-   
+    @statimethod
+    def read_embedding_file(w2vfilename):
+        """
+        Reads a word2vec file and returns a couple (list of strings
+        """
+        
     @staticmethod
     def load_model(model_name):
         """
