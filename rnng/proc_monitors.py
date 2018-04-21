@@ -58,7 +58,6 @@ class DefaultTracker(AbstractTracker):
 
         #backtrack to prev lexical item config
         current  = beam_element.prev_element.prev_element
-        print(current.incoming_action)
         if current.incoming_action == 'init': #start of sentence, first action is necessarily shift followed by word emission
             self.step_aggregate    += 2
             self.logprob_aggregate  = np.logaddexp(self.logprob_aggregate,prefix_logprob)
@@ -80,14 +79,15 @@ class DefaultTracker(AbstractTracker):
         """
         Moves to the next word
         """
-        token = self.tokens[self.idx]
-        is_unknown = not (token in self.vocabulary)
-        surprisal = self.logprob_aggregate/np.log(2) #change log to base 2 for surprisal
-        self.sent_log.append( (token,is_unknown,surprisal,self.step_aggregate,self.num_configs) )
-        self.logprob_aggregate = 0
-        self.step_aggregate    = 0
-        self.num_configs       = 0
-        self.idx += 1
+        if self.idx < len(self.tokens):
+            token = self.tokens[self.idx]
+            is_unknown = not (token in self.vocabulary)
+            surprisal = self.logprob_aggregate/np.log(2) #change log to base 2 for surprisal
+            self.sent_log.append( (token,is_unknown,surprisal,self.step_aggregate,self.num_configs) )
+            self.logprob_aggregate = 0
+            self.step_aggregate    = 0
+            self.num_configs       = 0
+            self.idx += 1
         
     def next_sentence(self,tokens):
         """
