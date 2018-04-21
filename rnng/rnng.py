@@ -461,14 +461,15 @@ class RNNGparser:
     
         
     #scoring & representation system
-    def make_structure(self):
+    def make_structure(self,w2vfilename=None):
         """
         Allocates the network structure
+        @param w2filename: an external word embedding dictionary
         """
         lexicon_size = len(self.rev_word_codes)
         actions_size = len(self.actions)
         nt_size      = len(self.nonterminals)
-
+       
         #Model structure
         self.model                 = dy.ParameterCollection()
         
@@ -488,9 +489,18 @@ class RNNGparser:
         self.nt_bias                = self.model.add_parameters((nt_size),init='glorot')
 
         
-        #embeddings
-        self.lex_embedding_matrix  = self.model.add_lookup_parameters((lexicon_size,self.stack_embedding_size),init='glorot')       # symbols embeddings
-        self.nt_embedding_matrix   = self.model.add_lookup_parameters((nt_size,self.stack_embedding_size),init='glorot')
+        #symbols & word embeddings
+        self.nt_embedding_matrix   = self.model.add_lookup_parameters((nt_size,self.stack_embedding_size),init='glorot') # symbols embeddings
+
+        if w2vfilename:                                                                             #word embeddings
+            W,M = RNNGparser.load_embedding_file(lex_embeddings_filename)
+            embed_dim = M.shape[1]
+            self.stack_embedding_size = embed_dim
+            E = self.init_ext_embedding_matrix(self,W,M)
+            self.lex_embedding_matrix = self.model.lookup_parameters_from_numpy(E)        
+        else:
+            self.lex_embedding_matrix  = self.model.add_lookup_parameters((lexicon_size,self.stack_embedding_size),init='glorot')  
+
         #stack rnn 
         self.stack_rnn             = dy.LSTMBuilder(1,self.stack_embedding_size, self.stack_hidden_size,self.model)        # main stack rnn
         #tree rnn
@@ -688,7 +698,6 @@ class RNNGparser:
         dy.renew_cg()
 
         #monitor.next_sentence(tokens)
-
                 
         start = BeamElement(None,'init',0)
         start.config = self.init_configuration(len(tokens))
@@ -891,11 +900,14 @@ class RNNGparser:
         if cls_filename:
             self.blex = BrownLexicon.read_clusters(cls_filename,freq_thresh=1)
             print(self.blex.display_summary())
+
         #Coding
         self.code_lexicon(train_bank,self.max_vocab_size)
         self.code_nonterminals(train_bank)
         self.code_struct_actions()
 
+        self.make_structure(lex_embeddings_filename)
+        
         self.print_summary()
         print('---------------------------')
         print('num epochs          :',max_epochs)
@@ -903,7 +915,6 @@ class RNNGparser:
         print('dropout             :',self.dropout)        
         print('num training trees  :',len(train_bank),flush=True)
 
-        self.make_structure()
         
         #training
         self.trainer = dy.AdamTrainer(self.model,alpha=learning_rate)
@@ -950,11 +961,40 @@ class RNNGparser:
         print('Stack hidden size       :',self.stack_hidden_size,flush=True)
 
     @statimethod
-    def read_embedding_file(w2vfilename):
+    def load_embedding_file(w2vfilename):
         """
-        Reads a word2vec file and returns a couple (list of strings
+        Reads a word2vec file and returns a couple (list of strings, matrix of vectors)
+        @param w2vfilename : the word2 vec file (Mikolov format)
+        @return (wordlist,numpy matrix)
         """
+        istream = open(w2vfilename)
+        wordlist = []
+        veclist  = []
+        for line in istream:
+            fields = line.split()
+            wordlist.append(fields[0])
+            veclist.append(np.array([float(elt) for elt in fields[1:]]))
+        return (wordlist, np.array(veclist))
+
+
+    def init_ext_embedding_matrix(self,emb_wordlist,matrix):
+        """
+        Initializer for external embedding matrix.
         
+        Returns numpy matrix ready to use as initializer of a dynet param
+        @param emb_wordlist: the nomenclature of external embeddings
+        @param matrix: the related embedding vectors
+        @return a matrix ready to initalize the dynet params
+        """
+        r = len(self.rev_word_codes)
+        c = matrix.shape[1]
+        new_mat = npr.randn(r,c)/100 #gaussian init with small variance (applies for unk words)
+        for emb_word,emb_vec in zip(emb_wordlist,matrix):
+            idx = self.word_codes.get(emb_word,-1)
+            if idx >= 0:
+                new_mat[idx,:] = emb_vec
+        return new_mat
+                
     @staticmethod
     def load_model(model_name):
         """
@@ -1003,15 +1043,7 @@ class RNNGparser:
         if self.blex:
             self.blex.save_clusters(model_name+'.cls')
         
-    def load_embedding_file(self,filename):
-        """
-        This loads an embedding file and inits the word embedding params with it
-        @param filename
-        """
-        pass #TODO loop over the selected vocabulary and select embeddings that match word entries, fill a numpy array and
-        #then plug the whole thing into a parameter box
-
-    
+  
 if __name__ == '__main__':
 
     warnings.simplefilter("ignore")

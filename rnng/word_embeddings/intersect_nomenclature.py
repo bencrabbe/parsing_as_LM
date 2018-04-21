@@ -58,9 +58,6 @@ def dump_w2vdictionary(outfilename,wordlist,matrix):
         print(' '.join([word]+ [ str(elt) for elt in vec]),file=ostream)
     ostream.close()
     
-    
-    
-
 if __name__ == '__main__':
     
     import getopt
