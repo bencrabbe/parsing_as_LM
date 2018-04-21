@@ -997,9 +997,9 @@ class RNNGparser:
             fields = line.split()
             wordlist.append(fields[0])
             veclist.append(np.asarray(fields[1:],dtype='float32'))
-            print(veclist[-1])
-            
-        return (wordlist, np.array(veclist))
+        M = np.array(veclist)
+        print(M[:3,:])
+        return (wordlist, M)
 
 
     def init_ext_embedding_matrix(self,emb_wordlist,matrix):
