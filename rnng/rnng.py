@@ -722,7 +722,7 @@ class RNNGparser:
         dy.renew_cg()
 
         tracker.set_known_vocabulary(self.rev_word_codes)
-        self.tracker.next_sentence(tokens)
+        tracker.next_sentence(tokens)
         
         start = BeamElement(None,'init',0)
         start.config = self.init_configuration(len(tokens))
@@ -789,7 +789,7 @@ class RNNGparser:
                 if lab_state == RNNGparser.WORD_LABEL:
                     elt.config = self.word_action(C,tokens,loc_score)
                     elt.update_history()
-                    self.tracker.log_beam_element(elt)
+                    tracker.log_beam_element(elt)
                 elif action == RNNGparser.TERMINATE:
                     elt.config = C
                     elt.update_history( RNNGparser.TERMINATE )
@@ -797,7 +797,7 @@ class RNNGparser:
                     print('bug beam exec lex actions')
             all_beam = next_lex_beam
             next_lex_beam = [ ]
-            self.tracker.next_word()
+            tracker.next_word()
         if not all_beam:
             return None
         #backtrace
