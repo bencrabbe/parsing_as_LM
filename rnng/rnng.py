@@ -493,7 +493,6 @@ class RNNGparser:
         else:
             self.lex_embedding_matrix  = self.model.add_lookup_parameters((lexicon_size,self.stack_embedding_size),init='glorot')  
 
-        print(self.hidden_size,self.stack_hidden_size,self.stack_embedding_size)
         #top level task predictions
         self.struct_out             = self.model.add_parameters((actions_size,self.stack_hidden_size),init='glorot')          #struct action output layer
         self.struct_bias            = self.model.add_parameters((actions_size),init='glorot')
