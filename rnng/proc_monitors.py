@@ -109,6 +109,9 @@ class DefaultTracker(AbstractTracker):
         Dumps the current state of the stats to a table without
         explicitly marking sentence boundaries.
         """
+        if self.sent_log:#flush
+            self.next_sentence([])
+        
         flat_dataset = [elt for sent in self.global_log for elt in sent]
         df = pd.DataFrame.from_records(flat_dataset,columns=['token','is_unknown','surprisal','nactions','beam_size'])
         df.to_csv(self.filename)
