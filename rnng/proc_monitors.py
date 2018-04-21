@@ -83,7 +83,7 @@ class DefaultTracker(AbstractTracker):
             token = self.tokens[self.idx]
             is_unknown = not (token in self.vocabulary)
             surprisal = self.logprob_aggregate/np.log(2) #change log to base 2 for surprisal
-            self.sent_log.append( (token,is_unknown,surprisal,self.step_aggregate,self.num_configs) )
+            self.sent_log.append( (token,is_unknown,surprisal,self.step_aggregate/self.num_configs) )
             self.logprob_aggregate = 0
             self.step_aggregate    = 0
             self.num_configs       = 0
@@ -113,5 +113,5 @@ class DefaultTracker(AbstractTracker):
             self.next_sentence([])
         
         flat_dataset = [elt for sent in self.global_log for elt in sent]
-        df = pd.DataFrame.from_records(flat_dataset,columns=['token','is_unknown','surprisal','nactions','beam_size'])
+        df = pd.DataFrame.from_records(flat_dataset,columns=['token','is_unknown','surprisal','mean_actions'])
         df.to_csv(self.filename)
