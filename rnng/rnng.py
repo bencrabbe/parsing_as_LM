@@ -1126,7 +1126,6 @@ if __name__ == '__main__':
             dev_stream.close()
             
         p = RNNGparser(max_vocabulary_size=TrainingParams.LEX_MAX_SIZE,\
-                        hidden_size=StructParams.OUTER_HIDDEN_SIZE,\
                         stack_embedding_size=StructParams.STACK_EMB_SIZE,\
                         stack_memory_size=StructParams.STACK_HIDDEN_SIZE)
         p.train_generative_model(model_name,\
@@ -1160,7 +1159,6 @@ if __name__ == '__main__':
         train_treebank = [t,t2,t3]
         
         p = RNNGparser(max_vocabulary_size=TrainingParams.LEX_MAX_SIZE,\
-                        hidden_size=StructParams.OUTER_HIDDEN_SIZE,\
                         stack_embedding_size=StructParams.STACK_EMB_SIZE,\
                         stack_memory_size=StructParams.STACK_HIDDEN_SIZE)
         p.train_generative_model('none',TrainingParams.NUM_EPOCHS,train_treebank,train_treebank,learning_rate=TrainingParams.LEARNING_RATE,dropout=TrainingParams.DROPOUT,cls_filename=brown_file,lex_embeddings_filename=embedding_file)
