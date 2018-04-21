@@ -13,8 +13,6 @@ class AbstractTracker(object):
     """
     This specifies the abstract interface for tracker objects
     """
-    def __init__(self):
-        pass
     def log_beam_element(self,beam_element):
         pass
     def set_known_vocabulary(self,voc):
@@ -60,6 +58,7 @@ class DefaultTracker(AbstractTracker):
 
         #backtrack to prev lexical item config
         current  = beam_element.prev_element.prev_element
+        print(current.incoming_action)
         if current == None: #start of sentence, first action is necessarily shift followed by word emission
             self.step_aggregate    += 2
             self.logprob_aggregate  = np.logaddexp(self.logprob_aggregate,prefix_logprob)
