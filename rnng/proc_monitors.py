@@ -13,6 +13,8 @@ class AbstractTracker(object):
     """
     This specifies the abstract interface for tracker objects
     """
+    def __init__(self):
+        pass
     def log_beam_element(self,beam_element):
         pass
     def set_known_vocabulary(self,voc):
