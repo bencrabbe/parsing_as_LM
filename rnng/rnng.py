@@ -996,7 +996,7 @@ class RNNGparser:
         for line in istream:
             fields = line.split()
             wordlist.append(fields[0])
-            veclist.append(np.array([float(elt) for elt in fields[1:]]))
+            veclist.append(np.asarray(fields[1:],dtype='float32'))
         return (wordlist, np.array(veclist))
 
 
