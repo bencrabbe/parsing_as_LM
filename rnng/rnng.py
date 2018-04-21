@@ -358,7 +358,7 @@ class RNNGparser:
         S,B,n,stack_state,lab_state,score = configuration
         word_idx = self.lex_lookup(sentence[B[0]])
         word_embedding = self.rnng_dropout(self.lex_embedding_matrix[word_idx])
-        word_embedding = self.rnng_nobackprop(word_embedding)
+        word_embedding = self.rnng_nobackprop(word_embedding) #we do not want to backprop when using external embeddings
         return (S + [StackSymbol(B[0],StackSymbol.COMPLETED,word_embedding)],B[1:],n,stack_state.add_input(word_embedding),RNNGparser.NO_LABEL,score+local_score)
 
     def open_action(self,configuration,local_score):
@@ -870,7 +870,7 @@ class RNNGparser:
             monitor.add_NLL_datum(loc_NLL,C)
             monitor.add_ACC_datum(correct,C)
             C,struct_history = self.move_state(tokens,C,struct_history,ref_action,-loc_NLL)
-            NLL += loc_NLL
+            NLL +=  - max(-loc_NLL,np.log(np.finfo(float).eps))  #smoothes potential zeroes
         return NLL
     
     #parsing, training etc on a full treebank
@@ -951,7 +951,7 @@ class RNNGparser:
                      
             monitor.display_NLL_log(reset=True)            
             devloss = self.eval_all(dev_bank)
-            if devloss < best_model_loss :
+            if devloss <= best_model_loss :
                 best_model_loss=devloss
                 print(" => saving model",devloss)
                 self.save_model(modelname)
