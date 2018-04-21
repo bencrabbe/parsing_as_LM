@@ -492,7 +492,7 @@ class RNNGparser:
             if not self.blex:                                            #no clusters ? -> tie input and ouptut lexical parameters
                 print('Using tied lexical parameters',flush=True)
                 self.tied=True
-                self.hidden_size = self.stack_embedding_size
+                self.hidden_size = self.stack_hidden_size
         else:
             self.lex_embedding_matrix  = self.model.add_lookup_parameters((lexicon_size,self.stack_embedding_size),init='glorot')  
 
