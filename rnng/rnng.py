@@ -978,7 +978,6 @@ class RNNGparser:
         print('Num NT actions          :',len(self.nonterminals),flush=True)
         print('Num struct actions      :',len(self.actions),flush=True)
         print('Lexicon size            :',len(self.rev_word_codes),flush=True)
-        print('Outer hidden layer size :',self.hidden_size,flush=True)
         print('Stack embedding size    :',self.stack_embedding_size,flush=True)
         print('Stack hidden size       :',self.stack_hidden_size,flush=True)
 
