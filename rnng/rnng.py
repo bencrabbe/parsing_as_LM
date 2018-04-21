@@ -1166,3 +1166,4 @@ if __name__ == '__main__':
         for t in train_treebank:
             print(p.parse_sentence(t.tokens()))         
             print(p.beam_parse(t.tokens(),all_beam_size=struct_beam,lex_beam_size=lex_beam,tracker=dtracker))
+        dtracker.save_table()
