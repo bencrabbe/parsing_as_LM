@@ -35,9 +35,10 @@ class DefaultTracker(AbstractTracker):
         """
         self.filename = filename
         self.vocabulary = set([])
-        self.global_log = []
         self.next_sentence([])
-
+        self.global_log = []
+        self.sent_lof   = []
+        
     def set_known_vocabulary(self,wordlist):
         """
         @param wordlist: list of known tokens
