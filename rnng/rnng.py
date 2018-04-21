@@ -1086,8 +1086,8 @@ if __name__ == '__main__':
     brown_file = None
     embedding_file = None 
     raw_file   = ''
-    lex_beam   = 1  #40
-    struct_beam = 1 #400
+    lex_beam   = 10  #40
+    struct_beam = 100 #400
     
     for opt, arg in opts:
         if opt in ['-h','--help']:
