@@ -68,7 +68,7 @@ class DefaultTracker(AbstractTracker):
                 current = current.prev_item
                 num_steps+=1
             num_steps -= 1
-             _,_,_,_,_,prev_prefix_logprob = target_elt.config
+            _,_,_,_,_,prev_prefix_logprob = target_elt.config
             self.step_aggregate    += num_steps
             self.logprob_aggregate  = np.logaddexp(self.logprob_aggregate,prefix_logprob-prev_prefix_logprob)
             self.num_configs       += 1
