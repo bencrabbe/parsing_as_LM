@@ -997,6 +997,8 @@ class RNNGparser:
             fields = line.split()
             wordlist.append(fields[0])
             veclist.append(np.asarray(fields[1:],dtype='float32'))
+            print(veclist[-1])
+            
         return (wordlist, np.array(veclist))
 
 
