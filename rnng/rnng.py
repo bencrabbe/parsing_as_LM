@@ -160,19 +160,16 @@ class RNNGparser:
     START_TOKEN   = '<START>'
 
     def __init__(self,max_vocabulary_size=10000,
-                 hidden_size = 50,
                  stack_embedding_size=50,
                  stack_memory_size=50):
         """
         @param max_vocabulary_size     : max number of words in the vocab
         @param stack_embedding_size    : size of stack lstm input 
         @param stack_memory_size       : size of the stack and tree lstm hidden layers
-        @param hidden_size             : size of the output hidden layer
         """
         self.max_vocab_size       = max_vocabulary_size
         self.stack_embedding_size = stack_embedding_size
         self.stack_hidden_size    = stack_memory_size
-        self.hidden_size          = hidden_size
         self.dropout = 0.0
 
         #Extras (brown lexicon and external embeddings)
@@ -492,24 +489,24 @@ class RNNGparser:
             if not self.blex:                                            #no clusters ? -> tie input and ouptut lexical parameters
                 print('Using tied lexical parameters',flush=True)
                 self.tied=True
-                self.hidden_size = self.stack_hidden_size
+                self.stack_hidden_size = self.stack_embedding_size  #the stack memory/output must have the #input dimension of the embeddings
         else:
             self.lex_embedding_matrix  = self.model.add_lookup_parameters((lexicon_size,self.stack_embedding_size),init='glorot')  
 
         print(self.hidden_size,self.stack_hidden_size,self.stack_embedding_size)
         #top level task predictions
-        self.struct_out             = self.model.add_parameters((actions_size,self.hidden_size),init='glorot')          #struct action output layer
+        self.struct_out             = self.model.add_parameters((actions_size,self.stack_hidden_size),init='glorot')          #struct action output layer
         self.struct_bias            = self.model.add_parameters((actions_size),init='glorot')
 
         if self.blex:
             cls_size = len(self.bclusters)
-            self.lex_out            = self.model.add_parameters((cls_size,self.hidden_size),init='glorot')              #lex action output layer
+            self.lex_out            = self.model.add_parameters((cls_size,self.stack_hidden_size),init='glorot')              #lex action output layer
             self.lex_bias           = self.model.add_parameters((cls_size),init='glorot')
         else:
-            self.lex_out            = self.model.add_parameters((lexicon_size,self.hidden_size),init='glorot')          #lex action output layer
+            self.lex_out            = self.model.add_parameters((lexicon_size,self.stack_hidden_size),init='glorot')          #lex action output layer
             self.lex_bias           = self.model.add_parameters((lexicon_size),init='glorot')
 
-        self.nt_out                 = self.model.add_parameters((nt_size,self.hidden_size),init='glorot')               #nonterminal action output layer
+        self.nt_out                 = self.model.add_parameters((nt_size,self.stack_hidden_size),init='glorot')               #nonterminal action output layer
         self.nt_bias                = self.model.add_parameters((nt_size),init='glorot')
 
         #stack rnn 
