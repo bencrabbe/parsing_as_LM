@@ -496,7 +496,7 @@ class RNNGparser:
         self.nt_embedding_matrix   = self.model.add_lookup_parameters((nt_size,self.stack_embedding_size),init='glorot') #symbols embeddings
 
         if w2vfilename:
-            print('Using external embeddings.',file=sys.stderr)                                                          #word embeddings
+            print('Using external embeddings.',flush=True)                                                          #word embeddings
             W,M = RNNGparser.load_embedding_file(lex_embeddings_filename)
             embed_dim = M.shape[1]
             self.stack_embedding_size = embed_dim
@@ -504,6 +504,7 @@ class RNNGparser:
             self.lex_embedding_matrix = self.model.lookup_parameters_from_numpy(E)
             self.ext_embeddings       =  True
             if not self.blex:#no clusters ? -> tie input and ouptut lexical parameters
+                print('Using tied lexical parameters',flush=True)
                 self.tied=True
         else:
             self.lex_embedding_matrix  = self.model.add_lookup_parameters((lexicon_size,self.stack_embedding_size),init='glorot')  
