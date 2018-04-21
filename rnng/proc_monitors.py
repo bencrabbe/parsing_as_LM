@@ -56,7 +56,7 @@ class DefaultTracker(AbstractTracker):
         _,_,_,_,_,prefix_logprob = beam_element.config
 
         #backtrack to prev lexical item config
-        current  = beam_element.prev_item.prev_item
+        current  = beam_element.prev_element.prev_element
         if current == None: #start of sentence, first action is necessarily shift followed by word emission
             self.step_aggregate    += 2
             self.logprob_aggregate  = np.logaddexp(self.logprob_aggregate,prefix_logprob)
@@ -64,9 +64,9 @@ class DefaultTracker(AbstractTracker):
         else:               #regular case
             target_elt = None
             num_steps = 2
-            while current.incoming_action != RNNGparser.SHIFT and current.prev_item != None:
+            while current.incoming_action != RNNGparser.SHIFT and current.prev_element != None:
                 target_elt = current
-                current = current.prev_item
+                current = current.prev_element
                 num_steps+=1
             num_steps -= 1
             _,_,_,_,_,prev_prefix_logprob = target_elt.config
