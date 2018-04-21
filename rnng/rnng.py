@@ -489,14 +489,14 @@ class RNNGparser:
             E = self.init_ext_embedding_matrix(W,M)
             self.lex_embedding_matrix = self.model.lookup_parameters_from_numpy(E)
             self.ext_embeddings       =  True
-            if not self.blex:#no clusters ? -> tie input and ouptut lexical parameters
+            if not self.blex:                                            #no clusters ? -> tie input and ouptut lexical parameters
                 print('Using tied lexical parameters',flush=True)
                 self.tied=True
                 self.hidden_size = self.stack_embedding_size
         else:
             self.lex_embedding_matrix  = self.model.add_lookup_parameters((lexicon_size,self.stack_embedding_size),init='glorot')  
 
-                
+        print(self.hidden_size,self.stack_hidden_size,self.stack_embedding_size)
         #top level task predictions
         self.struct_out             = self.model.add_parameters((actions_size,self.hidden_size),init='glorot')          #struct action output layer
         self.struct_bias            = self.model.add_parameters((actions_size),init='glorot')
