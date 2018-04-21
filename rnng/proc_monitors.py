@@ -37,7 +37,7 @@ class DefaultTracker(AbstractTracker):
         self.vocabulary = set([])
         self.next_sentence([])
         self.global_log = []
-        self.sent_lof   = []
+        self.sent_log   = []
         
     def set_known_vocabulary(self,wordlist):
         """
