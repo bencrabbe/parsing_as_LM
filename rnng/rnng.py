@@ -498,10 +498,9 @@ class RNNGparser:
         if w2vfilename:
             print('Using external embeddings.',flush=True)                                                          #word embeddings
             W,M = RNNGparser.load_embedding_file(w2vfilename)
-            print(M.shape)
             embed_dim = M.shape[1]
             self.stack_embedding_size = embed_dim
-            E = self.init_ext_embedding_matrix(self,W,M)
+            E = self.init_ext_embedding_matrix(W,M)
             self.lex_embedding_matrix = self.model.lookup_parameters_from_numpy(E)
             self.ext_embeddings       =  True
             if not self.blex:#no clusters ? -> tie input and ouptut lexical parameters
