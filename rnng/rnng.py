@@ -974,7 +974,7 @@ class RNNGparser:
         """
 
         lexA =   len(self.bclusters) if self.blex else len(self.rev_word_codes)
-        print('Num Lexical actions     :'lexA,flush=True)
+        print('Num Lexical actions     :',lexA,flush=True)
         print('Num NT actions          :',len(self.nonterminals),flush=True)
         print('Num struct actions      :',len(self.actions),flush=True)
         print('Lexicon size            :',len(self.rev_word_codes),flush=True)
