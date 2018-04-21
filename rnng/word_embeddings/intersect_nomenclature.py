@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 
 import sys
+import numpy as np
 
 """
 This module intersects the nomenclature of a word embedding dictionary
