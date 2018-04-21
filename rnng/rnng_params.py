@@ -5,7 +5,7 @@ class StructParams:
 
     OUTER_HIDDEN_SIZE  = 256
     STACK_EMB_SIZE     = 300 
-    STACK_HIDDEN_SIZE  = 256
+    STACK_HIDDEN_SIZE  = 300
     
 class TrainingParams:
     LEX_MAX_SIZE      = 10000   #for full PTB training
