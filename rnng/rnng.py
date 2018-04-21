@@ -1,4 +1,5 @@
 import numpy as np
+import numpy.random as npr
 import dynet as dy
 import getopt
 import json
