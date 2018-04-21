@@ -36,6 +36,34 @@ class StackSymbol:
         return s
 
 
+class BeamElement:
+    """
+    Class used for storing elements in the parser's beam
+    """         
+    #representation used for lazy delayed exec of actions in the beam
+    def __init__(self,prev_item,current_action,local_score):
+        self.prev_element           = prev_item               #prev beam item (history)
+        self.structural_history     = None                    #scheduling info
+        self.incoming_action        = current_action
+        self.config                 = None           
+        self.local_score            = local_score
+
+    def update_history(self,update_val = None):
+        if update_val is None:
+            #no copy in case the action is not structural
+            self.structural_history = self.prev_element.structural_history
+        else:
+            #copy in case the action **is** structural
+            self.structural_history = self.prev_element.structural_history + [update_val]
+                
+    @staticmethod
+    def figure_of_merit(elt):
+        #provides a score for ranking the elements in the beam
+        #could add derivation length for further normalization (?)
+        _,_,_,_,lab_state,prefix_score = elt.prev_element.config
+        return elt.local_score + prefix_score
+
+    
 #Monitoring loss & accurracy
 class OptimMonitor:
     def __init__(self):
@@ -690,32 +718,6 @@ class RNNGparser:
         @param ref_tree: if provided return an eval against ref_tree rather than a parse tree
         @return a derivation, a ConsTree or some evaluation metrics
         """
-        class BeamElement:
-            
-            #representation used for lazy delayed exec of actions in the beam
-            def __init__(self,prev_item,current_action,local_score):
-                self.prev_element           = prev_item               #prev beam item (history)
-                self.structural_history     = None                    #scheduling info
-                self.incoming_action        = current_action
-                self.config                 = None           
-                self.local_score            = local_score
-
-            def update_history(self,update_val = None):
-                if update_val is None:
-                    #no copy in case the action is not structural
-                    self.structural_history = self.prev_element.structural_history
-                else:
-                    #copy in case the action **is** structural
-                    self.structural_history = self.prev_element.structural_history + [update_val]
-                
-            @staticmethod
-            def figure_of_merit(elt):
-                #provides a score for ranking the elements in the beam
-                #could add derivation length for further normalization (?)
-                _,_,_,_,lab_state,prefix_score = elt.prev_element.config
-                return elt.local_score + prefix_score
-           
-               
         dy.renew_cg()
 
         #monitor.next_sentence(tokens)
