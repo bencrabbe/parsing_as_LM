@@ -3,6 +3,7 @@
 
 import numpy as np
 import pandas as pd
+import rnng
 
 """
 This module implements monitoring tools for tracking measures of
@@ -64,7 +65,7 @@ class DefaultTracker(AbstractTracker):
         else:               #regular case
             target_elt = None
             num_steps = 2
-            while current.incoming_action != RNNGparser.SHIFT and current.prev_element != None:
+            while current.incoming_action != rnng.RNNGparser.SHIFT and current.prev_element != None:
                 target_elt = current
                 current = current.prev_element
                 num_steps+=1
