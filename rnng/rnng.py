@@ -1026,7 +1026,6 @@ class RNNGparser:
         """            
         struct = json.loads(open(model_name+'.json').read())
         parser = RNNGparser(max_vocabulary_size=struct['max_vocabulary_size'],
-                 hidden_size = struct['hidden_size'],
                  stack_embedding_size = struct['stack_embedding_size'],
                  stack_memory_size= struct['stack_hidden_size'])
         try:
@@ -1060,7 +1059,6 @@ class RNNGparser:
         jfile.write(json.dumps({'max_vocabulary_size':self.max_vocab_size,\
                                 'stack_embedding_size':self.stack_embedding_size,\
                                 'stack_hidden_size':self.stack_hidden_size,\
-                                'hidden_size':self.hidden_size,
                                 'nonterminals': self.nonterminals,
                                 'rev_word_codes':self.rev_word_codes}))
         self.model.save(model_name+'.prm')
