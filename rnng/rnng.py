@@ -710,7 +710,7 @@ class RNNGparser:
             
         return C,struct_history        
    
-    def beam_parse(self,tokens,all_beam_size,lex_beam_size,ref_tree=None,tracker=AbstractTracker()):
+    def beam_parse(self,tokens,all_beam_size,lex_beam_size,ref_tree=None,tracker=None):
         """
         This parses a sentence with word sync beam search.
         The beam search assumes the number of structural actions between two words to be bounded 
@@ -721,6 +721,8 @@ class RNNGparser:
         """
         dy.renew_cg()
 
+        if tracker is None:
+            tracker = AbstractTracker()
         tracker.set_known_vocabulary(self.rev_word_codes)
         tracker.next_sentence(tokens)
         
