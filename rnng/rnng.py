@@ -497,7 +497,7 @@ class RNNGparser:
 
         if w2vfilename:
             print('Using external embeddings.',flush=True)                                                          #word embeddings
-            W,M = RNNGparser.load_embedding_file(lex_embeddings_filename)
+            W,M = RNNGparser.load_embedding_file(w2vfilename)
             embed_dim = M.shape[1]
             self.stack_embedding_size = embed_dim
             E = self.init_ext_embedding_matrix(self,W,M)
