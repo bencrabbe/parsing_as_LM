@@ -8,6 +8,7 @@ from collections import Counter
 import warnings
 from constree import *
 from lex_clusters import *
+from proc_monitors import *
 from rnng_params import *
 
 class StackSymbol:
@@ -189,17 +190,19 @@ class RNNGparser:
 
     def __init__(self,max_vocabulary_size=10000,
                  stack_embedding_size=50,
-                 stack_memory_size=50):
+                 stack_memory_size=50,
+                 tracker=AbstractTracker()):
         """
         @param max_vocabulary_size     : max number of words in the vocab
         @param stack_embedding_size    : size of stack lstm input 
         @param stack_memory_size       : size of the stack and tree lstm hidden layers
+        @param tracker                 : a tracker object designed for recording cognitive measures
         """
         self.max_vocab_size       = max_vocabulary_size
         self.stack_embedding_size = stack_embedding_size
         self.stack_hidden_size    = stack_memory_size
-        self.dropout = 0.0
-
+        self.dropout              = 0.0
+        self.tracker              = tracker 
         #Extras (brown lexicon and external embeddings)
         self.blex = None
         self.ext_embeddings = False
@@ -716,12 +719,13 @@ class RNNGparser:
         The beam search assumes the number of structural actions between two words to be bounded 
         @param tokens: the sentence tokens
         @param ref_tree: if provided return an eval against ref_tree rather than a parse tree
+        @param tracker: a tracker object instance, subclass of AbstractTracker.
         @return a derivation, a ConsTree or some evaluation metrics
         """
         dy.renew_cg()
 
-        #monitor.next_sentence(tokens)
-                
+        self.tracker.next_sentence(tokens)
+        
         start = BeamElement(None,'init',0)
         start.config = self.init_configuration(len(tokens))
         start.structural_history = ['init']
@@ -787,8 +791,7 @@ class RNNGparser:
                 if lab_state == RNNGparser.WORD_LABEL:
                     elt.config = self.word_action(C,tokens,loc_score)
                     elt.update_history()
-                    #here :  extract stats from the completed configuration
-                    #monitor.
+                    self.tracker.log_beam_element(elt)
                 elif action == RNNGparser.TERMINATE:
                     elt.config = C
                     elt.update_history( RNNGparser.TERMINATE )
@@ -796,7 +799,7 @@ class RNNGparser:
                     print('bug beam exec lex actions')
             all_beam = next_lex_beam
             next_lex_beam = [ ]
-            #monitor.next_word(tokens)
+            self.tracker.next_word()
         if not all_beam:
             return None
         #backtrace
