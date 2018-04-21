@@ -43,7 +43,8 @@ class DefaultTracker(AbstractTracker):
         """
         @param wordlist: list of known tokens
         """
-        self.vocabulary = set(wordlist)
+        if not self.vocabulary:
+            self.vocabulary = set(wordlist)
 
     def log_beam_element(self,beam_element):
         """

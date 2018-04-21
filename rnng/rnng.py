@@ -190,19 +190,16 @@ class RNNGparser:
 
     def __init__(self,max_vocabulary_size=10000,
                  stack_embedding_size=50,
-                 stack_memory_size=50,
-                 tracker=AbstractTracker()):
+                 stack_memory_size=50):
         """
         @param max_vocabulary_size     : max number of words in the vocab
         @param stack_embedding_size    : size of stack lstm input 
         @param stack_memory_size       : size of the stack and tree lstm hidden layers
-        @param tracker                 : a tracker object designed for recording cognitive measures
         """
         self.max_vocab_size       = max_vocabulary_size
         self.stack_embedding_size = stack_embedding_size
         self.stack_hidden_size    = stack_memory_size
         self.dropout              = 0.0
-        self.tracker              = tracker 
         #Extras (brown lexicon and external embeddings)
         self.blex = None
         self.ext_embeddings = False
@@ -713,7 +710,7 @@ class RNNGparser:
             
         return C,struct_history        
    
-    def beam_parse(self,tokens,all_beam_size,lex_beam_size,ref_tree=None):
+    def beam_parse(self,tokens,all_beam_size,lex_beam_size,ref_tree=None,tracker=AbstractTracker()):
         """
         This parses a sentence with word sync beam search.
         The beam search assumes the number of structural actions between two words to be bounded 
@@ -724,6 +721,7 @@ class RNNGparser:
         """
         dy.renew_cg()
 
+        tracker.set_known_vocabulary(self.rev_word_codes)
         self.tracker.next_sentence(tokens)
         
         start = BeamElement(None,'init',0)
