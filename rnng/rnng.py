@@ -476,7 +476,27 @@ class RNNGparser:
        
         #Model structure
         self.model                 = dy.ParameterCollection()
-        
+
+
+        #symbols & word embeddings (some setups may affect the structure of the network)
+        self.nt_embedding_matrix   = self.model.add_lookup_parameters((nt_size,self.stack_embedding_size),init='glorot') #symbols embeddings
+
+        if w2vfilename:
+            print('Using external embeddings.',flush=True)                                                          #word embeddings
+            W,M = RNNGparser.load_embedding_file(w2vfilename)
+            embed_dim = M.shape[1]
+            self.stack_embedding_size = embed_dim
+            E = self.init_ext_embedding_matrix(W,M)
+            self.lex_embedding_matrix = self.model.lookup_parameters_from_numpy(E)
+            self.ext_embeddings       =  True
+            if not self.blex:#no clusters ? -> tie input and ouptut lexical parameters
+                print('Using tied lexical parameters',flush=True)
+                self.tied=True
+                self.hidden_size = self.stack_embedding_size
+        else:
+            self.lex_embedding_matrix  = self.model.add_lookup_parameters((lexicon_size,self.stack_embedding_size),init='glorot')  
+
+                
         #top level task predictions
         self.struct_out             = self.model.add_parameters((actions_size,self.hidden_size),init='glorot')          #struct action output layer
         self.struct_bias            = self.model.add_parameters((actions_size),init='glorot')
@@ -491,24 +511,6 @@ class RNNGparser:
 
         self.nt_out                 = self.model.add_parameters((nt_size,self.hidden_size),init='glorot')               #nonterminal action output layer
         self.nt_bias                = self.model.add_parameters((nt_size),init='glorot')
-
-        
-        #symbols & word embeddings
-        self.nt_embedding_matrix   = self.model.add_lookup_parameters((nt_size,self.stack_embedding_size),init='glorot') #symbols embeddings
-
-        if w2vfilename:
-            print('Using external embeddings.',flush=True)                                                          #word embeddings
-            W,M = RNNGparser.load_embedding_file(w2vfilename)
-            embed_dim = M.shape[1]
-            self.stack_embedding_size = embed_dim
-            E = self.init_ext_embedding_matrix(W,M)
-            self.lex_embedding_matrix = self.model.lookup_parameters_from_numpy(E)
-            self.ext_embeddings       =  True
-            if not self.blex:#no clusters ? -> tie input and ouptut lexical parameters
-                print('Using tied lexical parameters',flush=True)
-                self.tied=True
-        else:
-            self.lex_embedding_matrix  = self.model.add_lookup_parameters((lexicon_size,self.stack_embedding_size),init='glorot')  
 
         #stack rnn 
         self.stack_rnn             = dy.LSTMBuilder(1,self.stack_embedding_size, self.stack_hidden_size,self.model)        # main stack rnn
