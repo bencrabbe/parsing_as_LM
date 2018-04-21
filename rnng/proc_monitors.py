@@ -59,7 +59,7 @@ class DefaultTracker(AbstractTracker):
         #backtrack to prev lexical item config
         current  = beam_element.prev_element.prev_element
         print(current.incoming_action)
-        if current == 'init': #start of sentence, first action is necessarily shift followed by word emission
+        if current.incoming_action == 'init': #start of sentence, first action is necessarily shift followed by word emission
             self.step_aggregate    += 2
             self.logprob_aggregate  = np.logaddexp(self.logprob_aggregate,prefix_logprob)
             self.num_configs       += 1
