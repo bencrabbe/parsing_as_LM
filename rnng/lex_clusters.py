@@ -79,7 +79,8 @@ class BrownLexicon:
                                 'w2cls':self.w2cls,\
                                 'ordered_cls':self.ordered_cls_list}))
         jfile.close()
-        
+
+    @staticmethod
     def load_clusters(self,filename):
         """
         Loads the clusters from a json format
