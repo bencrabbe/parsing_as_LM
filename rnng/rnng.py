@@ -1,11 +1,12 @@
+import dynet as dy
 import numpy as np
 import numpy.random as npr
-import dynet as dy
-import getopt
-import json
 import pandas as pd
-from collections import Counter
+import getopt
 import warnings
+import json
+
+from collections import Counter
 from constree import *
 from lex_clusters import *
 from proc_monitors import *
@@ -967,7 +968,7 @@ class RNNGparser:
                 self.save_model(modelname)
                 
         print()
-        monitor.save_loss_curves(modelname+'learningcurves.csv')
+        monitor.save_loss_curves(modelname+'.learningcurves.csv')
         self.save_model(modelname+'.final')
         self.dropout = 0.0  #prevents dropout to be applied at decoding
             
@@ -1075,7 +1076,7 @@ if __name__ == '__main__':
     warnings.simplefilter("ignore")
     
     try:
-        opts, args = getopt.getopt(sys.argv[1:],"ht:o:d:r:m:b:L:S:e:")
+        opts, args = getopt.getopt(sys.argv[1:],"ht:o:d:r:m:b:L:S:e:c:")
     except getopt.GetoptError:
         print ('rnng.py -t <inputfile> -d <inputfile> -r <inputfile> -o <outputfile> -m <model_file>')
         sys.exit(0)
@@ -1088,6 +1089,7 @@ if __name__ == '__main__':
     raw_file   = ''
     lex_beam   = 10  #40
     struct_beam = 100 #400
+    config_file = 'defaultconfig.prm'
     
     for opt, arg in opts:
         if opt in ['-h','--help']:
@@ -1109,8 +1111,14 @@ if __name__ == '__main__':
             brown_file = arg
         elif opt in ['-e','--embedding']:
             embedding_file = arg
-    train_treebank = []
+        elif opt in ['-c','--configfile']:
+            config_file = arg
 
+    read_config(config_file)
+
+
+            
+    train_treebank = []
     if train_file and model_name: #train
         train_treebank = []
         train_stream   = open(train_file)

@@ -1,0 +1,9 @@
+[structure]
+stack_embedding_size = 100
+stack_hidden_size    = 100
+
+[learning]
+lex_max_size  = 10000
+num_epochs    = 30
+learning_rate = 0.0001
+dropout       = 0.3
