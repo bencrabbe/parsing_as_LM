@@ -81,7 +81,7 @@ class BrownLexicon:
         jfile.close()
 
     @staticmethod
-    def load_clusters(self,filename):
+    def load_clusters(filename):
         """
         Loads the clusters from a json format
         """
