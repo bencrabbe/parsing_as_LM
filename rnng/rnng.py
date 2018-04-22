@@ -1113,13 +1113,9 @@ if __name__ == '__main__':
             embedding_file = arg
         elif opt in ['-c','--configfile']:
             config_file = arg
-
-    read_config(config_file)
-
-
             
-    train_treebank = []
     if train_file and model_name: #train
+        read_config(config_file)
         train_treebank = []
         train_stream   = open(train_file)
         for line in train_stream:
