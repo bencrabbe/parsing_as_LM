@@ -91,7 +91,7 @@ class OptimMonitor:
                                                                                                               np.exp(self.nt_loss/self.ntN),
                                                                                                               np.exp(self.struct_loss/self.structN)))
         sys.stdout.flush()
-        self.ppl_dataset.append((np.exp(global_nll/N),np.exp(self.lex_loss/self.lexN),np.exp(self.struct_loss/self.structN),np.exp(self.struct_loss/self.structN)))
+        self.ppl_dataset.append((np.exp(global_nll/N),np.exp(self.lex_loss/self.lexN),np.exp(self.struct_loss/self.structN),np.exp(self.nt_loss/self.ntN)))
 
         if reset:
             self.reset_loss_counts()
