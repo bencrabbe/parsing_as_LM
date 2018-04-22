@@ -6,7 +6,7 @@ NUM_EPOCHS=15
 make_config(){
     #$1 NAME $2 = embedding size , $3 = lstm memory size $4 = dropout
     CNAME="$1.prm"
-    echo > $CNAME 
+    echo > $CNAME  
     echo "[structure]" >> $CNAME
     echo "stack_embedding_size = $2" >> $CNAME
     echo "stack_hidden_size    = $3" >> $CNAME
@@ -24,8 +24,7 @@ train_brown(){
    mkdir -p $NAME
    make_config "$NAME/$NAME" $1 $2 $3
    #source activate py36
-   #nohup python rnng.py -m $NAME -t ptb_train_mrg -d -ptb_dev.mrg -b ptb-1000.brown -c "$NAME.prm" >> $nohup.NAME.out &
-   #mv $NAME.* $NAME/ 
+   #nohup python rnng.py -m $NAME/$NAME -t ptb_train_mrg -d -ptb_dev.mrg -b ptb-1000.brown -c "$NAME/$NAME.prm" >> $nohup.NAME.out & 
 }
 
 #train_lexicalized(){
