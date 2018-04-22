@@ -24,13 +24,18 @@ train_brown(){
    mkdir -p $NAME
    make_config "$NAME/$NAME" $1 $2 $3
    source activate py36
-   nohup python rnng.py -m $NAME/$NAME -t ptb_train.mrg -d -ptb_dev.mrg -b ptb-1000.brown -c "$NAME/$NAME.prm" >> $nohup.NAME.out & 
+   nohup python rnng.py -m $NAME/$NAME -t ptb_train.mrg -d -ptb_dev.mrg -b ptb-1000.brown -c "$NAME/$NAME.prm" >> "nohup.$NAME.out" & 
    #python rnng.py -m $NAME/$NAME -t ptb_train.mrg -d -ptb_dev.mrg -b ptb-1000.brown -c "$NAME/$NAME.prm"
 }
 
-#train_lexicalized(){
-
-#}
+train_lexicalized(){
+    NAME="lex-$1-$2-$3-10000"  #10000 stands for the size of the dictionary
+    mkdir -p $NAME
+    make_config "$NAME/$NAME" $1 $2 $3
+    source activate py36
+    #nohup python rnng.py -m $NAME/$NAME -t ptb_train.mrg -d -ptb_dev.mrg -e word_embeddings/w2v-ptb.txt -c "$NAME/$NAME.prm" >> $nohup.NAME.out & 
+    #python rnng.py -m $NAME/$NAME -t ptb_train.mrg -d -ptb_dev.mrg -b ptb-1000.brown -c "$NAME/$NAME.prm"
+}
 
 #Brown clusters
 train_brown 300 100 0.5
