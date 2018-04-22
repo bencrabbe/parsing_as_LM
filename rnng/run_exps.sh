@@ -5,7 +5,7 @@ NUM_EPOCHS      = 15
 
 make_config(){
     #$1 NAME $2 = embedding size , $3 = lstm memory size $4 = dropout
-    CNAME = "$1.prm"
+    CNAME="$1.prm"
     echo "[structure]" >> $CNAME
     echo "stack_embedding_size = $2" >> $CNAME
     echo "stack_hidden_size    = $3" >> $CNAME
@@ -19,7 +19,7 @@ make_config(){
 
 train_brown(){
    # $1 = embedding size , $2 = lstm memory size $3 = dropout
-   NAME = "brown-$1-$2-$3-1000"  #1000 stands for the number of clusters
+   NAME="brown-$1-$2-$3-1000"  #1000 stands for the number of clusters
    mkdir -p $NAME
    make_config "$NAME/$NAME" $1 $2 $3
    #source activate py36
