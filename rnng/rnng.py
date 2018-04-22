@@ -1036,9 +1036,7 @@ class RNNGparser:
         try:
             
             parser.blex = BrownLexicon.load_clusters(model_name+'.cls')
-            parser.bclusters       = parser.blex.cls_list()
-            parser.bclusters.append(RNNGparser.UNKNOWN_TOKEN)
-            parser.bclusters.append(RNNGparser.START_TOKEN)
+            parser.bclusters        = parser.blex.cls_list()
             parser.bclusters_size   = len(parser.bclusters)
             parser.bclusters_codes  = dict([(s,idx) for (idx,s) in enumerate(parser.bclusters)])
                         
