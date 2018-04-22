@@ -1,6 +1,6 @@
 #!/bin/sh
 
-MKL_NUM_THREADS=4
+MKL_NUM_THREADS=6
 NUM_EPOCHS=15
 
 make_config(){
@@ -23,8 +23,8 @@ train_brown(){
    NAME="brown-$1-$2-$3-1000"  #1000 stands for the number of clusters
    mkdir -p $NAME
    make_config "$NAME/$NAME" $1 $2 $3
-   #source activate py36
-   #nohup python rnng.py -m $NAME/$NAME -t ptb_train_mrg -d -ptb_dev.mrg -b ptb-1000.brown -c "$NAME/$NAME.prm" >> $nohup.NAME.out & 
+   source activate py36
+   nohup python rnng.py -m $NAME/$NAME -t ptb_train_mrg -d -ptb_dev.mrg -b ptb-1000.brown -c "$NAME/$NAME.prm" >> $nohup.NAME.out & 
 }
 
 #train_lexicalized(){
