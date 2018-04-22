@@ -1,7 +1,7 @@
 #!/bin/sh
 
-MKL_NUM_THREADS = 4
-NUM_EPOCHS      = 15
+MKL_NUM_THREADS=4
+NUM_EPOCHS=15
 
 make_config(){
     #$1 NAME $2 = embedding size , $3 = lstm memory size $4 = dropout
