@@ -563,8 +563,10 @@ class RNNGparser:
         @return a dynet expression
         """
         if self.ext_embeddings:        #do not backprop with external embeddings
+            print('noback')
             return dy.nobackprop(expr)
         else:
+            print('backprop')
             return expr
             
         
