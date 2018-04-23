@@ -7,7 +7,6 @@ import matplotlib.pyplot as plt
 Plots measures from the parser measures output
 """
 
-
 def plot_measures(csvfilename=None,datatable=None,select=[True,True,True],labels=None,row_indexes=None,label_rotation=45):
     """
     Plots up to two measures for a given text.

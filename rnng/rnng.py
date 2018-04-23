@@ -1149,7 +1149,7 @@ if __name__ == '__main__':
             #print(p.parse_sentence(line.split(),ref_tree=None))
             result = p.beam_parse(line.split(),all_beam_size=struct_beam,lex_beam_size=lex_beam)
             result.add_dummy_tag()
-            print(result,file=test_ostream)
+            print(result,file=test_ostream,flush=True)
         test_istream.close()
         test_ostream.close()
         
