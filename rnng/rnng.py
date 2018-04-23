@@ -7,6 +7,7 @@ import warnings
 import json
 
 from collections import Counter
+from random import shuffle
 from constree import *
 from lex_clusters import *
 from proc_monitors import *
@@ -384,9 +385,10 @@ class RNNGparser:
         @return a configuration resulting from shifting the next word into the stack 
         """
         S,B,n,stack_state,lab_state,score = configuration
-        word_idx = self.lex_lookup(sentence[B[0]])
-        word_embedding = self.rnng_dropout(self.lex_embedding_matrix[word_idx]) 
-        word_embedding = self.rnng_nobackprop(word_embedding,sentence[B[0]]) #we do not want to backprop when using external embeddings
+        word_idx = self.lex_lookup(sentence[B[0]])  
+        E = dy.const_parameter(self.lex_embedding_matrix) if self.ext_embeddings else dy.parameter(self.lex_embedding_matrix) #no update with ext embeddings
+        word_embedding = self.rnng_dropout(E[word_idx]) 
+        #word_embedding = self.rnng_nobackprop(word_embedding,sentence[B[0]]) #we do not want to backprop when using external embeddings
         return (S + [StackSymbol(B[0],StackSymbol.COMPLETED,word_embedding)],B[1:],n,stack_state.add_input(word_embedding),RNNGparser.NO_LABEL,score+local_score)
 
     def open_action(self,configuration,local_score):
@@ -555,19 +557,17 @@ class RNNGparser:
         else:
             return dy.dropout(expr,self.dropout)
 
-    def rnng_nobackprop(self,expr,word_token):
-        """
-        Function controlling whether to block backprop or not on lexical embeddings
-        @param expr: a dynet expression
-        @param word_token: the lexical token 
-        @return a dynet expression
-        """
-        if self.ext_embeddings:        #do not backprop with external embeddings
-            print('noback')
-            return dy.nobackprop(expr)
-        else:
-            print('backprop')
-            return expr
+    #def rnng_nobackprop(self,expr,word_token):
+    #    """
+    #    Function controlling whether to block backprop or not on lexical embeddings
+    #    @param expr: a dynet expression
+    #    @param word_token: the lexical token 
+    #    @return a dynet expression
+    #    """
+    #    if self.ext_embeddings and word_token in self.rev_word_codes:  #do not backprop with external embeddings when word is known to the lexicon
+    #        return dy.nobackprop(expr)
+    #    else:
+    #        return expr
             
         
     def raw_action_distrib(self,configuration,structural_history): #max_prediction=False,ref_action=None,backprop=True):
@@ -951,7 +951,6 @@ class RNNGparser:
         monitor =  OptimMonitor()
         for e in range(max_epochs):
             print('\n--------------------------\nEpoch %d'%(e,),flush=True)
-
             for idx,tree in enumerate(train_bank):
                 sys.stdout.write('\rtree #%d/%d        '%(idx,len(train_bank)))
                 sys.stdout.flush()
@@ -964,11 +963,11 @@ class RNNGparser:
                      
             monitor.display_NLL_log(reset=True)            
             devloss = self.eval_all(dev_bank)
+            shuffle(train_bank)
             if devloss <= best_model_loss :
                 best_model_loss=devloss
                 print(" => saving model",devloss)
                 self.save_model(modelname)
-                
         print()
         monitor.save_loss_curves(modelname+'.learningcurves.csv')
         self.save_model(modelname+'.final')
