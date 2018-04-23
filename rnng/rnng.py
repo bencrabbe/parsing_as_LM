@@ -505,7 +505,6 @@ class RNNGparser:
         #Model structure
         self.model                 = dy.ParameterCollection()
 
-
         #symbols & word embeddings (some setups may affect the structure of the network)
         self.nt_embedding_matrix   = self.model.add_lookup_parameters((nt_size,self.stack_embedding_size),init='glorot') #symbols embeddings
 
@@ -518,11 +517,13 @@ class RNNGparser:
             self.stack_embedding_size = embed_dim
             E = self.init_ext_embedding_matrix(W,M)
             if self.blex:
-                self.lex_embedding_matrix.lookup_parameters_from_numpy(E)
+                self.lex_embedding_matrix = self.model.lookup_parameters_from_numpy(E)
             else:                                            #no clusters ? -> tie input and output lexical parameters
                 print('Using tied lexical parameters',flush=True)
                 self.tied=True
                 self.stack_hidden_size = self.stack_embedding_size  #the stack memory/output must have the #input dimension of the embeddings
+                self.lex_embedding_matrix = self.model.parameters_from_numpy(E)
+
         else:
             self.lex_embedding_matrix  = self.model.add_lookup_parameters((lexicon_size,self.stack_embedding_size),init='glorot')  
 
