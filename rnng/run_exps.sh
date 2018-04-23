@@ -24,7 +24,7 @@ train_brown(){
    mkdir -p $NAME
    make_config "$NAME/$NAME" $1 $2 $3
    source activate py36
-   nohup python rnng.py -m $NAME/$NAME -t ptb_train.mrg -d -ptb_dev.mrg -b ptb-1000.brown -e word_embeddings/w2v-ptb.txt -c "$NAME/$NAME.prm" > "nohup.$NAME.out" & 
+   python rnng.py -m $NAME/$NAME -t ptb_train.mrg -d -ptb_dev.mrg -b ptb-1000.brown -e word_embeddings/w2v-ptb.txt -c "$NAME/$NAME.prm" #> "nohup.$NAME.out" & 
    #python rnng.py -m $NAME/$NAME -t ptb_train.mrg -d -ptb_dev.mrg -b ptb-1000.brown -c "$NAME/$NAME.prm"
 }
 
@@ -34,7 +34,7 @@ train_lexicalized(){
     make_config "$NAME/$NAME" $1 $2 $3
     source activate py36
     #nohup python rnng.py -m $NAME/$NAME -t ptb_train.mrg -d -ptb_dev.mrg -e word_embeddings/w2v-ptb.txt -c "$NAME/$NAME.prm" >> $nohup.NAME.out & 
-    python rnng.py -m $NAME/$NAME -t ptb_train.mrg -d -ptb_dev.mrg -b ptb-1000.brown -c "$NAME/$NAME.prm"
+    #python rnng.py -m $NAME/$NAME -t ptb_train.mrg -d -ptb_dev.mrg -b ptb-1000.brown -c "$NAME/$NAME.prm"
 }
 
 #Brown clusters
