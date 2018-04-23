@@ -38,7 +38,7 @@ train_lexicalized(){
 }
 
 #Brown clusters
-#train_brown 300 100 0.3
+train_brown 300 100 0.3
 #train_brown 300 200 0.3
 #train_brown 300 300 0.3
 
