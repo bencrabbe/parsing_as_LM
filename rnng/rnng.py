@@ -386,9 +386,9 @@ class RNNGparser:
         """
         S,B,n,stack_state,lab_state,score = configuration
         word_idx = self.lex_lookup(sentence[B[0]])  
-        E = dy.const_parameter(self.lex_embedding_matrix) if self.ext_embeddings else dy.parameter(self.lex_embedding_matrix) #no update with ext embeddings
+        E = dy.parameter(self.lex_embedding_matrix)
         word_embedding = self.rnng_dropout(E[word_idx]) 
-        #word_embedding = self.rnng_nobackprop(word_embedding,sentence[B[0]]) #we do not want to backprop when using external embeddings
+        word_embedding = self.rnng_nobackprop(word_embedding,sentence[B[0]]) #we do not want to backprop when using external embeddings
         return (S + [StackSymbol(B[0],StackSymbol.COMPLETED,word_embedding)],B[1:],n,stack_state.add_input(word_embedding),RNNGparser.NO_LABEL,score+local_score)
 
     def open_action(self,configuration,local_score):
@@ -511,13 +511,15 @@ class RNNGparser:
 
         if w2vfilename:
             print('Using external embeddings.',flush=True)                                                          #word embeddings
+            self.ext_embeddings       =  True
+
             W,M = RNNGparser.load_embedding_file(w2vfilename)
             embed_dim = M.shape[1]
             self.stack_embedding_size = embed_dim
             E = self.init_ext_embedding_matrix(W,M)
-            self.lex_embedding_matrix = self.model.parameters_from_numpy(E)
-            self.ext_embeddings       =  True
-            if not self.blex:                                            #no clusters ? -> tie input and output lexical parameters
+            if self.blex:
+                self.lex_embedding_matrix.lookup_parameters_from_numpy(E)
+            else:                                            #no clusters ? -> tie input and output lexical parameters
                 print('Using tied lexical parameters',flush=True)
                 self.tied=True
                 self.stack_hidden_size = self.stack_embedding_size  #the stack memory/output must have the #input dimension of the embeddings
@@ -557,17 +559,17 @@ class RNNGparser:
         else:
             return dy.dropout(expr,self.dropout)
 
-    #def rnng_nobackprop(self,expr,word_token):
-    #    """
-    #    Function controlling whether to block backprop or not on lexical embeddings
-    #    @param expr: a dynet expression
-    #    @param word_token: the lexical token 
-    #    @return a dynet expression
-    #    """
-    #    if self.ext_embeddings and word_token in self.rev_word_codes:  #do not backprop with external embeddings when word is known to the lexicon
-    #        return dy.nobackprop(expr)
-    #    else:
-    #        return expr
+    def rnng_nobackprop(self,expr,word_token):
+       """
+       Function controlling whether to block backprop or not on lexical embeddings
+       @param expr: a dynet expression
+       @param word_token: the lexical token 
+       @return a dynet expression
+       """
+       if self.ext_embeddings and word_token in self.word_codes:  #do not backprop with external embeddings when word is known to the lexicon
+           return dy.nobackprop(expr)
+       else:
+           return expr
             
         
     def raw_action_distrib(self,configuration,structural_history): #max_prediction=False,ref_action=None,backprop=True):
