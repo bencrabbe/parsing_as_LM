@@ -562,7 +562,7 @@ class RNNGparser:
         @param word_token: the lexical token 
         @return a dynet expression
         """
-        if self.ext_embeddings and word_token in self.word_codes: #do not backprop if word is known
+        if self.ext_embeddings:        #do not backprop with external embeddings
             return dy.nobackprop(expr)
         else:
             return expr
@@ -1021,7 +1021,7 @@ class RNNGparser:
         for emb_word,emb_vec in zip(emb_wordlist,matrix):
             idx = self.word_codes.get(emb_word,-1)
             if idx >= 0:
-                new_mat[idx,:] = emb_vec
+                new_mat[idx,:] = emb_vec                
         return new_mat
                 
     @staticmethod
