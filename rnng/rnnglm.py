@@ -211,7 +211,7 @@ class RNNGlm:
                 
             print('train',L,N,L/N,np.exp(L/N))
             eL,eN = self.eval_dataset(validation_sentences)
-            print('eval ',el,eN,eL/eN,np.exp(eL/eN))
+            print('eval ',eL,eN,eL/eN,np.exp(eL/eN))
 
             
     def eval_dataset(self,sentences):
