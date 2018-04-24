@@ -213,7 +213,7 @@ class RNNGlm:
                 L  +=  batch_loss.value()
                 batch_loss.backward()
                 trainer.update()
-                N  +=  len(Y)*len(Y[0])
+                N         += sum( [ len(row)  for row in Y     ] )
                 
             print('train',L,N,L/N,np.exp(L/N))
             eL,eN = self.eval_dataset(train_sentences)
