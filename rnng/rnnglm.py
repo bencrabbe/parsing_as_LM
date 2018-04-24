@@ -209,9 +209,9 @@ class RNNGlm:
                 trainer.update()
                 N  +=  len(Y)*len(Y[0])
                 
-            print('train',L/N,np.exp(L/N))
+            print('train',L,N,L/N,np.exp(L/N))
             eL,eN = self.eval_dataset(validation_sentences)
-            print('eval ',eL/eN,np.exp(eL/eN))
+            print('eval ',el,eN,eL/eN,np.exp(eL/eN))
 
             
     def eval_dataset(self,sentences):
@@ -221,8 +221,6 @@ class RNNGlm:
         @param sentences : a list of list of words
         @return : a couple (negative log likelihood,perplexity) 
         """
-        for s in sentences:
-            print(s)
         data_generator = self.make_data_generator(sentences,64)
         vgen      = data_generator.next_exact_batch()
         nll       = 0
