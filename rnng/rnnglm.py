@@ -339,7 +339,7 @@ if __name__ == '__main__':
     istream.close()
 
     istream  = open('ptb_dev.raw')
-    train_treebank = [line.split() for line in istream]
+    dev_treebank = [line.split() for line in istream]
     istream.close()
 
     rnnlm = RNNGlm(embedding_size=100,memory_size=300)
