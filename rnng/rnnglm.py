@@ -171,6 +171,11 @@ class RNNGlm:
 
         self.dropout = dropout
 
+        for s in train_sentences:
+            print(s)
+        for s in validation_sentences:
+            print(s)
+        
         #coding
         self.code_lexicon(train_sentences,self.max_vocab_size)
         #structure
