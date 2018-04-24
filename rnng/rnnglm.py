@@ -17,7 +17,7 @@ from lm_utils import *
 """
 That's an RNNLM designed to be interoperable with the rnng parser.
 Allows comparisons and sharing of parameters.
-It is designed to run a GPU.
+It is designed to run on a GPU.
 """
 
 
@@ -215,7 +215,7 @@ class RNNGlm:
             if eL <= min_nll :
                 min_nll= eL
                 print(" => saving model",eL)
-                self.save_model(modelname)
+                #self.save_model(modelname)
 
     def save_model(self,modelname):
         """
