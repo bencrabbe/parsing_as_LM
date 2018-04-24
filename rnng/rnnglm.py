@@ -72,8 +72,9 @@ class RNNGlm:
         @param token : the string token to code
         @return : word_code for in-vocab tokens and word code of unk word string for OOV tokens
         """
-        return self.word_codes[token] if token in self.word_codes else self.word_codes[RNNGlm.UNKNOWN_TOKEN]
- 
+        idx =  self.word_codes[token] if token in self.word_codes else self.word_codes[RNNGlm.UNKNOWN_TOKEN]
+        print(token,idx)
+        
     def cls_lookup(self,token): 
         """
         Performs lookup for clusters
