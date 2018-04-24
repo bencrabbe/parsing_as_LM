@@ -31,7 +31,10 @@ class RNNLMGenerator:
         
         self.make_batches(max_width=batch_width)
 
-      
+        print()
+        for elt in zip(self.X_stable,self.Y_stable):
+            print(elt)
+        exit(0)
         
     def get_num_sentences(self):
         return len(self.X_stable)
