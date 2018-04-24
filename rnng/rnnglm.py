@@ -2,8 +2,8 @@
 
 import numpy as np
 import numpy.random as npr
-import dynet_config
-dynet_config.set_gpu()
+#import dynet_config
+#dynet_config.set_gpu()
 import dynet as dy
 import getopt
 import json
