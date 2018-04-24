@@ -170,11 +170,6 @@ class RNNGlm:
     def train_rnn_lm(self,train_sentences,validation_sentences,lr=0.0001,dropout=0.3,batch_size=100,max_epochs=100,w2v_file=None):
 
         self.dropout = dropout
-
-        for s in train_sentences:
-            print(s)
-        for s in validation_sentences:
-            print(s)
         
         #coding
         self.code_lexicon(train_sentences,self.max_vocab_size)
@@ -216,7 +211,7 @@ class RNNGlm:
                 N         += sum( [ len(row)  for row in Y     ] )
                 
             print('train',L,N,L/N,np.exp(L/N))
-            eL,eN = self.eval_dataset(train_sentences)
+            eL,eN = self.eval_dataset(validation_sentences)
             print('eval ',eL,eN,eL/eN,np.exp(eL/eN))
             
     def eval_dataset(self,sentences):
@@ -306,7 +301,7 @@ if __name__ == '__main__':
     istream.close()
 
     rnnlm = RNNGlm()
-    rnnlm.train_rnn_lm(full_treebank[:1000],full_treebank[:1000],lr=0.001,dropout=0.0,batch_size=5,max_epochs=50,w2v_file=None)    
+    rnnlm.train_rnn_lm(full_treebank[:5000],full_treebank[:5000],lr=0.001,dropout=0.0,batch_size=5,max_epochs=10,w2v_file=None)    
 
 
 
