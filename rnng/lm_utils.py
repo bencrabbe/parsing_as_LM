@@ -24,16 +24,8 @@ class RNNLMGenerator:
         self.batch_size             = batch_size
         self.batch_width            = batch_width
         self.make_exact_batches()
-
-        for elt in zip(self.X_stable,self.Y_stable):
-            print(elt)
-        
         self.make_batches(max_width=batch_width)
 
-        print()
-        for elt in zip(self.X_stable,self.Y_stable):
-            print(elt)
-        exit(0)
         
     def get_num_sentences(self):
         return len(self.X_stable)
