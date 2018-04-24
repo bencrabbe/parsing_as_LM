@@ -216,9 +216,10 @@ class RNNGlm:
                 N  +=  len(Y)*len(Y[0])
                 
             print('train',L,N,L/N,np.exp(L/N))
+            eL,eN = self.eval_dataset(train_sentences)
+            print('eval ',eL,eN,eL/eN,np.exp(eL/eN))
             eL,eN = self.eval_dataset(validation_sentences)
             print('eval ',eL,eN,eL/eN,np.exp(eL/eN))
-
             
     def eval_dataset(self,sentences):
         """
