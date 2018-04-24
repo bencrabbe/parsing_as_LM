@@ -182,7 +182,7 @@ class RNNGlm:
         training_generator = self.make_data_generator(train_sentences,batch_size)
         xgen    =  training_generator.next_batch()
 
-        trainer = dy.AdamTrainer(self.model,alpha=lr)
+        trainer = dy.RMSPropTrainer(self.model,learning_rate=lr)
         min_nll = np.inf
         for e in range(max_epochs):
             L = 0
