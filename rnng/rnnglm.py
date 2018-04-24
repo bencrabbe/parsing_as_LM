@@ -210,7 +210,6 @@ class RNNGlm:
                 losses     = [ dy.pickneglogsoftmax_batch(O * dy.dropout(lstm_out,self.dropout)+ b ,y) for lstm_out,y in zip(outputs,Y) ]
                 batch_loss = dy.sum_batches(dy.esum(losses))
                 L  +=  batch_loss.value()
-                print( batch_loss.value())
 
                 batch_loss.backward()
                 trainer.update()
@@ -218,8 +217,6 @@ class RNNGlm:
                 
             print('train',L,N,L/N,np.exp(L/N))
             eL,eN = self.eval_dataset(train_sentences)
-            print('eval ',eL,eN,eL/eN,np.exp(eL/eN))
-            eL,eN = self.eval_dataset(validation_sentences)
             print('eval ',eL,eN,eL/eN,np.exp(eL/eN))
             
     def eval_dataset(self,sentences):
@@ -247,7 +244,6 @@ class RNNGlm:
             outputs    = state.transduce(lookups)
             losses     = [ dy.pickneglogsoftmax_batch(O * lstm_out + b, y) for lstm_out,y in zip(outputs,Y) ]
             batch_loss = dy.sum_batches(dy.esum(losses))
-            print( batch_loss.value())
             nll       += batch_loss.value()
             N         += sum( [ len(row)  for row in Y     ] )
         return nll,N
@@ -310,7 +306,7 @@ if __name__ == '__main__':
     istream.close()
 
     rnnlm = RNNGlm()
-    rnnlm.train_rnn_lm(full_treebank[:10],full_treebank[:10],lr=0.001,dropout=0.0,batch_size=5,max_epochs=50,w2v_file=None)    
+    rnnlm.train_rnn_lm(full_treebank[:1000],full_treebank[:1000],lr=0.001,dropout=0.0,batch_size=5,max_epochs=50,w2v_file=None)    
 
 
 
