@@ -123,7 +123,7 @@ class RNNGlm:
             self.lex_bias           = self.model.add_parameters(lexicon_size)
 
         #rnn 
-        self.rnn                    = dy.LSTMBuilder(1,self.embedding_size,self.hidden_size,self.model)                 # main rnn
+        self.rnn                    = dy.LSTMBuilder(1,self.embedding_size,self.hidden_size,self.model)                # main rnn
 
     def rnn_dropout(self,expr):
         """
@@ -205,7 +205,6 @@ class RNNGlm:
                 losses     = [ dy.pickneglogsoftmax_batch(O * dy.dropout(lstm_out,self.dropout)+ b ,y) for lstm_out,y in zip(outputs,Y) ]
                 batch_loss = dy.sum_batches(dy.esum(losses))
                 L  +=  batch_loss.value()
-
                 batch_loss.backward()
                 trainer.update()
                 N         += sum( [ len(row)  for row in Y     ] )
@@ -213,7 +212,48 @@ class RNNGlm:
             print('train (optimistic)','Mean NLL',L/N,'PPL',np.exp(L/N))
             eL,eN = self.eval_dataset(validation_sentences)
             print('eval ','Mean NLL',eL/eN,'PPL',np.exp(eL/eN))
+            if eL <= min_nll :
+                min_nll= eL
+                print(" => saving model",eL)
+                self.save_model(modelname)
+
+    def save_model(self,modelname):
+        """
+        Saves the whole shebang.
+        """
+        jfile = open(model_name+'.json','w')
+        jfile.write(json.dumps({'max_vocabulary_size':self.max_vocab_size,\
+                                'embedding_size':self.embedding_size,\
+                                'hidden_size':self.hidden_size,\
+                                'rev_word_codes':self.rev_word_codes}))
+        self.model.save(model_name+'.prm')
+        if self.blex:
+            self.blex.save_clusters(model_name+'.cls')
             
+    def load_model(self,modelname):
+        """
+        Loads the whole shebang and returns an LM.
+        """
+        struct = json.loads(open(model_name+'.json').read())
+        lm = RNNGlm(max_vocabulary_size = struct['max_vocabulary_size'],
+                 embedding_size = struct['embedding_size'],
+                 memory_size = struct['hidden_size'])
+        try:
+            lm.blex = BrownLexicon.load_clusters(model_name+'.cls')
+            lm.bclusters        = parser.blex.cls_list()
+            lm.bclusters_size   = len(parser.bclusters)
+            lm.bclusters_codes  = dict([(s,idx) for (idx,s) in enumerate(parser.bclusters)])
+                        
+        except FileNotFoundError:
+            print('No clusters found',file=sys.stderr)
+            self.blex = None
+
+        lm.rev_word_codes     = struct['rev_word_codes']
+        lm.word_codes         = dict([(s,idx) for (idx,s) in enumerate(parser.rev_word_codes)])
+        lm.make_structure()
+        lm.model.populate(model_name+".prm")
+        return lm
+        
     def eval_dataset(self,sentences):
         """
         A relatively inefficient but exact method for evaluating a data set.
@@ -242,8 +282,6 @@ class RNNGlm:
             nll       += batch_loss.value()
             N         += sum( [ len(row)  for row in Y     ] )
         return nll,N
-        
-            
                 
     #I/O etc.
     def print_summary(self):
@@ -301,7 +339,7 @@ if __name__ == '__main__':
     istream.close()
 
     rnnlm = RNNGlm()
-    rnnlm.train_rnn_lm(full_treebank[:5000],full_treebank[:5000],lr=0.0001,dropout=0.0,batch_size=50,max_epochs=10,w2v_file=None)    
+    rnnlm.train_rnn_lm(full_treebank[:5000],full_treebank[:5000],lr=0.0001,dropout=0.3,batch_size=50,max_epochs=10,w2v_file=None)    
 
 
 
