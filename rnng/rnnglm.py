@@ -210,9 +210,9 @@ class RNNGlm:
                 trainer.update()
                 N         += sum( [ len(row)  for row in Y     ] )
                 
-            print('train',L,N,L/N,np.exp(L/N))
+            print('train (optimistic)','Mean NLL',L/N,'PPL',np.exp(L/N))
             eL,eN = self.eval_dataset(validation_sentences)
-            print('eval ',eL,eN,eL/eN,np.exp(eL/eN))
+            print('eval ','Mean NLL',eL/eN,'PPL',np.exp(eL/eN))
             
     def eval_dataset(self,sentences):
         """
