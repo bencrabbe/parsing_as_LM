@@ -301,7 +301,7 @@ if __name__ == '__main__':
     istream.close()
 
     rnnlm = RNNGlm()
-    rnnlm.train_rnn_lm(full_treebank[:5000],full_treebank[:5000],lr=0.001,dropout=0.0,batch_size=5,max_epochs=10,w2v_file=None)    
+    rnnlm.train_rnn_lm(full_treebank[:5000],full_treebank[:5000],lr=0.0001,dropout=0.0,batch_size=50,max_epochs=10,w2v_file=None)    
 
 
 
