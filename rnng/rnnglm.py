@@ -335,11 +335,15 @@ class RNNGlm:
 if __name__ == '__main__':
 
     istream  = open('ptb_train.raw')
-    full_treebank = [line.split() for line in istream]
+    train_treebank = [line.split() for line in istream]
+    istream.close()
+
+    istream  = open('ptb_dev.raw')
+    train_treebank = [line.split() for line in istream]
     istream.close()
 
     rnnlm = RNNGlm()
-    rnnlm.train_rnn_lm(full_treebank[:5000],full_treebank[:5000],lr=0.0001,dropout=0.3,batch_size=50,max_epochs=10,w2v_file=None)    
+    rnnlm.train_rnn_lm(train_treebank,dev_treebank,lr=0.001,dropout=0.3,batch_size=50,max_epochs=15,w2v_file=None)    
 
 
 
