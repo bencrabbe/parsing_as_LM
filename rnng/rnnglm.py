@@ -342,7 +342,7 @@ if __name__ == '__main__':
     dev_treebank = [line.split() for line in istream]
     istream.close()
 
-    rnnlm = RNNGlm(embedding_size=100,memory_size=300)
+    rnnlm = RNNGlm(embedding_size=300,memory_size=300)
     rnnlm.train_rnn_lm(train_treebank,dev_treebank,lr=0.001,dropout=0.3,batch_size=50,max_epochs=15,w2v_file=None)    
 
 
