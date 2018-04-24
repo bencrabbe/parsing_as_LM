@@ -210,6 +210,8 @@ class RNNGlm:
                 losses     = [ dy.pickneglogsoftmax_batch(O * dy.dropout(lstm_out,self.dropout)+ b ,y) for lstm_out,y in zip(outputs,Y) ]
                 batch_loss = dy.sum_batches(dy.esum(losses))
                 L  +=  batch_loss.value()
+                print( batch_loss.value())
+
                 batch_loss.backward()
                 trainer.update()
                 N         += sum( [ len(row)  for row in Y     ] )
@@ -245,7 +247,7 @@ class RNNGlm:
             outputs    = state.transduce(lookups)
             losses     = [ dy.pickneglogsoftmax_batch(O * lstm_out + b, y) for lstm_out,y in zip(outputs,Y) ]
             batch_loss = dy.sum_batches(dy.esum(losses))
-
+            print( batch_loss.value())
             nll       += batch_loss.value()
             N         += sum( [ len(row)  for row in Y     ] )
         return nll,N

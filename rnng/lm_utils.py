@@ -150,7 +150,6 @@ class RNNLMGenerator:
             sent_idxes = self.batches[batches_idxes[_idx]]
             X = [self.X[sidx] for sidx in sent_idxes]
             Y = [self.Y[sidx] for sidx in sent_idxes]
-            print(X)
             yield (X,Y)
             _idx += 1
 
