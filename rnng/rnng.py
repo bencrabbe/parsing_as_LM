@@ -516,9 +516,9 @@ class RNNGparser:
             embed_dim = M.shape[1]
             self.stack_embedding_size = embed_dim
             E = self.init_ext_embedding_matrix(W,M)
-            if self.blex:
+            if self.blex:                                    #brown clusters with embeddings
                 self.lex_embedding_matrix = self.model.lookup_parameters_from_numpy(E)
-            else:                                            #no clusters ? -> tie input and output lexical parameters
+            else:                                            #no clusters ? -> tie input and output lexical parameters (time consuming setup)
                 print('Using tied lexical parameters',flush=True)
                 self.tied=True
                 self.stack_hidden_size = self.stack_embedding_size  #the stack memory/output must have the #input dimension of the embeddings
@@ -971,9 +971,11 @@ class RNNGparser:
                 best_model_loss=devloss
                 print(" => saving model",devloss)
                 self.save_model(modelname)
+                monitor.save_loss_curves(modelname+'.learningcurves.csv')
+
         print()
-        monitor.save_loss_curves(modelname+'.learningcurves.csv')
         self.save_model(modelname+'.final')
+        monitor.save_loss_curves(modelname+'.learningcurves.csv')
         self.dropout = 0.0  #prevents dropout to be applied at decoding
             
     #I/O etc.
