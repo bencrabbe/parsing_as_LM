@@ -74,7 +74,8 @@ class RNNGlm:
         """
         idx =  self.word_codes[token] if token in self.word_codes else self.word_codes[RNNGlm.UNKNOWN_TOKEN]
         print(token,idx)
-        
+        return idx
+    
     def cls_lookup(self,token): 
         """
         Performs lookup for clusters
