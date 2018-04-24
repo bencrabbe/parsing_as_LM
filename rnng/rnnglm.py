@@ -195,6 +195,7 @@ class RNNGlm:
             for b in range(training_generator.get_num_batches()):
                 X,Y = next(xgen)                          #all batch elts are guaranteed to have equal size.
                 time_steps = len(X[0])
+                print(X[0])
                 X,Y = list(zip(*X)),list(zip(*Y))         #transposes the batch
 
                 losses     = [ ]
@@ -233,7 +234,7 @@ class RNNGlm:
         for _ in range(data_generator.get_num_exact_batches()):
             X,Y = next(vgen)
             X,Y = list(X),list(Y)
-
+            print(X[0])
             dy.renew_cg()
             O = dy.parameter(self.lex_out)
             b = dy.parameter(self.lex_bias)
