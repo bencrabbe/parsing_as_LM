@@ -195,7 +195,6 @@ class RNNGlm:
             for b in range(training_generator.get_num_batches()):
                 X,Y = next(xgen)                          #all batch elts are guaranteed to have equal size.
                 time_steps = len(X[0])
-                #print('t',X[0])
                 X,Y = list(zip(*X)),list(zip(*Y))         #transposes the batch
 
                 losses     = [ ]
@@ -309,7 +308,7 @@ if __name__ == '__main__':
     istream.close()
 
     rnnlm = RNNGlm()
-    rnnlm.train_rnn_lm(full_treebank[:10],full_treebank[:10],lr=0.001,dropout=0.3,batch_size=5,max_epochs=1000,w2v_file=None)    
+    rnnlm.train_rnn_lm(full_treebank[:10],full_treebank[:10],lr=0.001,dropout=0.3,batch_size=5,max_epochs=10,w2v_file=None)    
 
 
 
