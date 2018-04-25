@@ -204,7 +204,10 @@ class RNNGlm:
                 E = dy.parameter(self.lex_embedding_matrix)
                 
                 state = self.rnn.initial_state()
-                lookups    = [ dy.dropout(dy.pick_batch(E,xcolumn),self.dropout) for xcolumn in X ]
+                if self.ext_embeddings:
+                    lookups    = [ dy.nobackprop(dy.dropout(dy.pick_batch(E,xcolumn),self.dropout)) for xcolumn in X ]
+                else:
+                    lookups    = [ dy.dropout(dy.pick_batch(E,xcolumn),self.dropout) for xcolumn in X ]
                 outputs    = state.transduce(lookups)
                 losses     = [ dy.pickneglogsoftmax_batch(O * dy.dropout(lstm_out,self.dropout)+ b ,y) for lstm_out,y in zip(outputs,Y) ]
                 batch_loss = dy.sum_batches(dy.esum(losses))
@@ -347,7 +350,7 @@ if __name__ == '__main__':
     istream.close()
 
     rnnlm = RNNGlm(embedding_size=300,memory_size=300)
-    rnnlm.train_rnn_lm('testlm',train_treebank,dev_treebank,lr=0.0001,dropout=0.3,batch_size=200,max_epochs=15,cls_filename='ptb-1000.brown',w2v_file='word_embeddings/w2v-ptb.txt')    
+    rnnlm.train_rnn_lm('testlm',train_treebank,dev_treebank,lr=0.001,dropout=0.3,batch_size=200,max_epochs=15,cls_filename='ptb-1000.brown',w2v_file='word_embeddings/w2v-ptb.txt')    
 
 
 
