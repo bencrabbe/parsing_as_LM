@@ -161,11 +161,12 @@ class RNNGlm:
             X.append([self.lex_lookup(tok) for tok in tokens[:-1]])
             if self.blex:
                 Y.append([self.cls_lookup(tok) for tok in tokens[1:]] )
-                if max(Y[-1]) > 1002:
-                    print(tokens,Y[-1])
             else:
                 Y.append([self.lex_lookup(tok) for tok in tokens[1:]] )
-        return RNNLMGenerator(X,Y,self.word_codes[RNNGlm.START_TOKEN],batch_size)
+        if self.blex:
+            return RNNLMGenerator(X,Y,self.bclusters_codes[RNNGlm.START_TOKEN],batch_size)
+        else:
+            return RNNLMGenerator(X,Y,self.word_codes[RNNGlm.START_TOKEN],batch_size)
 
 
     def train_rnn_lm(self,modelname,train_sentences,validation_sentences,lr=0.0001,dropout=0.3,batch_size=100,max_epochs=100,cls_filename=None,w2v_file=None):
