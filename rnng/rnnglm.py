@@ -174,7 +174,8 @@ class RNNGlm:
         self.dropout = dropout
         
         #coding
-        self.blex = BrownLexicon.read_clusters(cls_filename)
+        if cls_filename:
+            self.blex = BrownLexicon.read_clusters(cls_filename)
         self.code_lexicon(train_sentences,self.max_vocab_size)
         #structure
         self.make_structure(w2v_file)
