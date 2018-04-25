@@ -161,6 +161,8 @@ class RNNGlm:
             X.append([self.lex_lookup(tok) for tok in tokens[:-1]])
             if self.blex:
                 Y.append([self.cls_lookup(tok) for tok in tokens[1:]] )
+                if max(Y[-1]) > 1002:
+                    print(tokens,Y[-1])
             else:
                 Y.append([self.lex_lookup(tok) for tok in tokens[1:]] )
         return RNNLMGenerator(X,Y,self.word_codes[RNNGlm.START_TOKEN],batch_size)
