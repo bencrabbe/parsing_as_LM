@@ -20,7 +20,6 @@ Allows comparisons and sharing of parameters.
 It is designed to run on a GPU.
 """
 
-
 class RNNGlm:
 
     #special tokens
@@ -65,7 +64,6 @@ class RNNGlm:
         self.lexicon_size   = len(lexicon)
         self.word_codes     = dict([(s,idx) for (idx,s) in enumerate(self.rev_word_codes)])
 
-
     def lex_lookup(self,token):
         """
         Performs lookup and backs off unk words to the unk token
@@ -82,7 +80,6 @@ class RNNGlm:
         """
         C = self.blex.get_cls(token,defaultval=RNNGlm.UNKNOWN_TOKEN)
         idx = self.bclusters_codes[C]
-        print(idx)
         return idx
 
 
@@ -194,7 +191,8 @@ class RNNGlm:
             for b in range(training_generator.get_num_batches()):
                 X,Y = next(xgen)                          #all batch elts are guaranteed to have equal size.
                 time_steps = len(X[0])
-                print(Y[0])
+                for y in Y:
+                    print(y)
                 
                 X,Y = list(zip(*X)),list(zip(*Y))         #transposes the batch
 
