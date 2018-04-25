@@ -81,7 +81,9 @@ class RNNGlm:
         @return : cluster code for in-vocab tokens and cluster code of unk words for OOV tokens
         """
         C = self.blex.get_cls(token,defaultval=RNNGlm.UNKNOWN_TOKEN)
-        return self.bclusters_codes[C]
+        idx = self.bclusters_codes[C]
+        print(idx)
+        return idx
 
 
     #scoring & representation system
