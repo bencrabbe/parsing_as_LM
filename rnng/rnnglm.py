@@ -220,7 +220,7 @@ class RNNGlm:
                 print(" => saving model",eL)
                 self.save_model(modelname)
 
-    def save_model(self,modelname):
+    def save_model(self,model_name):
         """
         Saves the whole shebang.
         """
