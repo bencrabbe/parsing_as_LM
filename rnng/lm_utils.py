@@ -1,19 +1,17 @@
 from math import ceil
 from random import shuffle
 
-
-
 class RNNLMGenerator: 
-    """
+    """ 
     This class wraps the coded data management for an NNLM (unstructured model)
-    Each datum has the form X=(x1,x2,x3,...), Y=(x2,x3,x4,...) and is coded on integers.
+    Each datum has the form X=(x1,x2,x3,...), Y=(x2,x3,x4,...) and is
+    coded as a sequence of integer indices.
     The generator shuffles the data sentence-wise but does not change intra-sentential word-order.
     """
     def __init__(self,X,Y,eos_code,batch_size=64,batch_width=40):
         """
-        @param X,Y the encoded X,Y values as lists (of lists for both X and Y)
-        @param unk_word_code : the integer xcode for unknwown words
-        @param eos_code : the integer xcode for end of sentence words (used for padding mini-batches)
+        @param X,Y the X,Y values as lists (of lists for both X and Y) of indexes
+        @param eos_code : the code for end of sentence words (used for padding mini-batches)
         @param batch_size:size of generated data batches (in sentences)
         """
         assert(len(X)==len(Y))
@@ -53,7 +51,8 @@ class RNNLMGenerator:
     def next_exact_batch(self):
         """
         A data generator called by the fitting or predict functions.
-        @yield a sentence as a couple (X,Y) in the natural order of the corpus
+        @yield a sentence as a couple (X,Y) in the natural order of
+        the corpus where X and Y are lists of integer indices.
         """
         while True:
             for key, values in self.buckets.items():

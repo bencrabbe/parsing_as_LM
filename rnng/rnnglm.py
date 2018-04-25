@@ -167,18 +167,19 @@ class RNNGlm:
         return RNNLMGenerator(X,Y,self.word_codes[RNNGlm.START_TOKEN],batch_size)
 
 
-    def train_rnn_lm(self,train_sentences,validation_sentences,lr=0.0001,dropout=0.3,batch_size=100,max_epochs=100,w2v_file=None):
+    def train_rnn_lm(self,modelname,train_sentences,validation_sentences,lr=0.0001,dropout=0.3,batch_size=100,max_epochs=100,cls_filename=None,w2v_file=None):
 
         self.dropout = dropout
         
         #coding
+        self.blex = BrownLexicon.load_clusters(cls_filename)
         self.code_lexicon(train_sentences,self.max_vocab_size)
         #structure
         self.make_structure(w2v_file)
 
         self.print_summary()
         print(len(train_sentences))
-        #batching
+        #coding dataset & batching        
         training_generator = self.make_data_generator(train_sentences,batch_size)
         xgen    =  training_generator.next_batch()
 
@@ -215,7 +216,7 @@ class RNNGlm:
             if eL <= min_nll :
                 min_nll= eL
                 print(" => saving model",eL)
-                #self.save_model(modelname)
+                self.save_model(modelname)
 
     def save_model(self,modelname):
         """
@@ -343,7 +344,7 @@ if __name__ == '__main__':
     istream.close()
 
     rnnlm = RNNGlm(embedding_size=300,memory_size=300)
-    rnnlm.train_rnn_lm(train_treebank,dev_treebank,lr=0.001,dropout=0.3,batch_size=200,max_epochs=15,w2v_file=None)    
+    rnnlm.train_rnn_lm('testlm',train_treebank,dev_treebank,lr=0.001,dropout=0.3,batch_size=200,max_epochs=15,w2v_file=None)    
 
 
 
