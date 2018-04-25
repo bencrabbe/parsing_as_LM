@@ -160,7 +160,6 @@ class RNNGlm:
             tokens = [RNNGlm.START_TOKEN]+line
             X.append([self.lex_lookup(tok) for tok in tokens[:-1]])
             if self.blex:
-                print('choosing cluster')
                 Y.append([self.cls_lookup(tok) for tok in tokens[1:]] )
             else:
                 Y.append([self.lex_lookup(tok) for tok in tokens[1:]] )
