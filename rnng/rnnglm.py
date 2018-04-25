@@ -192,6 +192,8 @@ class RNNGlm:
             for b in range(training_generator.get_num_batches()):
                 X,Y = next(xgen)                          #all batch elts are guaranteed to have equal size.
                 time_steps = len(X[0])
+                print(Y[0])
+                
                 X,Y = list(zip(*X)),list(zip(*Y))         #transposes the batch
 
                 losses     = [ ]
