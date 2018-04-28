@@ -265,7 +265,7 @@ class RNNGlm:
             state = self.rnn.initial_state()
             lookups    = [ dy.pick(E,xcolumn) for xcolumn in x_codes ]
             outputs    = state.transduce(lookups)
-            for lstm_pred,yref in zip (tokens[1:],outputs,y_codes):
+            for tok,lstm_pred,yref in zip (tokens[1:],outputs,y_codes):
                 loss     = dy.pickneglogsoftmax(O * lstm_pred + b, yref).value() 
                 L       += loss 
                 if self.blex:
