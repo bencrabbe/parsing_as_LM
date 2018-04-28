@@ -543,7 +543,7 @@ class RNNGparser:
         
         if lab_state == RNNGparser.WORD_LABEL:                             #generate wordform action
             
-            W = dy.parameter(self.lex_embedding_matrix) if self.tied else dy.parameter(self.lex_out)
+            W = dy.parameter(self.lex_out)
             b = dy.parameter(self.lex_bias)
             return dy.log_softmax(W * self.rnng_dropout(dy.tanh(stack_state.output())) + b)
         
