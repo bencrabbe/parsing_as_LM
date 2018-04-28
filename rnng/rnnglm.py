@@ -92,8 +92,8 @@ class RNNGlm:
             self.lex_embedding_matrix = self.model.parameters_from_numpy(E) 
 
         if self.blex:
-            self.lex_out            = self.model.add_parameters((self.bclusters.size(),self.hidden_size))                           #lex action output layer
-            self.lex_bias           = self.model.add_parameters(self.bclusters.size())
+            self.lex_out            = self.model.add_parameters((self.blex.size(),self.hidden_size))                           #lex action output layer
+            self.lex_bias           = self.model.add_parameters(self.blex.size())
         else:
             self.lex_out            = self.model.add_parameters((self.lexicon.size(),self.hidden_size))                       #lex action output layer
             self.lex_bias           = self.model.add_parameters(self.lexicon.size())
