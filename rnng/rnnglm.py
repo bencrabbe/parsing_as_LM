@@ -196,7 +196,7 @@ class RNNGlm:
                 N         += sum( [ len(row)  for row in Y     ] )
                 
             print('train (optimistic)','Mean NLL',L/N,'PPL',np.exp(L/N))
-            eL,eN = self.eval_dataset(validation_sentences)
+            eL,eN = self.eval_lm(validation_sentences)
             print('eval ','Mean NLL',eL/eN,'PPL',np.exp(eL/eN))
             if eL <= min_nll :
                 min_nll= eL
@@ -274,7 +274,7 @@ class RNNGlm:
                 print(L)
                 N += 1
         print(np.exp(L/N))
-    
+        return (L,N)
     
     def eval_dataset(self,sentences):
         """
@@ -367,7 +367,7 @@ if __name__ == '__main__':
     istream.close()
 
     rnnlm = RNNGlm(embedding_size=300,memory_size=300)
-    rnnlm.train_rnn_lm('testlm',train_treebank[:100],train_treebank[:100],lr=0.00001,dropout=0.5,batch_size=200,max_epochs=350,cls_filename='ptb-1000.brown',w2v_file='word_embeddings/w2v-ptb.txt')    
+    rnnlm.train_rnn_lm('testlm',train_treebank[:100],train_treebank[:100],lr=0.001,dropout=0.3,batch_size=200,max_epochs=50,cls_filename='ptb-1000.brown',w2v_file='word_embeddings/w2v-ptb.txt')    
 
     #rnnlm.train_rnn_lm('testlm',train_treebank,dev_treebank,lr=0.001,dropout=0.3,batch_size=100,max_epochs=15,w2v_file='word_embeddings/w2v-ptb.txt')    
 
