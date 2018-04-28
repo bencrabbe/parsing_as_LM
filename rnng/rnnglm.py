@@ -141,7 +141,7 @@ class RNNGlm:
             else:
                 Y.append([self.lexicon.index(tok) for tok in tokens[1:]] )
         if self.blex:
-            return RNNLMGenerator(X,Y,self.bclusters.index(RNNGlm.START_TOKEN),batch_size)
+            return RNNLMGenerator(X,Y,self.blex.index(RNNGlm.START_TOKEN),batch_size)
         else:
             return RNNLMGenerator(X,Y,self.lexicon.index(RNNGlm.START_TOKEN),batch_size)
 
