@@ -11,7 +11,7 @@ import pandas as pd
 
 from collections import Counter
 from random import shuffle
-from lex_clusters import *
+from lexicons import *
 from lm_utils import *
 
 """
@@ -40,29 +40,17 @@ class RNNGlm:
         #Extras (brown lexicon and external embeddings)
         self.blex           = None
         self.ext_embeddings = False
-        self.tied           = False
+        #self.tied           = False
 
                 
     def code_lexicon(self,raw_treebank,max_vocab_size):
-        if self.blex:
-            #brown clusters
-            self.bclusters       = self.blex.cls_list()
-            self.bclusters.append(RNNGlm.UNKNOWN_TOKEN)
-            self.bclusters.append(RNNGlm.START_TOKEN)
-            self.bclusters_size   = len(self.bclusters)
-            self.bclusters_codes  = dict([(s,idx) for (idx,s) in enumerate(self.bclusters)])
-
+        
         #normal lexicon
         lexicon = Counter()
         for sentence in raw_treebank:
             lexicon.update(sentence)
-        print('Full lexicon size (prior to capping):',len(lexicon))
-        lexicon = set([word for word,count in lexicon.most_common(max_vocab_size-2)])
-        lexicon.add(RNNGlm.UNKNOWN_TOKEN)
-        lexicon.add(RNNGlm.START_TOKEN)
-        self.rev_word_codes = list(lexicon)
-        self.lexicon_size   = len(lexicon)
-        self.word_codes     = dict([(s,idx) for (idx,s) in enumerate(self.rev_word_codes)])
+        self.lexicon = SymbolLexicon(lexicon,unk_word=RNNGlm.UNKNOWN_TOKEN,special_tokens=[RNNGlm.START_TOKEN],max_lex_size=10000)
+    
 
     def lex_lookup(self,token):
         """
@@ -70,7 +58,7 @@ class RNNGlm:
         @param token : the string token to code
         @return : word_code for in-vocab tokens and word code of unk word string for OOV tokens
         """
-        return self.word_codes[token] if token in self.word_codes else self.word_codes[RNNGlm.UNKNOWN_TOKEN]
+        return self.lexicon.index(token)
     
     def cls_lookup(self,token): 
         """
@@ -78,9 +66,7 @@ class RNNGlm:
         @param token : the string token for which to find the cluster idx
         @return : cluster code for in-vocab tokens and cluster code of unk words for OOV tokens
         """
-        C = self.blex.get_cls(token,defaultval=RNNGlm.UNKNOWN_TOKEN)
-        idx = self.bclusters_codes[C]
-        return idx
+        return self.blex.index(token)
 
 
     #scoring & representation system
@@ -89,13 +75,13 @@ class RNNGlm:
         Allocates the network structure
         @param w2filename: an external word embedding dictionary
         """
-        lexicon_size = len(self.rev_word_codes)
-       
         #Model structure
         self.model                 = dy.ParameterCollection()
 
         #input embeddings 
-        if w2vfilename:
+        if not w2vfilename:
+            self.lex_embedding_matrix  = self.model.add_parameters((self.lexicon.size(),self.embedding_size))  
+        else:
             print('Using external embeddings.',flush=True)                                                          #word embeddings
             self.ext_embeddings       =  True
 
@@ -103,23 +89,14 @@ class RNNGlm:
             embed_dim = M.shape[1]
             self.embedding_size = embed_dim
             E = self.init_ext_embedding_matrix(W,M)
-            if self.blex:                                    #brown clusters with embeddings
-                self.lex_embedding_matrix = self.model.parameters_from_numpy(E)
-            else:                                            #no clusters ? -> tie input and output lexical parameters (time consuming setup)
-                print('Using tied lexical parameters',flush=True)
-                self.tied=True
-                self.hidden_size = self.embedding_size  #the stack memory/output must have the #input dimension of the embeddings
-                self.lex_embedding_matrix = self.model.parameters_from_numpy(E)
-        else:
-            self.lex_embedding_matrix  = self.model.add_parameters((lexicon_size,self.embedding_size))  
+            self.lex_embedding_matrix = self.model.parameters_from_numpy(E) 
 
         if self.blex:
-            cls_size = len(self.bclusters)
-            self.lex_out            = self.model.add_parameters((cls_size,self.hidden_size))                           #lex action output layer
-            self.lex_bias           = self.model.add_parameters(cls_size)
+            self.lex_out            = self.model.add_parameters((self.bclusters.size(),self.hidden_size))                           #lex action output layer
+            self.lex_bias           = self.model.add_parameters(self.bclusters.size())
         else:
-            self.lex_out            = self.model.add_parameters((lexicon_size,self.hidden_size))                       #lex action output layer
-            self.lex_bias           = self.model.add_parameters(lexicon_size)
+            self.lex_out            = self.model.add_parameters((self.lexicon.size(),self.hidden_size))                       #lex action output layer
+            self.lex_bias           = self.model.add_parameters(self.lexicon.size())
 
         #rnn 
         self.rnn                    = dy.LSTMBuilder(1,self.embedding_size,self.hidden_size,self.model)                # main rnn
@@ -152,21 +129,21 @@ class RNNGlm:
         This returns a data generator suitable for use with dynet
         @param raw_treebank: the treebank (list of sentences) to encode
         @param batch_size: the size of the batches yielded by the generator
+        @return a data generator that yields integer encoded batches
         """
         Y  = []
         X  = []
-        unk_code = self.word_codes[RNNGlm.UNKNOWN_TOKEN]
         for line in raw_treebank:
             tokens = [RNNGlm.START_TOKEN]+line
-            X.append([self.lex_lookup(tok) for tok in tokens[:-1]])
+            X.append([self.lexicon.index(tok) for tok in tokens[:-1]])
             if self.blex:
-                Y.append([self.cls_lookup(tok) for tok in tokens[1:]] )
+                Y.append([self.blex.index(tok) for tok in tokens[1:]] )
             else:
-                Y.append([self.lex_lookup(tok) for tok in tokens[1:]] )
+                Y.append([self.lexicon.index(tok) for tok in tokens[1:]] )
         if self.blex:
-            return RNNLMGenerator(X,Y,self.bclusters_codes[RNNGlm.START_TOKEN],batch_size)
+            return RNNLMGenerator(X,Y,self.bclusters.index(RNNGlm.START_TOKEN),batch_size)
         else:
-            return RNNLMGenerator(X,Y,self.word_codes[RNNGlm.START_TOKEN],batch_size)
+            return RNNLMGenerator(X,Y,self.lexicon.index(RNNGlm.START_TOKEN),batch_size)
 
 
     def train_rnn_lm(self,modelname,train_sentences,validation_sentences,lr=0.0001,dropout=0.3,batch_size=100,max_epochs=100,cls_filename=None,w2v_file=None):
@@ -175,7 +152,8 @@ class RNNGlm:
         
         #coding
         if cls_filename:
-            self.blex = BrownLexicon.read_clusters(cls_filename)
+            self.blex = BrownLexicon.read_clusters(cls_filename,freq_thresh=1,UNK_SYMBOL=RNNGlm.UNKNOWN_TOKEN)
+
         self.code_lexicon(train_sentences,self.max_vocab_size)
         #structure
         self.make_structure(w2v_file)
@@ -223,7 +201,7 @@ class RNNGlm:
             if eL <= min_nll :
                 min_nll= eL
                 print(" => saving model",eL)
-                self.save_model(modelname)
+                #self.save_model(modelname)
 
     def save_model(self,model_name):
         """

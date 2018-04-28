@@ -10,13 +10,13 @@ class SymbolLexicon:
     management. It provides services for mapping tokens to integer
     indexes and vice-versa.
     """
-    def __init__(self,wordlist,unk_word='<UNK>',special_tokens=[], count_threshold=-1,max_lex_size=100000000):
+    def __init__(self,wordlist,unk_word='<UNK>',special_tokens=[ ],count_threshold=-1,max_lex_size=100000000):
         """
-        @param wordlist     : a list of strings or a collections.Counter
-        @param unk_word     : a token string for unknown words
+        @param wordlist       : a list of strings or a collections.Counter
+        @param unk_word       : a token string for unknown words
         @param special tokens : a list of reserved tokens such as <start> or <end> symbols etc that are added to the lexicon 
         @param count_threshold: words are part of the lexicon if their counts is > threshold
-        @param max_lex_size : max number of elements in the lexicon
+        @param max_lex_size   : max number of elements in the lexicon
         """
         counts       = wordlist if isinstance(wordlist,Counter) else Counter(wordlist)
         lexlist      = [ word for word, c in counts.most_common(max_lex_size) if c > count_threshold ]
@@ -115,8 +115,14 @@ class BrownLexicon:
     def __str__(self):
         return '\n'.join( ['P(%s|%d) = %f'%(w,C,self.word_emission_prob(w,logprob=False)) for w,C in self.w2cls.items()])
         
-                
-    def index(self,wordform,defaultval='<UNK>'):
+
+    def size(self):
+        """
+        Returns the number of clusters.
+        """
+        return len(self.cls_counts)
+          
+    def index(self,wordform):
         """
         Returns the integer index of the cluster to which this word belongs or a default
         value if this word is unknown to the clustering
