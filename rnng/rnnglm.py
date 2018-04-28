@@ -239,14 +239,53 @@ class RNNGlm:
         lm.make_structure()
         lm.model.populate(model_name+".prm")
         return lm
-        
+    
+    def eval_lm(self,sentences):
+        """
+        Evaluates a model sentence by sentence.
+        Exact method including with clusters.
+        @param sentences : a list of list of words
+        @return : a couple (negative log likelihood,perplexity) 
+        """
+        N = 0
+        L = 0
+        for tokens in sentences:
+
+            x_codes = [self.lexicon.index(tok) for tok in tokens[:-1]]
+            y_lex_codes = [self.lexicon.index(tok) for tok in tokens[1:]]
+            y_cls_codes = self.blex else [self.lexicon.index(tok) for tok in tokens[1:]] 
+
+            print(s)
+            print(' '.join([self.lexicon.wordform(x) for x in x_codes]))
+            print(' '.join([str(y) for y in y_codes]))
+            
+            dy.renew_cg()
+            O = dy.parameter(self.lex_out)
+            b = dy.parameter(self.lex_bias)
+            E = dy.parameter(self.lex_embedding_matrix)
+                
+            state = self.rnn.initial_state()
+            lookups    = [ dy.pick(E,xcolumn) for xcolumn in x_codes ]
+            outputs    = state.transduce(lookups)
+            for lstm_pred,yref in zip (tokens[1:],outputs,y_codes):
+                loss     = dy.pickneglogsoftmax(O * lstm_pred + b, yref).value() 
+                L       += loss 
+                if self.blex:
+                    L += self.blex.word_emission_prob(tok)
+                print(L)
+                N += 1
+        print(np.exp(L/N))
+    
+    
     def eval_dataset(self,sentences):
         """
         A relatively inefficient but exact method for evaluating a data set.
+        Not suited if the model uses clusters.
         
         @param sentences : a list of list of words
         @return : a couple (negative log likelihood,perplexity) 
         """
+        
         data_generator = self.make_data_generator(sentences,64)
         vgen      = data_generator.next_exact_batch()
         nll       = 0
