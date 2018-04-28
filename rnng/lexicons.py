@@ -26,6 +26,9 @@ class SymbolLexicon:
         self.i2words = lexlist
         self.UNK     = unk_word
 
+    def get_UNK_ID(self):
+        return sefl.words2i[self.UNK]
+        
         
     def __str__(self):
         return ' '.join(self.words2i.keys())
