@@ -269,41 +269,11 @@ class RNNGlm:
                 loss     = dy.pickneglogsoftmax(O * lstm_pred + b, yref).value() 
                 L       += loss 
                 if self.blex:
-                    print('*here*')
                     L += self.blex.word_emission_prob(tok)
                 N += 1
         return (L,N)
     
-    def eval_dataset(self,sentences):
-        """
-        A relatively inefficient but exact method for evaluating a data set.
-        Not suited if the model uses clusters.
-        
-        @param sentences : a list of list of words
-        @return : a couple (negative log likelihood,perplexity) 
-        """
-        
-        data_generator = self.make_data_generator(sentences,64)
-        vgen      = data_generator.next_exact_batch()
-        nll       = 0
-        N         = 0
-        for _ in range(data_generator.get_num_exact_batches()):
-            X,Y = next(vgen)
-            X,Y = list(X),list(Y)
-            #print('e',X[0])
-            dy.renew_cg()
-            O = dy.parameter(self.lex_out)
-            b = dy.parameter(self.lex_bias)
-            E = dy.parameter(self.lex_embedding_matrix)
-                
-            state = self.rnn.initial_state()
-            lookups    = [ dy.dropout(dy.pick_batch(E,xcolumn),self.dropout) for xcolumn in X ]
-            outputs    = state.transduce(lookups)
-            losses     = [ dy.pickneglogsoftmax_batch(O * lstm_out + b, y) for lstm_out,y in zip(outputs,Y) ]
-            batch_loss = dy.sum_batches(dy.esum(losses))
-            nll       += batch_loss.value()
-            N         += sum( [ len(row)  for row in Y     ] )
-        return nll,N
+   
                 
     #I/O etc.
     def print_summary(self):
