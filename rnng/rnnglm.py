@@ -26,7 +26,6 @@ class RNNGlm:
     UNKNOWN_TOKEN = '<UNK>'
     START_TOKEN   = '<START>'    
 
-
     def __init__(self,max_vocabulary_size=10000,embedding_size=50,memory_size=50):
         """
         @param max_vocabulary_size     : max number of words in the vocab
@@ -208,6 +207,7 @@ class RNNGlm:
         """
         Saves the whole shebang.
         """
+        #TODO (with updated lexicon)
         jfile = open(model_name+'.json','w')
         jfile.write(json.dumps({'max_vocabulary_size':self.max_vocab_size,\
                                 'embedding_size':self.embedding_size,\
@@ -221,6 +221,7 @@ class RNNGlm:
         """
         Loads the whole shebang and returns an LM.
         """
+        #TODO (with updated lexicon)
         struct = json.loads(open(model_name+'.json').read())
         lm = RNNGlm(max_vocabulary_size = struct['max_vocabulary_size'],
                  embedding_size = struct['embedding_size'],
@@ -255,9 +256,6 @@ class RNNGlm:
             x_codes = [self.lexicon.index(tok) for tok in tokens[:-1]]
             y_codes = [self.blex.index(tok) for tok in tokens] if self.blex else [self.lexicon.index(tok) for tok in tokens[1:]] 
 
-            #print(' '.join([self.lexicon.wordform(x) for x in x_codes]))
-            #print(' '.join([str(y) for y in y_codes]))
-            
             dy.renew_cg()
             O = dy.parameter(self.lex_out)
             b = dy.parameter(self.lex_bias)

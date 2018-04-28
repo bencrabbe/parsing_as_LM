@@ -9,7 +9,7 @@ import json
 from collections import Counter
 from random import shuffle
 from constree import *
-from lex_clusters import *
+from lexicon import *
 from proc_monitors import *
 from rnng_params import *
 
@@ -205,7 +205,7 @@ class RNNGparser:
         #Extras (brown lexicon and external embeddings)
         self.blex = None
         self.ext_embeddings = False
-        self.tied = False
+        #self.tied = False
 
     #oracle, derivation and trees
     def oracle_derivation(self,ref_tree,root=True):
@@ -277,53 +277,22 @@ class RNNGparser:
         @param treebank: the treebank where to extract the data from
         @param max_vocab_size: the upper bound on the size of the vocabulary
         """
-        if self.blex:
-            #brown clusters
-            self.bclusters       = self.blex.cls_list()
-            self.bclusters.append(RNNGparser.UNKNOWN_TOKEN)
-            self.bclusters.append(RNNGparser.START_TOKEN)
-            self.bclusters_size   = len(self.bclusters)
-            self.bclusters_codes  = dict([(s,idx) for (idx,s) in enumerate(self.bclusters)])
-        #normal lexicon
         lexicon = Counter()
         for tree in treebank:
             sentence = tree.tokens(labels=True) 
             lexicon.update(sentence)
-        print('Full lexicon size (prior to capping):',len(lexicon))
-        lexicon = set([word for word,count in lexicon.most_common(max_vocab_size-2)])
-        lexicon.add(RNNGparser.UNKNOWN_TOKEN)
-        lexicon.add(RNNGparser.START_TOKEN)
-        self.rev_word_codes = list(lexicon)
-        self.lexicon_size   = len(lexicon)
-        self.word_codes     = dict([(s,idx) for (idx,s) in enumerate(self.rev_word_codes)])
-
-    def lex_lookup(self,token):
-        """
-        Performs lookup and backs off unk words to the unk token
-        @param token : the string token to code
-        @return : word_code for in-vocab tokens and word code of unk word string for OOV tokens
-        """
-        return self.word_codes[token] if token in self.word_codes else self.word_codes[RNNGparser.UNKNOWN_TOKEN]
-
-    def cls_lookup(self,token):
-        """
-        Performs lookup for clusters
-        @param token : the string token for which to find the cluster idx
-        @return : cluster code for in-vocab tokens and cluster code of unk words for OOV tokens
-        """
-        C = self.blex.get_cls(token,defaultval=RNNGparser.UNKNOWN_TOKEN)
-        return self.bclusters_codes[C]
-
+        self.lexicon = SymbolLexicon(lexicon,unk_word=RNNGparser.UNKNOWN_TOKEN,special_tokens=[RNNGparser.START_TOKEN],max_lex_size=max_vocab_size)
+        
     def code_nonterminals(self,treebank):
         """
         Extracts the nonterminals from a treebank.
         @param treebank: the treebank where to extract the data from
         """
-        self.nonterminals = set([])
+        nonterminals = set([])
         for tree in treebank:
-            self.nonterminals.update(tree.collect_nonterminals())
-        self.nonterminals       = list(self.nonterminals)
-        self.nonterminals_codes = dict([(sym,idx) for (idx,sym) in enumerate(self.nonterminals)])
+            nonterminals.update(tree.collect_nonterminals())
+        self.nonterminals = SymbolLexicon(list(nonterminals),unk_word=None,special_tokens=[])
+        print(self.nonterminals)
         return self.nonterminals
 
     def code_struct_actions(self):
@@ -337,8 +306,7 @@ class RNNGparser:
         self.close_mask      = np.array([True,True,False,True])
         self.terminate_mask  = np.array([True,True,True,False])
 
-
-                
+        
     #transition system
     def init_configuration(self,N):
         """
@@ -360,7 +328,7 @@ class RNNGparser:
         """
         stackS = self.stack_rnn.initial_state()
 
-        word_idx = self.lex_lookup(RNNGparser.START_TOKEN)
+        word_idx = self.lexicon.index(RNNGparser.START_TOKEN)
         word_embedding = self.lex_embedding_matrix[word_idx]
         stackS = stackS.add_input(word_embedding)
 
@@ -385,7 +353,7 @@ class RNNGparser:
         @return a configuration resulting from shifting the next word into the stack 
         """
         S,B,n,stack_state,lab_state,score = configuration
-        word_idx = self.lex_lookup(sentence[B[0]])  
+        word_idx = self.lexicon.index(sentence[B[0]])  
         E = dy.parameter(self.lex_embedding_matrix)
         word_embedding = self.rnng_dropout(E[word_idx]) 
         word_embedding = self.rnng_nobackprop(word_embedding,sentence[B[0]]) #we do not want to backprop when using external embeddings
@@ -411,7 +379,7 @@ class RNNGparser:
         """
         S,B,n,stack_state,lab_state,score = configuration
 
-        nt_idx = self.nonterminals_codes[X]
+        nt_idx = self.nonterminals.index(X)
         nonterminal_embedding = self.rnng_dropout(self.nt_embedding_matrix[nt_idx])
 
         #We backup the current stack top
@@ -498,17 +466,17 @@ class RNNGparser:
         Allocates the network structure
         @param w2filename: an external word embedding dictionary
         """
-        lexicon_size = len(self.rev_word_codes)
         actions_size = len(self.actions)
-        nt_size      = len(self.nonterminals)
        
         #Model structure
         self.model                 = dy.ParameterCollection()
 
         #symbols & word embeddings (some setups may affect the structure of the network)
-        self.nt_embedding_matrix   = self.model.add_lookup_parameters((nt_size,self.stack_embedding_size),init='glorot') #symbols embeddings
+        self.nt_embedding_matrix   = self.model.add_lookup_parameters((self.nonterminals.size(),self.stack_embedding_size),init='glorot') #symbols embeddings
 
-        if w2vfilename:
+        if not w2vfilename:
+            self.lex_embedding_matrix  = self.model.add_lookup_parameters((self.lexicon.size(),self.stack_embedding_size),init='glorot')
+        else :
             print('Using external embeddings.',flush=True)                                                          #word embeddings
             self.ext_embeddings       =  True
 
@@ -516,31 +484,21 @@ class RNNGparser:
             embed_dim = M.shape[1]
             self.stack_embedding_size = embed_dim
             E = self.init_ext_embedding_matrix(W,M)
-            if self.blex:                                    #brown clusters with embeddings
-                self.lex_embedding_matrix = self.model.lookup_parameters_from_numpy(E)
-            else:                                            #no clusters ? -> tie input and output lexical parameters (time consuming setup)
-                print('Using tied lexical parameters',flush=True)
-                self.tied=True
-                self.stack_hidden_size = self.stack_embedding_size  #the stack memory/output must have the #input dimension of the embeddings
-                self.lex_embedding_matrix = self.model.parameters_from_numpy(E)
-
-        else:
-            self.lex_embedding_matrix  = self.model.add_lookup_parameters((lexicon_size,self.stack_embedding_size),init='glorot')  
+            self.lex_embedding_matrix = self.model.lookup_parameters_from_numpy(E)
 
         #top level task predictions
         self.struct_out             = self.model.add_parameters((actions_size,self.stack_hidden_size),init='glorot')          #struct action output layer
         self.struct_bias            = self.model.add_parameters((actions_size),init='glorot')
 
         if self.blex:
-            cls_size = len(self.bclusters)
-            self.lex_out            = self.model.add_parameters((cls_size,self.stack_hidden_size),init='glorot')              #lex action output layer
-            self.lex_bias           = self.model.add_parameters((cls_size),init='glorot')
+            self.lex_out            = self.model.add_parameters((self.blex.size(),self.stack_hidden_size),init='glorot')              #lex action output layer
+            self.lex_bias           = self.model.add_parameters((self.blex.size()),init='glorot')
         else:
-            self.lex_out            = self.model.add_parameters((lexicon_size,self.stack_hidden_size),init='glorot')          #lex action output layer
-            self.lex_bias           = self.model.add_parameters((lexicon_size),init='glorot')
+            self.lex_out            = self.model.add_parameters((self.lexicon.size(),self.stack_hidden_size),init='glorot')          #lex action output layer
+            self.lex_bias           = self.model.add_parameters((self.lexicon.size()),init='glorot')
 
-        self.nt_out                 = self.model.add_parameters((nt_size,self.stack_hidden_size),init='glorot')               #nonterminal action output layer
-        self.nt_bias                = self.model.add_parameters((nt_size),init='glorot')
+        self.nt_out                 = self.model.add_parameters((self.nonterminals.size(),self.stack_hidden_size),init='glorot')               #nonterminal action output layer
+        self.nt_bias                = self.model.add_parameters((self.nonterminals.size()),init='glorot')
 
         #stack rnn 
         self.stack_rnn             = dy.LSTMBuilder(1,self.stack_embedding_size, self.stack_hidden_size,self.model)        # main stack rnn
@@ -567,7 +525,7 @@ class RNNGparser:
        @param word_token: the lexical token 
        @return a dynet expression
        """
-       if self.ext_embeddings and word_token in self.word_codes:  #do not backprop with external embeddings when word is known to the lexicon
+       if self.ext_embeddings and word_token in self.lexicon:  #do not backprop with external embeddings when word is known to the lexicon
            return dy.nobackprop(expr)
        else:
            return expr
@@ -622,17 +580,17 @@ class RNNGparser:
             return [] #in a beam context parsing can continue...
         logprobs = logprobs.npvalue()
         if lab_state == RNNGparser.WORD_LABEL:        
-            next_word = self.lex_lookup(sentence[B[0]]) if not self.blex else self.cls_lookup(sentence[B[0]])
+            next_word = self.lexicon.index(sentence[B[0]]) if not self.blex else self.blex.index(sentence[B[0]])
             score = logprobs[next_word] if not self.blex else logprobs[next_word]+self.blex.word_emission_prob(sentence[B[0]]) 
             if max_only :
                 return (next_word,score)
-            return [(next_word,score)]
+            return [(next_word,score)]         #TODO: CHECK why this returns an integer whereas other switches in the function return a string
         elif lab_state == RNNGparser.NT_LABEL: #label NT action
             if max_only:
                 idx = np.argmax(logprobs)
-                return (self.nonterminals[idx],logprobs[idx])
-            return list(zip(self.nonterminals,logprobs))            
-        else:                               #lab_state == RNNGparser.NO_LABEL perform a structural action
+                return (self.nonterminals.wordform(idx),logprobs[idx])
+            return list(zip(self.nonterminals.symlist,logprobs))            
+        else:                                   #lab_state == RNNGparser.NO_LABEL perform a structural action
             if max_only:
                 idx = np.argmax(logprobs)
                 return (self.actions[idx],logprobs[idx])
@@ -643,16 +601,16 @@ class RNNGparser:
         This performs a forward, backward and update pass on the network for this datum.
         @param configuration: the current configuration
         @param structural history: the list of structural actions performed so far
-        @param ref_action  : the reference action
+        @param ref_action  : the reference action as a string
         @return : the loss (NLL) for this action
         """
         S,B,n,stack_state,lab_state,local_score = configuration
         logprobs = self.raw_action_distrib(configuration,structural_history)
 
         if lab_state == RNNGparser.WORD_LABEL:
-            ref_prediction = self.lex_lookup(ref_action) if not self.blex else self.cls_lookup(ref_action)
+            ref_prediction = self.lexicon.index(ref_action) if not self.blex else self.blex.index(ref_action)
         elif lab_state == RNNGparser.NT_LABEL:
-            ref_prediction = self.nonterminals_codes[ref_action]
+            ref_prediction = self.nonterminals.index(ref_action)
         else:
             ref_prediction = self.action_codes[ref_action]
             
@@ -674,9 +632,9 @@ class RNNGparser:
         logprobs = self.raw_action_distrib(configuration,structural_history)
 
         if lab_state == RNNGparser.WORD_LABEL:
-            ref_prediction = self.lex_lookup(ref_action) if not self.blex else self.cls_lookup(ref_action)        
+            ref_prediction = self.lexicon.index(ref_action) if not self.blex else self.blex.index(ref_action)        
         elif lab_state == RNNGparser.NT_LABEL:
-            ref_prediction = self.nonterminals_codes[ref_action]
+            ref_prediction = self.nonterminals.index(ref_action)
         else:
             ref_prediction = self.action_codes[ref_action]
             
@@ -729,7 +687,7 @@ class RNNGparser:
 
         if tracker is None:
             tracker = AbstractTracker()
-        tracker.set_known_vocabulary(self.rev_word_codes)
+        tracker.set_known_vocabulary(self.lexicon.symlist)
         tracker.next_sentence(tokens)
         
         start = BeamElement(None,'init',0)
@@ -749,15 +707,12 @@ class RNNGparser:
                     #dispatch predicted items on relevant beams
                     if lab_state == RNNGparser.WORD_LABEL:
                         action,loc_score = preds_distrib[0]
-                        #print('lab lex',action)
                         next_lex_beam.append(BeamElement(elt,action,loc_score))
                     elif lab_state == RNNGparser.NT_LABEL:
                         for action,loc_score in preds_distrib:
-                            #print('lab NT',action)
                             next_all_beam.append(BeamElement(elt,action,loc_score))
                     else:
                         for action,loc_score in preds_distrib:
-                            #print('struct',action)
                             if action == RNNGparser.TERMINATE:
                                 next_lex_beam.append(BeamElement(elt, action,loc_score))
                             else:
@@ -834,10 +789,10 @@ class RNNGparser:
         """
         dy.renew_cg()
 
-        C         = self.init_configuration(len(tokens))
+        C              = self.init_configuration(len(tokens))
         struct_history = ['<init>'] 
         deriv = [ ]
-        pred_action = None
+        pred_action    = None
         while pred_action != RNNGparser.TERMINATE :
 
             pred_action,score = self.predict_action_distrib(C,struct_history,tokens,max_only=True)
@@ -928,9 +883,10 @@ class RNNGparser:
         for t in dev_bank:
             ConsTree.strip_tags(t)
             ConsTree.close_unaries(t)
-
+            
         if cls_filename:
-            self.blex = BrownLexicon.read_clusters(cls_filename,freq_thresh=1)
+            print("Using clusters")
+            self.blex = BrownLexicon.read_clusters(cls_filename,freq_thresh=1,UNK_SYMBOL=RNNGparser.UNKNOWN_TOKEN)
             print(self.blex.display_summary())
 
         #Coding
@@ -946,18 +902,16 @@ class RNNGparser:
         print('learning rate       :',learning_rate)
         print('dropout             :',self.dropout)        
         print('num training trees  :',len(train_bank),flush=True)
-
         
         #training
         self.trainer = dy.AdamTrainer(self.model,alpha=learning_rate)
-        best_model_loss = np.inf #stores the best model on dev
+        best_model_loss = np.inf     #stores the best model on dev
         monitor =  OptimMonitor()
         for e in range(max_epochs):
             print('\n--------------------------\nEpoch %d'%(e,),flush=True)
             for idx,tree in enumerate(train_bank):
                 sys.stdout.write('\rtree #%d/%d        '%(idx,len(train_bank)))
                 sys.stdout.flush()
-                
                 self.train_sentence(tree,monitor)
                 
                 if (idx+1) % 1000 == 0:
@@ -970,11 +924,11 @@ class RNNGparser:
             if devloss <= best_model_loss :
                 best_model_loss=devloss
                 print(" => saving model",devloss)
-                self.save_model(modelname)
+                #self.save_model(modelname)
                 monitor.save_loss_curves(modelname+'.learningcurves.csv')
 
         print()
-        self.save_model(modelname+'.final')
+        # self.save_model(modelname+'.final')
         monitor.save_loss_curves(modelname+'.learningcurves.csv')
         self.dropout = 0.0  #prevents dropout to be applied at decoding
             
@@ -984,11 +938,11 @@ class RNNGparser:
         Prints a summary of the parser structure
         """
 
-        lexA =   len(self.bclusters) if self.blex else len(self.rev_word_codes)
+        lexA =   self.blex.size() if self.blex else self.lexicon.size()
         print('Num Lexical actions     :',lexA,flush=True)
-        print('Num NT actions          :',len(self.nonterminals),flush=True)
+        print('Num NT actions          :',self.nonterminals.size(),flush=True)
         print('Num struct actions      :',len(self.actions),flush=True)
-        print('Lexicon size            :',len(self.rev_word_codes),flush=True)
+        print('Lexicon size            :',self.lexicon.size(),flush=True)
         print('Stack embedding size    :',self.stack_embedding_size,flush=True)
         print('Stack hidden size       :',self.stack_hidden_size,flush=True)
 
@@ -1021,13 +975,13 @@ class RNNGparser:
         @param matrix: the related embedding vectors
         @return a matrix ready to initalize the dynet params
         """
-        r = len(self.rev_word_codes)
+        r = self.lexicon.size()
         c = matrix.shape[1]
         new_mat = npr.randn(r,c)/100 #gaussian init with small variance (applies for unk words)
         for emb_word,emb_vec in zip(emb_wordlist,matrix):
-            idx = self.word_codes.get(emb_word,-1)
-            if idx >= 0:
-                new_mat[idx,:] = emb_vec                
+            idx = self.lexicon.index(emb_word)
+            if idx != self.lexicon.get_UNK_ID():
+                new_mat[idx,:] = emb_vec   
         return new_mat
                 
     @staticmethod
