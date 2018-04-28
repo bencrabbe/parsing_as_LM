@@ -274,9 +274,9 @@ class RNNGlm:
         """
         Prints a summary of the parser structure
         """
-        lexA =   len(self.bclusters) if self.blex else len(self.rev_word_codes)
+        lexA =   self.blex.size() if self.blex else self.lexicon.size()
         print('Num Lexical actions     :',lexA,flush=True)
-        print('Lexicon size            :',len(self.rev_word_codes),flush=True)
+        print('Lexicon size            :',self.lexicon.size(),flush=True)
         print('embedding size          :',self.embedding_size,flush=True)
         print('hidden size             :',self.hidden_size,flush=True)
 
