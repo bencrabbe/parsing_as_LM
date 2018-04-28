@@ -250,7 +250,7 @@ class RNNGlm:
         N = 0
         L = 0
         for tokens in sentences:
-            tokens = [RNNGlm.START_TOKEN] + tokens
+            tokens  = [RNNGlm.START_TOKEN] + tokens
             x_codes = [self.lexicon.index(tok) for tok in tokens[:-1]]
             y_codes = [self.blex.index(tok) for tok in tokens] if self.blex else [self.lexicon.index(tok) for tok in tokens[1:]] 
 
@@ -269,9 +269,9 @@ class RNNGlm:
                 loss     = dy.pickneglogsoftmax(O * lstm_pred + b, yref).value() 
                 L       += loss 
                 if self.blex:
+                    print('*here*')
                     L += self.blex.word_emission_prob(tok)
                 N += 1
-        print(np.exp(L/N))
         return (L,N)
     
     def eval_dataset(self,sentences):
