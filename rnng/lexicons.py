@@ -27,7 +27,7 @@ class SymbolLexicon:
         self.UNK     = unk_word
 
     def get_UNK_ID(self):
-        return sefl.words2i[self.UNK]
+        return self.words2i[self.UNK]
         
         
     def __str__(self):
