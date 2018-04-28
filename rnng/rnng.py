@@ -291,6 +291,7 @@ class RNNGparser:
         nonterminals = set([])
         for tree in treebank:
             nonterminals.update(tree.collect_nonterminals())
+        print(nonterminals)
         self.nonterminals = SymbolLexicon(list(nonterminals),unk_word=None,special_tokens=[])
         print(self.nonterminals)
         return self.nonterminals

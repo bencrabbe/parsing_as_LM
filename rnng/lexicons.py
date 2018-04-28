@@ -13,7 +13,7 @@ class SymbolLexicon:
     management. It provides services for mapping tokens to integer
     indexes and vice-versa.
     """
-    def __init__(self,wordlist,unk_word='<UNK>',special_tokens=[ ],count_threshold=-1,max_lex_size=100000000):
+    def __init__(self,wordlist,unk_word=None,special_tokens=[ ],count_threshold=-1,max_lex_size=100000000):
         """
         @param wordlist       : a list of strings or a collections.Counter
         @param unk_word       : a token string for unknown words
@@ -23,13 +23,14 @@ class SymbolLexicon:
         """
         counts       = wordlist if isinstance(wordlist,Counter) else Counter(wordlist)
         lexlist      = [ word for word, c in counts.most_common(max_lex_size) if c > count_threshold ]
-        lexlist.append(unk_word)
+
+        if unk_word:
+            lexlist.append(unk_word)
+        self.UNK     = unk_word
+
         lexlist.extend(special_tokens)
         self.words2i = dict([ (w,idx) for idx,w in enumerate(lexlist)])
         self.i2words = lexlist
-        self.UNK     = unk_word
-
-        print(lexlist)
         #ordered list of symbols
         self.symlist = list(self.words2i.keys())
 
@@ -37,7 +38,10 @@ class SymbolLexicon:
         """
         @return the integer index of the unknown word
         """
-        return self.words2i[self.UNK]
+        if self.UNK:
+            return self.words2i[self.UNK]
+        else:
+            return None
         
     def __str__(self):
         return ' '.join(self.words2i.keys())
