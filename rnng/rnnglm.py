@@ -254,7 +254,6 @@ class RNNGlm:
             x_codes = [self.lexicon.index(tok) for tok in tokens[:-1]]
             y_codes = [self.blex.index(tok) for tok in tokens] if self.blex else [self.lexicon.index(tok) for tok in tokens[1:]] 
 
-            print(s)
             print(' '.join([self.lexicon.wordform(x) for x in x_codes]))
             print(' '.join([str(y) for y in y_codes]))
             
