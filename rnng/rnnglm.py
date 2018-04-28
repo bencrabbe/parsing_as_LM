@@ -270,7 +270,6 @@ class RNNGlm:
                 L       += loss 
                 if self.blex:
                     L += self.blex.word_emission_prob(tok)
-                print(L)
                 N += 1
         print(np.exp(L/N))
         return (L,N)
