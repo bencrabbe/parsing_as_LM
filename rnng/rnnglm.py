@@ -152,6 +152,7 @@ class RNNGlm:
         
         #coding
         if cls_filename:
+            print("Using clusters")
             self.blex = BrownLexicon.read_clusters(cls_filename,freq_thresh=1,UNK_SYMBOL=RNNGlm.UNKNOWN_TOKEN)
 
         self.code_lexicon(train_sentences,self.max_vocab_size)
@@ -243,7 +244,7 @@ class RNNGlm:
     def eval_lm(self,sentences):
         """
         Evaluates a model sentence by sentence.
-        Exact method including with clusters.
+        Inefficient but exact method, including with clusters.
         @param sentences : a list of list of words
         @return : a couple (negative log likelihood,perplexity) 
         """
@@ -335,7 +336,8 @@ if __name__ == '__main__':
     istream.close()
 
     rnnlm = RNNGlm(embedding_size=300,memory_size=300)
-    rnnlm.train_rnn_lm('testlm',train_treebank,dev_treebank,lr=0.0001,dropout=0.3,batch_size=32,max_epochs=100,cls_filename='ptb-1000.brown',w2v_file='word_embeddings/w2v-ptb.txt')    
+    #rnnlm.train_rnn_lm('testlm',train_treebank,dev_treebank,lr=0.0001,dropout=0.3,batch_size=32,max_epochs=100,cls_filename='ptb-1000.brown',w2v_file='word_embeddings/w2v-ptb.txt')    
+    rnnlm.train_rnn_lm('testlm',train_treebank,dev_treebank,lr=0.0001,dropout=0.3,batch_size=32,max_epochs=100,w2v_file='word_embeddings/w2v-ptb.txt')    
 
     #rnnlm.train_rnn_lm('testlm',train_treebank,dev_treebank,lr=0.001,dropout=0.3,batch_size=100,max_epochs=15,w2v_file='word_embeddings/w2v-ptb.txt')    
 
