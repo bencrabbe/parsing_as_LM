@@ -29,6 +29,7 @@ class SymbolLexicon:
         self.i2words = lexlist
         self.UNK     = unk_word
 
+        print(lexlist)
         #ordered list of symbols
         self.symlist = list(self.words2i.keys())
 
