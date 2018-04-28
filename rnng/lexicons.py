@@ -147,7 +147,7 @@ class BrownLexicon:
         """
         C = self.index(wordform)
         if C == self.UNK_ID:
-            return 0 if logprob else return 1
+            return 0 if logprob else 1
         else:
             N = self.cls_counts[C]
             w = self.word_counts[wordform]
