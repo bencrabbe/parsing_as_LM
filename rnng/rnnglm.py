@@ -308,7 +308,7 @@ class RNNGlm:
         @param matrix: the related embedding vectors
         @return a matrix ready to initalize the dynet params
         """
-        r = len(self.rev_word_codes)
+        r = self.lexicon.size()
         c = matrix.shape[1]
         new_mat = npr.randn(r,c)/100 #gaussian init with small variance (applies for unk words)
         for emb_word,emb_vec in zip(emb_wordlist,matrix):
