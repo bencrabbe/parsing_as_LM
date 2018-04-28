@@ -9,7 +9,7 @@ import json
 from collections import Counter
 from random import shuffle
 from constree import *
-from lexicon import *
+from lexicons import *
 from proc_monitors import *
 from rnng_params import *
 

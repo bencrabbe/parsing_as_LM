@@ -334,8 +334,12 @@ if __name__ == '__main__':
     istream.close()
 
     rnnlm = RNNGlm(embedding_size=300,memory_size=300)
+
+    #Good cluster model PPL 130 on devel
     #rnnlm.train_rnn_lm('testlm',train_treebank,dev_treebank,lr=0.0001,dropout=0.3,batch_size=32,max_epochs=100,cls_filename='ptb-1000.brown',w2v_file='word_embeddings/w2v-ptb.txt')    
-    rnnlm.train_rnn_lm('testlm',train_treebank,dev_treebank,lr=0.001,dropout=0.3,batch_size=32,max_epochs=50,w2v_file='word_embeddings/w2v-ptb.txt')    
+
+    #Good word model : PPL on devel
+    #rnnlm.train_rnn_lm('testlm',train_treebank,dev_treebank,lr=0.001,dropout=0.3,batch_size=32,max_epochs=50,w2v_file='word_embeddings/w2v-ptb.txt')    
 
     #rnnlm.train_rnn_lm('testlm',train_treebank,dev_treebank,lr=0.001,dropout=0.3,batch_size=100,max_epochs=15,w2v_file='word_embeddings/w2v-ptb.txt')    
 
