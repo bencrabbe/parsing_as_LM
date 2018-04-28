@@ -252,7 +252,7 @@ class RNNGlm:
         for tokens in sentences:
 
             x_codes = [self.lexicon.index(tok) for tok in tokens[:-1]]
-            y_codes = [self.blex.index(tok) for tok in tokens] is self.blex else [self.lexicon.index(tok) for tok in tokens[1:]] 
+            y_codes = [self.blex.index(tok) for tok in tokens] if self.blex else [self.lexicon.index(tok) for tok in tokens[1:]] 
 
             print(s)
             print(' '.join([self.lexicon.wordform(x) for x in x_codes]))
