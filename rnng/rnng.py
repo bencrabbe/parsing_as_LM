@@ -416,7 +416,7 @@ class RNNGparser:
         children    = S[root_idx+1:]
             
         #compute the tree embedding with the tree_rnn
-        nt_idx = self.nonterminals_codes[root_symbol.symbol]
+        nt_idx = self.nonterminals.index(root_symbol.symbol)
         NT_embedding = self.rnng_dropout(self.nt_embedding_matrix[nt_idx])
         s1 = self.fwd_tree_rnn.initial_state()
         s1 = s1.add_input(NT_embedding)
