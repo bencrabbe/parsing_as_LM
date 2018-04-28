@@ -1012,7 +1012,6 @@ class RNNGparser:
         parser.make_structure()
         parser.model.populate(model_name+".prm")
         return parser
-
     
     def save_model(self,model_name):
         """
@@ -1030,9 +1029,8 @@ class RNNGparser:
         
   
 if __name__ == '__main__':
-
-    warnings.simplefilter("ignore")
     
+    warnings.simplefilter("ignore")
     try:
         opts, args = getopt.getopt(sys.argv[1:],"ht:o:d:r:m:b:L:S:e:c:")
     except getopt.GetoptError:
