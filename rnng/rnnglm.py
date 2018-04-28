@@ -313,7 +313,7 @@ class RNNGlm:
         new_mat = npr.randn(r,c)/100 #gaussian init with small variance (applies for unk words)
         for emb_word,emb_vec in zip(emb_wordlist,matrix):
             idx = self.lexicon.index(emb_word)
-            if idx != self.lexicon.get_UNK_ID()
+            if idx != self.lexicon.get_UNK_ID():
                 new_mat[idx,:] = emb_vec                
         return new_mat
        
