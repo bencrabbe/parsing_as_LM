@@ -146,10 +146,13 @@ class BrownLexicon:
         @param logprob:
         """
         C = self.index(wordform)
-        N = self.cls_counts[C]
-        w = self.word_counts[wordform]
-        p = float(w)/float(N)
-        return np.log(p) if logprob else p
+        if C == self.UNK_ID:
+            return 0 if logprob else return 1
+        else:
+            N = self.cls_counts[C]
+            w = self.word_counts[wordform]
+            p = float(w)/float(N)
+            return np.log(p) if logprob else p
         
     def save_clusters(self,filename):
         """
