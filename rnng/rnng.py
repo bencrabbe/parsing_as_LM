@@ -135,6 +135,7 @@ class OptimMonitor:
         
     def save_loss_curves(self,filename):
         df = pd.DataFrame.from_records(self.ppl_dataset,columns=['ppl','lex-ppl','struct-ppl','nt-ppl','N-lex','N-struct','N-nt'])
+        print(df)
         df.to_csv(filename)
 
     def add_ACC_datum(self,datum_correct,configuration):
