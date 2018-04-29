@@ -927,13 +927,15 @@ class RNNGparser:
                      
             monitor.display_NLL_log(reset=True)            
             devloss = self.eval_all(dev_bank)
+            print('end eval')
             shuffle(train_bank)
+            print('end shuffle')
             if devloss <= best_model_loss :
                 best_model_loss=devloss
                 print(" => saving model",devloss)
-                #self.save_model(modelname)
+                self.save_model(modelname)
                 monitor.save_loss_curves(modelname+'.learningcurves.csv')
-
+            print('end epoch')
         print()
         # self.save_model(modelname+'.final')
         monitor.save_loss_curves(modelname+'.learningcurves.csv')
