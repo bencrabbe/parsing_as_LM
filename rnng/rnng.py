@@ -1121,6 +1121,7 @@ if __name__ == '__main__':
             words = [elt.get_child().label for elt in wordsXtags]
             tags  = [elt.label for elt in wordsXtags]
             result = p.beam_parse(words,all_beam_size=struct_beam,lex_beam_size=lex_beam)
+            result.add_gold_tags(tags)
             print(result,file=test_ostream,flush=True)
         test_istream.close()
         test_ostream.close()
