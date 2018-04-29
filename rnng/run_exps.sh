@@ -1,7 +1,7 @@
 #!/bin/sh
 
 MKL_NUM_THREADS=6
-NUM_EPOCHS=15
+NUM_EPOCHS=10
 
 make_config(){
     #$1 NAME $2 = embedding size , $3 = lstm memory size $4 = dropout
@@ -38,9 +38,9 @@ train_lexicalized(){
 }
 
 #Brown clusters
-#train_brown 300 100 0.3
-#train_brown 300 200 0.3
-#train_brown 300 300 0.3
+train_brown 300 100 0.1
+train_brown 300 200 0.1
+train_brown 300 300 0.1
 
 
 #Fully lexicalized
