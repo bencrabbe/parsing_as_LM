@@ -934,10 +934,11 @@ class RNNGparser:
                 best_model_loss=devloss
                 print(" => saving model",devloss)
                 self.save_model(modelname)
+                print('*')
                 monitor.save_loss_curves(modelname+'.learningcurves.csv')
-            print('end epoch')
+                print('**')
         print()
-        # self.save_model(modelname+'.final')
+        self.save_model(modelname+'.final')
         monitor.save_loss_curves(modelname+'.learningcurves.csv')
         self.dropout = 0.0  #prevents dropout to be applied at decoding
             
