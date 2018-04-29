@@ -137,7 +137,7 @@ class OptimMonitor:
         ostream = open(filename,'w')
         print(','.join(['ppl','lex-ppl','struct-ppl','nt-ppl','N-lex','N-struct','N-nt']),file=ostream)
         for line in self.ppl_dataset:
-            print(",".join([float(elt) for elt in line]),file=ostream)
+            print(",".join([str(elt) for elt in line]),file=ostream)
         ostream.close()
         
     def add_ACC_datum(self,datum_correct,configuration):
