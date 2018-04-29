@@ -136,7 +136,7 @@ class BrownLexicon:
 
             
     def display_summary(self):
-        return """Using Brown Clusters with %d clusters and a lexicon of %d word forms"""%(len(self.cls_list),len(self.w2cls))
+        return """Using Brown Clusters with %d clusters and a lexicon of %d word forms"""%(len(self.cls_counts),len(self.w2cls))
         
     def __str__(self):
         return '\n'.join( ['P(%s|%d) = %f'%(w,C,self.word_emission_prob(w,logprob=False)) for w,C in self.w2cls.items()])
