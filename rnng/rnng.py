@@ -998,8 +998,8 @@ class RNNGparser:
         """            
         struct = json.loads(open(model_name+'.json').read())
         parser              = RNNGparser(stack_embedding_size = struct['stack_embedding_size'],stack_memory_size=struct['stack_hidden_size'])
-        parser.lexicon      = SymbolLexicon.load(modelname+'.lex')
-        parser.nonterminals = SymbolLexicon.load(modelname+'.nt')
+        parser.lexicon      = SymbolLexicon.load(model_name+'.lex')
+        parser.nonterminals = SymbolLexicon.load(model_name+'.nt')
         try:
             parser.blex = BrownLexicon.load_clusters(model_name+'.cls')
         except FileNotFoundError:
