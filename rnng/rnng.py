@@ -1151,6 +1151,7 @@ if __name__ == '__main__':
         test_istream.close()
         test_ostream.close()
         parse_tracker.save_table()
+        print(parse_tracker.get_corpus_NLL(ppl=True))
         
     #despaired debugging
     elif not model_name:
