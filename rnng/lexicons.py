@@ -91,7 +91,7 @@ class SymbolLexicon:
         ostream.close()
 
     @staticmethod
-    def load(self,modelname):
+    def load(modelname):
         """
         @param modelname : the name of the model to load
         @return a SymbolLexicon object
