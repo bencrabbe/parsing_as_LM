@@ -1113,7 +1113,7 @@ if __name__ == '__main__':
     if model_name and predict_file:
         p = RNNGparser.load_model(model_name)
         test_istream  = open(predict_file)
-        out_name = '.'.join(predict_file.split('.')[:-1]+['mrg'])
+        out_name = '.'.join(predict_file.split('.')[:-1]+['pred.mrg'])
         test_ostream  = open(model_name+'-'+out_name,'w') 
         for line in test_istream:
             tree = ConsTree.read_tree(line)
