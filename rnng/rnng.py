@@ -1029,7 +1029,7 @@ if __name__ == '__main__':
     
     warnings.simplefilter("ignore")
     try:
-        opts, args = getopt.getopt(sys.argv[1:],"ht:o:d:r:m:b:L:S:e:c:p:")
+        opts, args = getopt.getopt(sys.argv[1:],"ht:o:d:r:m:b:L:S:e:c:p:O:")
     except getopt.GetoptError:
         print ('rnng.py -t <inputfile> -d <inputfile> -r <inputfile> -o <outputfile> -m <model_file>')
         sys.exit(0)
@@ -1044,6 +1044,7 @@ if __name__ == '__main__':
     lex_beam     = 10  #40
     struct_beam  = 100 #400
     config_file  = 'defaultconfig.prm'
+    check_oracle = False
     
     for opt, arg in opts:
         if opt in ['-h','--help']:
@@ -1069,8 +1070,29 @@ if __name__ == '__main__':
             config_file = arg
         elif opt in ['-p','--predict']:
             predict_file = arg
+        elif opt in ['-O','--Oracle']:
+            check_oracle = True
+            train_file   = arg
+
+    if check_oracle and train_file:
+        treebank = []
+        train_stream   = open(train_file)
+        for line in train_stream:
+            treebank.append(ConsTree.read_tree(line))
+        train_stream.close()
+        p = RNNGparser()
+        for t in treebank:
+            D = p.oracle_derivation(t)
+            t2 = p.derivation2tree(D,t.tokens())
+            P,R,F = t.compare(t2)
+            if F != 1.0:
+                print(t)
+                print(t2)
+                print(P,R,F)
+                print()
+        exit(0)
             
-    if train_file and model_name: #train
+    elif train_file and model_name: #train
         read_config(config_file)
         train_treebank = []
         train_stream   = open(train_file)
@@ -1098,7 +1120,7 @@ if __name__ == '__main__':
                                  lex_embeddings_filename=embedding_file)
         
     #runs a test on raw text   
-    if model_name and raw_file:
+    elif model_name and raw_file:
         p = RNNGparser.load_model(model_name)
         test_istream  = open(raw_file)
         out_name = '.'.join(raw_file.split('.')[:-1]+['mrg'])
@@ -1110,7 +1132,7 @@ if __name__ == '__main__':
         test_ostream.close()
 
     #runs a test on pos tagged text (! predict file is a treebank) 
-    if model_name and predict_file:
+    elif model_name and predict_file:
         p = RNNGparser.load_model(model_name)
         test_istream  = open(predict_file)
         out_name = '.'.join(predict_file.split('.')[:-1]+['pred.mrg'])
@@ -1129,7 +1151,7 @@ if __name__ == '__main__':
         parse_tracker.save_table()
         
     #despaired debugging
-    if not model_name:
+    elif not model_name:
         t  = ConsTree.read_tree('(S (NP Le chat ) (VP mange  (NP la souris)))')
         t2 = ConsTree.read_tree('(S (NP Le chat ) (VP voit  (NP le chien) (PP sur (NP le paillasson))))')
         t3 = ConsTree.read_tree('(S (NP La souris (Srel qui (VP dort (PP sur (NP le paillasson))))) (VP sera mangée (PP par (NP le chat ))))')
