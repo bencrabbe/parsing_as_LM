@@ -99,6 +99,7 @@ class OptimMonitor:
                                 self.lexN,\
                                 self.structN,\
                                 self.ntN))
+        print(self.ppl_dataset[-1])
 
         if reset:
             self.reset_loss_counts()
