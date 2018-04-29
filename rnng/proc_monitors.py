@@ -131,5 +131,5 @@ class DefaultTracker(AbstractTracker):
         ostream = open(self.filename,'w')
         print(','.join(['token','is_unknown','surprisal','mean_actions']),file=ostream)
         for line in flat_dataset:
-            print(','.join([str(elt) for elt in line]))
+            print(','.join([str(elt) for elt in line]),file=ostream)
         ostream.close()
