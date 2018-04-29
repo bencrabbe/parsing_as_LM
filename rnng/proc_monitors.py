@@ -126,5 +126,10 @@ class DefaultTracker(AbstractTracker):
             self.next_sentence([])
         
         flat_dataset = [elt for sent in self.global_log for elt in sent]
-        df = pd.DataFrame.from_records(flat_dataset,columns=['token','is_unknown','surprisal','mean_actions'])
-        df.to_csv(self.filename)
+        #df = pd.DataFrame.from_records(flat_dataset,columns=['token','is_unknown','surprisal','mean_actions'])
+        #df.to_csv(self.filename)
+        ostream = open(self.filename,'w')
+        print(','.join(['token','is_unknown','surprisal','mean_actions']),file=ostream)
+        for line in flat_dataset:
+            print(','.join([str(elt) for elt in line]))
+        ostream.close()
