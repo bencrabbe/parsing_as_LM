@@ -86,7 +86,7 @@ class SymbolLexicon:
         """
         @param modelname : the name of the model to save
         """
-        ostream = open(modelname+'.lex.json','w')
+        ostream = open(modelname+'.json','w')
         ostream.write(json.dumps({'UNK':self.UNK ,'lex':self.i2words}))
         ostream.close()
 
@@ -96,7 +96,7 @@ class SymbolLexicon:
         @param modelname : the name of the model to load
         @return a SymbolLexicon object
         """
-        istream = open(modelname+'.lex.json')
+        istream = open(modelname+'.json')
         struct = json.loads(istream.read())
         istream.close()
         

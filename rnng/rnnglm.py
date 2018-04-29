@@ -36,6 +36,7 @@ class RNNGlm:
         self.embedding_size = embedding_size
         self.hidden_size    = memory_size
         self.dropout        = 0.0
+        
         #Extras (brown lexicon and external embeddings)
         self.blex           = None
         self.ext_embeddings = False
@@ -209,11 +210,11 @@ class RNNGlm:
         """
         #TODO (with updated lexicon)
         jfile = open(model_name+'.json','w')
-        jfile.write(json.dumps({'max_vocabulary_size':self.max_vocab_size,\
-                                'embedding_size':self.embedding_size,\
-                                'hidden_size':self.hidden_size,\
-                                'rev_word_codes':self.rev_word_codes}))
+        jfile.write(json.dumps({'embedding_size':self.embedding_size,\
+                                'hidden_size':self.hidden_size}))
+                                
         self.model.save(model_name+'.prm')
+        self.lexicon.save(model_name+'.lex')
         if self.blex:
             self.blex.save_clusters(model_name+'.cls')
             
@@ -223,21 +224,13 @@ class RNNGlm:
         """
         #TODO (with updated lexicon)
         struct = json.loads(open(model_name+'.json').read())
-        lm = RNNGlm(max_vocabulary_size = struct['max_vocabulary_size'],
-                 embedding_size = struct['embedding_size'],
-                 memory_size = struct['hidden_size'])
+        lm         = RNNGlm(embedding_size = struct['embedding_size'],memory_size = struct['hidden_size'])
+        lm.lexicon = SymbolLexicon.load(modelname+'.lex')
         try:
             lm.blex = BrownLexicon.load_clusters(model_name+'.cls')
-            lm.bclusters        = parser.blex.cls_list()
-            lm.bclusters_size   = len(parser.bclusters)
-            lm.bclusters_codes  = dict([(s,idx) for (idx,s) in enumerate(parser.bclusters)])
-                        
         except FileNotFoundError:
             print('No clusters found',file=sys.stderr)
             self.blex = None
-
-        lm.rev_word_codes     = struct['rev_word_codes']
-        lm.word_codes         = dict([(s,idx) for (idx,s) in enumerate(parser.rev_word_codes)])
         lm.make_structure()
         lm.model.populate(model_name+".prm")
         return lm

@@ -991,24 +991,14 @@ class RNNGparser:
         Loads the whole shebang and returns a parser.
         """            
         struct = json.loads(open(model_name+'.json').read())
-        parser = RNNGparser(max_vocabulary_size=struct['max_vocabulary_size'],
-                 stack_embedding_size = struct['stack_embedding_size'],
-                 stack_memory_size= struct['stack_hidden_size'])
+        parser              = RNNGparser(stack_embedding_size = struct['stack_embedding_size'],stack_memory_size=struct['stack_hidden_size'])
+        parser.lexicon      = SymbolLexicon.load(modelname+'.lex')
+        parser.nonterminals = SymbolLexicon.load(modelname+'.nt')
         try:
-            
             parser.blex = BrownLexicon.load_clusters(model_name+'.cls')
-            parser.bclusters        = parser.blex.cls_list()
-            parser.bclusters_size   = len(parser.bclusters)
-            parser.bclusters_codes  = dict([(s,idx) for (idx,s) in enumerate(parser.bclusters)])
-                        
         except FileNotFoundError:
             print('No clusters found',file=sys.stderr)
             self.blex = None
-
-        parser.rev_word_codes     = struct['rev_word_codes']
-        parser.nonterminals       = struct['nonterminals']
-        parser.nonterminals_codes = dict([(sym,idx) for (idx,sym) in enumerate(parser.nonterminals)])
-        parser.word_codes         = dict([(s,idx) for (idx,s) in enumerate(parser.rev_word_codes)])
         parser.code_struct_actions()
         parser.make_structure()
         parser.model.populate(model_name+".prm")
@@ -1019,12 +1009,12 @@ class RNNGparser:
         Saves the whole shebang.
         """
         jfile = open(model_name+'.json','w')
-        jfile.write(json.dumps({'max_vocabulary_size':self.max_vocab_size,\
-                                'stack_embedding_size':self.stack_embedding_size,\
-                                'stack_hidden_size':self.stack_hidden_size,\
-                                'nonterminals': self.nonterminals,
-                                'rev_word_codes':self.rev_word_codes}))
+        jfile.write(json.dumps({'stack_embedding_size':self.stack_embedding_size,'stack_hidden_size':self.stack_hidden_size}))
+        jfile.close()
+        
         self.model.save(model_name+'.prm')
+        self.lexicon.save(model_name+'.lex')
+        self.nonterminals.save(model_name+'.nt')
         if self.blex:
             self.blex.save_clusters(model_name+'.cls')
         
