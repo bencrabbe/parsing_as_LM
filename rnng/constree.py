@@ -35,7 +35,7 @@ class ConsTree:
     def tokens(self,labels=True):
         """
         @param labels: returns a list of strings if true else returns
-        a list of ConsTree objects
+        a list of ConsTree objects (leaves)
         @return the list of words at the leaves of the tree
         """
         if self.is_leaf():
@@ -45,7 +45,19 @@ class ConsTree:
             for child in self.children:
                 result.extend(child.tokens(labels))
             return result
-                
+        
+    def pos_tags(self):
+        """
+        @return the list of pos tags as ConsTree objects
+        """
+        if self.arity() == 1 and self.get_child().is_leaf():
+            return [self]
+        else:
+            result = []
+            for child in self.children:
+                result.extend(child.tokens(labels))
+            return result
+        
     def index_leaves(self):
         """
         Adds an numeric index to each leaf node
@@ -115,22 +127,19 @@ class ConsTree:
             child.normalize_OOV(lexicon,unk_token)
         return self
 
-    def add_dummy_tag(self,tag_label="D"):
+    def add_gold_tags(self,tag_sequence=None):
         """
-        Adds dummy tags to the tree (for evalb compatibility).
+        Adds gold tags to the tree on top of leaves(for evalb compatibility).
         Destructive method.
         """
         newchildren = []
         for child in self.children:
             if child.is_leaf():
-                if child.label in ['.',',',':',"''","``"]:#evalb/COLLINS.prm intricacy
-                    dummy = ConsTree(child.label,children=[child])
-                else:
-                    dummy = ConsTree(tag_label,children=[child])
-                newchildren.append(dummy)
+                label = tag_sequence.pop(0)
+                tag = ConsTree(label,children=[child])
+                newchildren.append(tag)
             else:
                 newchildren.append(child)
-                child.add_dummy_tag()
         self.children=newchildren
         
     

@@ -92,7 +92,13 @@ class OptimMonitor:
                                                                                                               np.exp(self.nt_loss/self.ntN),
                                                                                                               np.exp(self.struct_loss/self.structN)))
         sys.stdout.flush()
-        self.ppl_dataset.append((np.exp(global_nll/N),np.exp(self.lex_loss/self.lexN),np.exp(self.struct_loss/self.structN),np.exp(self.nt_loss/self.ntN)))
+        self.ppl_dataset.append((np.exp(global_nll/N),\
+                                np.exp(self.lex_loss/self.lexN),\
+                                np.exp(self.struct_loss/self.structN),\
+                                np.exp(self.nt_loss/self.ntN),\
+                                self.lexN,\
+                                self.structN,\
+                                self.ntN))
 
         if reset:
             self.reset_loss_counts()
@@ -128,7 +134,7 @@ class OptimMonitor:
         
         
     def save_loss_curves(self,filename):
-        df = pd.DataFrame.from_records(self.ppl_dataset,columns=['ppl','lex-ppl','struct-ppl','nt-ppl'])
+        df = pd.DataFrame.from_records(self.ppl_dataset,columns=['ppl','lex-ppl','struct-ppl','nt-ppl','N-lex','N-struct','N-nt'])
         df.to_csv(filename)
 
     def add_ACC_datum(self,datum_correct,configuration):
@@ -1023,20 +1029,21 @@ if __name__ == '__main__':
     
     warnings.simplefilter("ignore")
     try:
-        opts, args = getopt.getopt(sys.argv[1:],"ht:o:d:r:m:b:L:S:e:c:")
+        opts, args = getopt.getopt(sys.argv[1:],"ht:o:d:r:m:b:L:S:e:c:p:")
     except getopt.GetoptError:
         print ('rnng.py -t <inputfile> -d <inputfile> -r <inputfile> -o <outputfile> -m <model_file>')
         sys.exit(0)
 
-    train_file = ''
-    dev_file   = ''
-    model_name = ''
-    brown_file = None
+    train_file     = ''
+    dev_file       = ''
+    model_name     = ''
+    brown_file     = None
     embedding_file = None 
-    raw_file   = ''
-    lex_beam   = 10  #40
-    struct_beam = 100 #400
-    config_file = 'defaultconfig.prm'
+    raw_file     = ''
+    predict_file = ''
+    lex_beam     = 10  #40
+    struct_beam  = 100 #400
+    config_file  = 'defaultconfig.prm'
     
     for opt, arg in opts:
         if opt in ['-h','--help']:
@@ -1060,6 +1067,8 @@ if __name__ == '__main__':
             embedding_file = arg
         elif opt in ['-c','--configfile']:
             config_file = arg
+        elif opt in ['-p','--predict']:
+            predict_file = arg
             
     if train_file and model_name: #train
         read_config(config_file)
@@ -1088,20 +1097,34 @@ if __name__ == '__main__':
                                  cls_filename=brown_file,\
                                  lex_embeddings_filename=embedding_file)
         
-    #runs a test    
+    #runs a test on raw text   
     if model_name and raw_file:
         p = RNNGparser.load_model(model_name)
         test_istream  = open(raw_file)
         out_name = '.'.join(raw_file.split('.')[:-1]+['mrg'])
         test_ostream  = open(model_name+'-'+out_name,'w') 
         for line in test_istream:
-            #print(p.parse_sentence(line.split(),ref_tree=None))
             result = p.beam_parse(line.split(),all_beam_size=struct_beam,lex_beam_size=lex_beam)
-            result.add_dummy_tag()
             print(result,file=test_ostream,flush=True)
         test_istream.close()
         test_ostream.close()
-        
+
+    #runs a test on pos tagged text (! predict file is a treebank) 
+    if model_name and predict_file:
+        p = RNNGparser.load_model(model_name)
+        test_istream  = open(predict_file)
+        out_name = '.'.join(predict_file.split('.')[:-1]+['mrg'])
+        test_ostream  = open(model_name+'-'+out_name,'w') 
+        for line in test_istream:
+            tree = ConsTree.read_tree(line)
+            wordsXtags = tree.pos_tags()
+            words = [elt.get_child().label for elt in wordsXtags]
+            tags  = [elt.label for elt in wordsXtags]
+            result = p.beam_parse(words,all_beam_size=struct_beam,lex_beam_size=lex_beam)
+            print(result,file=test_ostream,flush=True)
+        test_istream.close()
+        test_ostream.close()
+    
     #despaired debugging
     if not model_name:
         t  = ConsTree.read_tree('(S (NP Le chat ) (VP mange  (NP la souris)))')
