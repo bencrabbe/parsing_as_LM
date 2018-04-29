@@ -1,7 +1,6 @@
 import dynet as dy
 import numpy as np
 import numpy.random as npr
-import pandas as pd
 import getopt
 import warnings
 import json
@@ -135,10 +134,12 @@ class OptimMonitor:
         
         
     def save_loss_curves(self,filename):
-        df = pd.DataFrame.from_records(self.ppl_dataset,columns=['ppl','lex-ppl','struct-ppl','nt-ppl','N-lex','N-struct','N-nt'])
-        print(df)
-        df.to_csv(filename)
-
+        ostream = open(filename,'w')
+        print(','.join(['ppl','lex-ppl','struct-ppl','nt-ppl','N-lex','N-struct','N-nt']),file=ostream)
+        for line in self.ppl_dataset:
+            print(",".join([float(elt) for elt in line]),file=ostream)
+        ostream.close()
+        
     def add_ACC_datum(self,datum_correct,configuration):
         """
         Accurracy logging
@@ -929,16 +930,12 @@ class RNNGparser:
                      
             monitor.display_NLL_log(reset=True)            
             devloss = self.eval_all(dev_bank)
-            print('end eval')
             shuffle(train_bank)
-            print('end shuffle')
             if devloss <= best_model_loss :
                 best_model_loss=devloss
                 print(" => saving model",devloss)
                 self.save_model(modelname)
-                print('*')
                 monitor.save_loss_curves(modelname+'.learningcurves.csv')
-                print('**')
         print()
         self.save_model(modelname+'.final')
         monitor.save_loss_curves(modelname+'.learningcurves.csv')
