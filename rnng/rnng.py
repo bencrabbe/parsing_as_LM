@@ -1115,17 +1115,19 @@ if __name__ == '__main__':
         test_istream  = open(predict_file)
         out_name = '.'.join(predict_file.split('.')[:-1]+['pred.mrg'])
         test_ostream  = open(model_name+'-'+out_name,'w') 
+        parse_tracker = DefaultTracker(model_name+'.csv')
         for line in test_istream:
             tree = ConsTree.read_tree(line)
             wordsXtags = tree.pos_tags()
             words = [elt.get_child().label for elt in wordsXtags]
             tags  = [elt.label for elt in wordsXtags]
-            result = p.beam_parse(words,all_beam_size=struct_beam,lex_beam_size=lex_beam)
+            result = p.beam_parse(words,all_beam_size=struct_beam,lex_beam_size=lex_beam,tracker=parse_tracker)
             result.add_gold_tags(tags)
             print(result,file=test_ostream,flush=True)
         test_istream.close()
         test_ostream.close()
-    
+        parse_tracker.save_table()
+        
     #despaired debugging
     if not model_name:
         t  = ConsTree.read_tree('(S (NP Le chat ) (VP mange  (NP la souris)))')

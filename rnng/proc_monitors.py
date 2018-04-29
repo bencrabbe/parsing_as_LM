@@ -39,7 +39,18 @@ class DefaultTracker(AbstractTracker):
         self.global_log = []
         self.sent_log   = []
         self.next_sentence([])
-        
+        self.LL         = 0 
+        self.N          = 0
+
+    def get_corpus_NLL(self,ppl=False):
+        """
+        Returns the NLL of the corpus parsed so far.
+        @param ppl: returns the perplexity instead
+        """
+        if ppl:
+            return np.exp(-self.LL/self.N)
+        return -self.LL
+                
     def set_known_vocabulary(self,wordlist):
         """
         @param wordlist: list of known tokens
@@ -82,6 +93,8 @@ class DefaultTracker(AbstractTracker):
         if self.idx < len(self.tokens):
             token = self.tokens[self.idx]
             is_unknown = not (token in self.vocabulary)
+            self.LL   += self.logprob_aggregate
+            self.N    += 1
             surprisal = self.logprob_aggregate/np.log(2) #change log to base 2 for surprisal
             self.sent_log.append( (token,is_unknown,surprisal,self.step_aggregate/self.num_configs) )
             self.logprob_aggregate = 0
