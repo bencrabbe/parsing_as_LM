@@ -1165,10 +1165,12 @@ if __name__ == '__main__':
             idx  = 0
             for line in train_stream:
                 train_treebank.append(ConsTree.read_tree(line))
+                idx += 1
                 if idx >= 100:
                     break
-                idx += 1
             train_stream.close()
+            StructParams.STACK_EMB_SIZE = 100
+            StructParams.STACK_HIDDEN_SIZE = 100
         else:
             t  = ConsTree.read_tree('(S (NP Le chat ) (VP mange  (NP la souris)))')
             t2 = ConsTree.read_tree('(S (NP Le chat ) (VP voit  (NP le chien) (PP sur (NP le paillasson))))')
