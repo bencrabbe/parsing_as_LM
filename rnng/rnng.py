@@ -730,7 +730,6 @@ class RNNGparser:
                             else:
                                 next_all_beam.append(BeamElement(elt,action,loc_score))
                 #prune and exec actions
-                print('t',len(next_all_beam))
                 next_all_beam.sort(key=lambda x:BeamElement.figure_of_merit(x),reverse=True)
                 next_all_beam = next_all_beam[:all_beam_size]
                 for elt in next_all_beam:#exec actions
@@ -755,6 +754,7 @@ class RNNGparser:
                 all_beam = next_all_beam
                 
             #Lex beam
+            print('lex',len(next_lex_beam))
             next_lex_beam.sort(key=lambda x:BeamElement.figure_of_merit(x),reverse=True)
             next_lex_beam = next_lex_beam[:lex_beam_size]
             for elt in next_lex_beam:
