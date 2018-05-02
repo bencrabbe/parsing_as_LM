@@ -707,7 +707,7 @@ class RNNGparser:
         next_lex_beam = [ ]
         
         for idx in range(len(tokens) + 1):
-            print(len(all_beam),len(next_lex_beam))
+            #print(len(all_beam),len(next_lex_beam))
             while all_beam:
                 next_all_beam = []
                 for elt in all_beam:
