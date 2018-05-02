@@ -714,6 +714,7 @@ class RNNGparser:
                     C = elt.config
                     _,_,_,_,lab_state,prefix_score = C
                     preds_distrib = self.predict_action_distrib(C,elt.structural_history,tokens)
+                    print(preds_distrib)
                     #dispatch predicted items on relevant beams
                     if lab_state == RNNGparser.WORD_LABEL:
                         action,loc_score = preds_distrib[0]
