@@ -1160,10 +1160,10 @@ if __name__ == '__main__':
             train_stream   = open(train_file)
             idx  = 0
             for line in train_stream:
-                if idx >= 100:
+                if idx >= 1000:
                     train_treebank.append(ConsTree.read_tree(line))
                 idx += 1
-                if idx >= 120:
+                if idx >= 1020:
                     break
             train_stream.close()
             StructParams.STACK_EMB_SIZE = 100
