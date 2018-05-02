@@ -599,7 +599,7 @@ class RNNGparser:
             if max_only:
                 idx = np.argmax(logprobs)
                 return (self.nonterminals.wordform(idx),logprobs[idx])
-            return list(zip(self.nonterminals.symlist,logprobs))            
+            return list(zip(self.nonterminals.i2words,logprobs))            
         else:                                   #lab_state == RNNGparser.NO_LABEL perform a structural action
             if max_only:
                 idx = np.argmax(logprobs)
@@ -1140,8 +1140,6 @@ if __name__ == '__main__':
     #runs a test on pos tagged text (! predict file is a treebank) 
     elif model_name and predict_file:
         p = RNNGparser.load_model(model_name)
-        print(p.nonterminals)
-        exit(0)
         test_istream  = open(predict_file)
         out_name = '.'.join(predict_file.split('.')[:-1]+['pred.mrg'])
         test_ostream  = open(model_name+'-'+out_name,'w') 

@@ -31,8 +31,6 @@ class SymbolLexicon:
         lexlist.extend(special_tokens)
         self.words2i = dict([ (w,idx) for idx,w in enumerate(lexlist)])
         self.i2words = lexlist
-        #ordered list of symbols
-        self.symlist = list(self.words2i.keys())
 
     def get_UNK_ID(self):
         """
