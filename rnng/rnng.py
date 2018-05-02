@@ -840,12 +840,12 @@ class RNNGparser:
         @param monitor: a monitor for logging the training process
         """
         dy.renew_cg()
-        tokens            = ref_tree.tokens()
+        tokens              = ref_tree.tokens()
         print(ref_tree)
         ref_derivation,_,_  = self.oracle_derivation(self.init_configuration(len(tokens)),ref_tree,tokens,['<init>'])
-        step, max_step    = (0,len(ref_derivation))
-        C                 = self.init_configuration(len(tokens))
-        struct_history    = ['<init>'] 
+        step, max_step      = (0,len(ref_derivation))
+        C                   = self.init_configuration(len(tokens))
+        struct_history      = ['<init>'] 
         for ref_action in ref_derivation:
             NLL = self.backprop_action_distrib(C,struct_history,ref_action)
             monitor.add_NLL_datum(NLL,C)
@@ -858,11 +858,11 @@ class RNNGparser:
         @param monitor: a monitor for logging the eval process
         """
         dy.renew_cg()
-        tokens            = ref_tree.tokens()
+        tokens              = ref_tree.tokens()
         ref_derivation,_,_  = self.oracle_derivation(self.init_configuration(len(tokens)),ref_tree,tokens,['<init>'])
-        step, max_step    = (0,len(ref_derivation))
-        C                 = self.init_configuration(len(tokens))
-        struct_history    = ['<init>']
+        step, max_step      = (0,len(ref_derivation))
+        C                   = self.init_configuration(len(tokens))
+        struct_history      = ['<init>']
         NLL = 0 
         for ref_action in ref_derivation:
             loc_NLL,correct = self.eval_action_distrib(C,struct_history,ref_action)
@@ -906,6 +906,7 @@ class RNNGparser:
         
         #Trees preprocessing
         for t in train_bank:
+            print(t)
             ConsTree.strip_tags(t)
             ConsTree.close_unaries(t)
         for t in dev_bank:
