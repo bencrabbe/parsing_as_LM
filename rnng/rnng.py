@@ -1144,6 +1144,8 @@ if __name__ == '__main__':
             wordsXtags = tree.pos_tags()
             words = [elt.get_child().label for elt in wordsXtags]
             tags  = [elt.label for elt in wordsXtags]
+            print(words)
+            print(tags)
             result = p.beam_parse(words,all_beam_size=struct_beam,lex_beam_size=lex_beam,tracker=parse_tracker)
             result.add_gold_tags(tags)
             print(result,file=test_ostream,flush=True)
