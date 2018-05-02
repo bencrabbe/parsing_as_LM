@@ -230,15 +230,15 @@ class RNNGparser:
             config,struct_history = self.move_state(sentence,config,struct_history,RNNGparser.SHIFT,0)
             config,struct_history = self.move_state(sentence,config,struct_history,ref_tree.label,0)
             #restrict_structural_actions()
-            return ( [RNNGparser.SHIFT, ref_tree.label] , config )
+            return ( [RNNGparser.SHIFT, ref_tree.label] , config, struct_history)
         else:
             first_child = ref_tree.children[0]
-            derivation, config       = self.oracle_derivation(config,first_child,sentence,struct_history,root=False)
+            derivation, config ,struct_history      = self.oracle_derivation(config,first_child,sentence,struct_history,root=False)
             config,struct_history    = self.move_state(sentence,config,struct_history,RNNGparser.OPEN,0)   
             config,struct_history    = self.move_state(sentence,config,struct_history,ref_tree.label,0)
             derivation.extend([RNNGparser.OPEN,ref_tree.label])
             for child in ref_tree.children[1:]:
-                subderivation,config = self.oracle_derivation(config,child,sentence,struct_history,root=False) 
+                subderivation,config,struct_history = self.oracle_derivation(config,child,sentence,struct_history,root=False) 
                 derivation.extend(subderivation)
             config,struct_history    =  self.move_state(sentence,config,struct_history,RNNGparser.CLOSE,0)
             derivation.append(RNNGparser.CLOSE)
