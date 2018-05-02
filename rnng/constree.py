@@ -10,6 +10,13 @@ class ConsTree:
     def __init__(self,label,children=None):
         self.label = label
         self.children = [] if children is None else children
+
+        
+    def copy(self):
+        """
+        Performs a deep copy of this tree
+        """
+        return ConsTree(self.label,[c.copy() for c in self.children])
         
     def is_leaf(self):
         return self.children == []
