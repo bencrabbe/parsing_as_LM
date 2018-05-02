@@ -234,7 +234,6 @@ class RNNGparser:
             config = self.open_action(config,0)
             config = self.nonterminal_action(config,ref_tree.label,0)
             derivation.extend([RNNGparser.OPEN,ref_tree.label])
-            config = self.open()
             for child in ref_tree.children[1:]:
                 subderivation,config = self.oracle_derivation(config,child,sentence,root=False) 
                 derivation.extend(subderivation)
