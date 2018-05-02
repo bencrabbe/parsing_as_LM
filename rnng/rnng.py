@@ -362,6 +362,7 @@ class RNNGparser:
         @return a configuration resulting from shifting the next word into the stack 
         """
         S,B,n,stack_state,lab_state,score = configuration
+        print(sentence[B[0]],self.lexicon.normal_wordform(sentence[B[0]]))
         word_idx = self.lexicon.index(sentence[B[0]])  
         E = dy.parameter(self.lex_embedding_matrix)
         word_embedding = self.rnng_dropout(E[word_idx]) 
