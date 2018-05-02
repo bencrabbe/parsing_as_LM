@@ -49,7 +49,7 @@ class BeamElement:
         self.incoming_action        = current_action
         self.config                 = None           
         self.local_score            = local_score
-        self.deriv_length           = 0
+        self.deriv_length           = self.prev_element.deriv_length+1 if self.prev_element else 1
         
     def update_history(self,update_val = None):
         if update_val is None:
@@ -63,11 +63,8 @@ class BeamElement:
     def figure_of_merit(elt):
         #provides a score for ranking the elements in the beam
         #could add derivation length for further normalization (?)
-        #_,_,_,_,lab_state,prefix_score = elt.prev_element.config
-        #print(elt.local_score,prefix_score)
-        #return elt.local_score + prefix_score
-        _,_,_,_,lab_state,prefix_score = elt.config
-        return prefix_score
+        _,_,_,_,lab_state,prefix_score = elt.prev_element.config
+        return elt.local_score + prefix_score
     
 #Monitoring loss & accurracy
 class OptimMonitor:
