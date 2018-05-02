@@ -697,7 +697,7 @@ class RNNGparser:
 
         if tracker is None:
             tracker = AbstractTracker()
-        tracker.set_known_vocabulary(self.lexicon.symlist)
+        tracker.set_known_vocabulary(self.lexicon.i2words)
         tracker.next_sentence(tokens)
         
         start = BeamElement(None,'init',0)
