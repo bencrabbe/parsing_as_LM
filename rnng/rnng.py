@@ -64,7 +64,7 @@ class BeamElement:
         #provides a score for ranking the elements in the beam
         #could add derivation length for further normalization (?)
         _,_,_,_,lab_state,prefix_score = elt.prev_element.config
-        return elt.local_score + prefix_score
+        return (elt.local_score + prefix_score)/self.deriv_length
     
 #Monitoring loss & accurracy
 class OptimMonitor:
