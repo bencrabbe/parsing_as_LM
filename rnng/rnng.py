@@ -1007,7 +1007,7 @@ class RNNGparser:
             parser.blex = BrownLexicon.load_clusters(model_name+'.cls')
         except FileNotFoundError:
             print('No clusters found',file=sys.stderr)
-            self.blex = None
+            parser.blex = None
         parser.code_struct_actions()
         parser.make_structure()
         parser.model.populate(model_name+".prm")
