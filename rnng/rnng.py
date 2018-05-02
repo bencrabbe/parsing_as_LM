@@ -216,32 +216,35 @@ class RNNGparser:
         #self.tied = False
 
     #oracle, derivation and trees
-    def oracle_derivation(self,config,ref_tree,sentence,root=True):
+    def oracle_derivation(self,config,ref_tree,sentence,struct_history,root=True):
         """
         Returns an oracle derivation given a reference tree
-        @param config : the running configuration
-        @param ref_tree: a ConsTree
-        @param sentence: a list of strings, the tokens
+        @param config         : the running configuration
+        @param ref_tree       : a ConsTree
+        @param sentence       : a list of strings, the tokens
+        @param struct_history : the history of structural actions as list
         @return a couple made of a derivation and the current configuration
         """
+        #move_state(self,tokens,configuration,struct_history,action,score):
         if ref_tree.is_leaf():
-            config = self.shift_action(config,0)
-            config = self.word_action(config,sentence,0)
-            return ( [RNNGparser.SHIFT,ref_tree.label] , config )
+            config,struct_history = self.move_state(sentence,config,struct_history,RNNGparser.SHIFT,0)
+            config,struct_history = self.move_state(sentence,config,struct_history,ref_tree.label,0)
+            #restrict_structural_actions()
+            return ( [RNNGparser.SHIFT, ref_tree.label] , config )
         else:
             first_child = ref_tree.children[0]
-            derivation, config  = self.oracle_derivation(config,first_child,sentence,root=False)
-            config = self.open_action(config,0)
-            config = self.nonterminal_action(config,ref_tree.label,0)
+            derivation, config       = self.oracle_derivation(config,first_child,sentence,struct_history,root=False)
+            config,struct_history    = self.move_state(sentence,config,struct_history,RNNGparser.OPEN,0)   
+            config,struct_history    = self.move_state(sentence,config,struct_history,ref_tree.label,0)
             derivation.extend([RNNGparser.OPEN,ref_tree.label])
             for child in ref_tree.children[1:]:
-                subderivation,config = self.oracle_derivation(config,child,sentence,root=False) 
+                subderivation,config = self.oracle_derivation(config,child,sentence,struct_history,root=False) 
                 derivation.extend(subderivation)
-            config = self.close_action(config,0)
+            config,struct_history    =  self.move_state(sentence,config,struct_history,RNNGparser.CLOSE,0)
             derivation.append(RNNGparser.CLOSE)
         if root:
             derivation.append(RNNGparser.TERMINATE)
-        return ( derivation, config )
+        return ( derivation, config, struct_history )
 
     @staticmethod
     def derivation2tree(derivation,tokens):
@@ -833,7 +836,7 @@ class RNNGparser:
         """
         dy.renew_cg()
         tokens            = ref_tree.tokens()
-        ref_derivation,_  = self.oracle_derivation(self.init_configuration(len(tokens)),ref_tree,tokens)
+        ref_derivation,_,_  = self.oracle_derivation(self.init_configuration(len(tokens)),ref_tree,tokens,['<init>'])
         step, max_step    = (0,len(ref_derivation))
         C                 = self.init_configuration(len(tokens))
         struct_history    = ['<init>'] 
@@ -850,7 +853,7 @@ class RNNGparser:
         """
         dy.renew_cg()
         tokens            = ref_tree.tokens()
-        ref_derivation,_  = self.oracle_derivation(self.init_configuration(len(tokens)),ref_tree,tokens)
+        ref_derivation,_,_  = self.oracle_derivation(self.init_configuration(len(tokens)),ref_tree,tokens,['<init>'])
         step, max_step    = (0,len(ref_derivation))
         C                 = self.init_configuration(len(tokens))
         struct_history    = ['<init>']
