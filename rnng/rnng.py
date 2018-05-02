@@ -1043,8 +1043,8 @@ if __name__ == '__main__':
     embedding_file = None 
     raw_file     = ''
     predict_file = ''
-    lex_beam     = 40  #40
-    struct_beam  = 400 #400
+    lex_beam     = 10  #40
+    struct_beam  = 100 #400
     config_file  = 'defaultconfig.prm'
     check_oracle = False
     
