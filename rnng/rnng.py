@@ -567,6 +567,7 @@ class RNNGparser:
             if restr:
                 return dy.log_softmax(W * self.rnng_dropout(dy.tanh(stack_state.output())) + b,restr)
             #parse failure (parser trapped)
+            print('here')
             warnings.warn('oops. parser trapped (to be fixed)...',RuntimeWarning)
             return None
         
