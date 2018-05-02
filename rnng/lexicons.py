@@ -133,8 +133,6 @@ class BrownLexicon:
             C = self.index(word)
             self.cls_counts[C] = self.cls_counts.get(C,0) + self.word_counts[word]
 
-
-            
     def display_summary(self):
         return """Using Brown Clusters with %d clusters and a lexicon of %d word forms"""%(len(self.cls_counts),len(self.w2cls))
         
@@ -192,7 +190,7 @@ class BrownLexicon:
         Loads the clusters from a json format
         """
         struct = json.loads(open(filename+'.json').read())
-        blex =  BrownLexicon(struct['w2cls'],struct['word_counts'],freq_threshold=0)
+        blex =  BrownLexicon(struct['w2cls'],struct['word_counts'])
         blex.UNK_ID = struct['UNK_ID']
         return blex
     

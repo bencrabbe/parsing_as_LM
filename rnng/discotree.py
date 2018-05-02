@@ -35,6 +35,16 @@ class DiscoTree:
 
     def add_child(self,child_node):
         self.children.append(child_node)
+
+    def __eq__(self,other):
+        """
+        Node equality: two nodes are equal iff they share same label
+        and span.
+        @return a bool
+        """
+        #print('eq',self.yield_range,other.yield_range)
+        return self.label == other.label and self.yield_range == other.yield_range
+        
         
     def rank(self):
         """
@@ -55,7 +65,57 @@ class DiscoTree:
             return 0
         local_gd = sum([jdx != idx+1 for idx,jdx in zip(self.yield_range,self.yield_range[1:])])
         return max(local_gd,max([child.gap_degree() for child in self.children]))
-            
+
+    def gap_list(self):
+        """
+        This returns the list of gaps in the yield of this node.
+        This supposes the yield_range of each node to be properly sorted (!)
+        @return a list of couples (i,j) interpreted as open intervals ]i,j[ 
+        """
+        res = []
+        for idx,jdx in zip(self.yield_range,self.yield_range[1:]):
+            if jdx != idx+1:
+                res.append((idx,jdx))
+        return res
+
+    def left_corner(self):
+        """
+        returns the left corner of this node
+        """
+        return min(self.yield_range)
+
+    def right_corner(self):
+        """
+        returns the right corner of this node
+        """
+        return max(self.yield_range)
+    
+    def range(self):
+        """
+        @return the (discontinuous) yield range of this node as a couple (i,j) 
+        """
+        return (min(self.yield_range),max(self.yield_range))
+
+    
+    def max_node(self,i,j,parent=None):
+        """
+        Finds the minimum set of nodes covering a gap between (i,j)
+        @param i,j the open interval ]i,j[
+        @param parent the parent of the processed node 
+        @return the (list) of nodes filling the gap
+        @see Maier and Lichte 2011, (Maximal node)
+        """
+        if parent:
+            a,b =  self.range()
+            #print(self.label,a,b)
+            if i < a and b < j and any([idx <= i or idx >= j for idx in parent.yield_range]):
+                return [self]
+        res = []
+        for child in self.children:
+            res.extend(child.max_node(i,j,parent=self))
+        return res
+
+                    
     def get_child(self,idx=0):
         """
         @return the ith child of this node.
