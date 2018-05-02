@@ -1148,7 +1148,7 @@ if __name__ == '__main__':
             print(tags)
             result = p.beam_parse(words,all_beam_size=struct_beam,lex_beam_size=lex_beam,tracker=parse_tracker)
             print(result,file=test_ostream,flush=True)
-            result.add_gold_tags(tags)
+            #result.add_gold_tags(tags)
         test_istream.close()
         test_ostream.close()
         parse_tracker.save_table()
