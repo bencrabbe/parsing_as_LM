@@ -216,24 +216,33 @@ class RNNGparser:
         #self.tied = False
 
     #oracle, derivation and trees
-    def oracle_derivation(self,ref_tree,root=True):
+    def oracle_derivation(self,config,ref_tree,sentence,root=True):
         """
         Returns an oracle derivation given a reference tree
+        @param config : the running configuration
         @param ref_tree: a ConsTree
-        @return a list of (action, configuration) couples (= a derivation)
+        @param sentence: a list of strings, the tokens
+        @return a couple made of a derivation and the current configuration
         """
         if ref_tree.is_leaf():
-            return [RNNGparser.SHIFT,ref_tree.label]
+            config = self.shift_action(config,0)
+            config = self.word_action(config,sentence,0)
+            return ( [RNNGparser.SHIFT,ref_tree.label] , config )
         else:
             first_child = ref_tree.children[0]
-            derivation = self.oracle_derivation(first_child,root=False)
+            derivation, config  = self.oracle_derivation(config,first_child,sentence,root=False)
+            config = self.open_action(config,0)
+            config = self.nonterminal_action(config,ref_tree.label,0)
             derivation.extend([RNNGparser.OPEN,ref_tree.label])
-            for child in ref_tree.children[1:]: 
-                derivation.extend(self.oracle_derivation(child,root=False))
+            config = self.open()
+            for child in ref_tree.children[1:]:
+                subderivation,config = self.oracle_derivation(config,child,sentence,root=False) 
+                derivation.extend(subderivation)
+            config = self.close_action(config,0)
             derivation.append(RNNGparser.CLOSE)
         if root:
             derivation.append(RNNGparser.TERMINATE)
-        return derivation
+        return ( derivation, config )
 
     @staticmethod
     def derivation2tree(derivation,tokens):
