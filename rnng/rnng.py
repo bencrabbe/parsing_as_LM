@@ -1174,7 +1174,7 @@ if __name__ == '__main__':
         dtracker.save_table()
         print()
         p.save_model('none')
-        p.load_mode('none')
+        p.load_model('none')
         dtracker = DefaultTracker('cog_stats.csv')
         for t in train_treebank:
             print(p.parse_sentence(t.tokens()))         
