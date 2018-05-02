@@ -707,14 +707,14 @@ class RNNGparser:
         next_lex_beam = [ ]
         
         for idx in range(len(tokens) + 1):
-            print(len(all_beam),len(next_lex_beam),lex_beam_size)
+            print('sizes',len(all_beam),len(next_lex_beam),lex_beam_size)
             while all_beam:
                 next_all_beam = []
                 for elt in all_beam:
                     C = elt.config
                     _,_,_,_,lab_state,prefix_score = C
                     preds_distrib = self.predict_action_distrib(C,elt.structural_history,tokens)
-                    print(preds_distrib)
+                    print('h',preds_distrib)
                     #dispatch predicted items on relevant beams
                     if lab_state == RNNGparser.WORD_LABEL:
                         action,loc_score = preds_distrib[0]
