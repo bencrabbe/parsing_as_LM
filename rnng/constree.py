@@ -140,6 +140,7 @@ class ConsTree:
                 newchildren.append(tag)
             else:
                 newchildren.append(child)
+                child.add_gold_tags(tag_sequence)
         self.children=newchildren
         
     
