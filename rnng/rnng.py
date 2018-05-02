@@ -225,21 +225,26 @@ class RNNGparser:
         @param struct_history : the history of structural actions as list
         @return a couple made of a derivation and the current configuration
         """
-        #move_state(self,tokens,configuration,struct_history,action,score):
         if ref_tree.is_leaf():
+            if not RNNGparser.SHIFT in [ self.actions[i] for i in self.restrict_structural_actions(config,struct_history) ]
+                print('oracle unsound <shift>')
             config,struct_history = self.move_state(sentence,config,struct_history,RNNGparser.SHIFT,0)
             config,struct_history = self.move_state(sentence,config,struct_history,ref_tree.label,0)
-            #restrict_structural_actions()
             return ( [RNNGparser.SHIFT, ref_tree.label] , config, struct_history)
         else:
             first_child = ref_tree.children[0]
             derivation, config ,struct_history      = self.oracle_derivation(config,first_child,sentence,struct_history,root=False)
+    
+            if not RNNGparser.OPEN in [ self.actions[i] for i in self.restrict_structural_actions(config,struct_history) ]
+                print('oracle unsound <open>')
             config,struct_history    = self.move_state(sentence,config,struct_history,RNNGparser.OPEN,0)   
             config,struct_history    = self.move_state(sentence,config,struct_history,ref_tree.label,0)
             derivation.extend([RNNGparser.OPEN,ref_tree.label])
             for child in ref_tree.children[1:]:
                 subderivation,config,struct_history = self.oracle_derivation(config,child,sentence,struct_history,root=False) 
                 derivation.extend(subderivation)
+            if not RNNGparser.CLOSE in [ self.actions[i] for i in self.restrict_structural_actions(config,struct_history) ]
+                print('oracle unsound <close>')
             config,struct_history    =  self.move_state(sentence,config,struct_history,RNNGparser.CLOSE,0)
             derivation.append(RNNGparser.CLOSE)
         if root:
