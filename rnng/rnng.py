@@ -63,10 +63,11 @@ class BeamElement:
     def figure_of_merit(elt):
         #provides a score for ranking the elements in the beam
         #could add derivation length for further normalization (?)
-        _,_,_,_,lab_state,prefix_score = elt.prev_element.config
-        print(elt.local_score,prefix_score)
-        return elt.local_score + prefix_score
-
+        #_,_,_,_,lab_state,prefix_score = elt.prev_element.config
+        #print(elt.local_score,prefix_score)
+        #return elt.local_score + prefix_score
+        _,_,_,_,lab_state,prefix_score = elt.config
+        return prefix_score
     
 #Monitoring loss & accurracy
 class OptimMonitor:
