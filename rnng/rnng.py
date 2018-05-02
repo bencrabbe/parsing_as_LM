@@ -931,7 +931,7 @@ class RNNGparser:
                      
             monitor.display_NLL_log(reset=True)            
             devloss = self.eval_all(dev_bank)
-            shuffle(train_bank)
+            #shuffle(train_bank)
             if devloss <= best_model_loss :
                 best_model_loss=devloss
                 print(" => saving model",devloss)
@@ -1171,6 +1171,7 @@ if __name__ == '__main__':
             train_stream.close()
             StructParams.STACK_EMB_SIZE = 100
             StructParams.STACK_HIDDEN_SIZE = 100
+            TrainingParams.DROPOUT = 0.1
         else:
             t  = ConsTree.read_tree('(S (NP Le chat ) (VP mange  (NP la souris)))')
             t2 = ConsTree.read_tree('(S (NP Le chat ) (VP voit  (NP le chien) (PP sur (NP le paillasson))))')
