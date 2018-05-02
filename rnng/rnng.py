@@ -1159,7 +1159,7 @@ if __name__ == '__main__':
         
     #despaired debugging
     elif not model_name:
-        if train_file:#takes the 100 first sentences
+        if train_file:#takes the 20 first sentences
             train_treebank = []
             train_stream   = open(train_file)
             idx  = 0
