@@ -908,7 +908,10 @@ class RNNGparser:
         for t in train_bank:
             print(t)
             ConsTree.strip_tags(t)
+            print(t)
             ConsTree.close_unaries(t)
+            print(t)
+
         for t in dev_bank:
             ConsTree.strip_tags(t)
             ConsTree.close_unaries(t)
