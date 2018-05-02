@@ -49,7 +49,8 @@ class BeamElement:
         self.incoming_action        = current_action
         self.config                 = None           
         self.local_score            = local_score
-
+        self.deriv_length           = 0
+        
     def update_history(self,update_val = None):
         if update_val is None:
             #no copy in case the action is not structural
@@ -63,6 +64,7 @@ class BeamElement:
         #provides a score for ranking the elements in the beam
         #could add derivation length for further normalization (?)
         _,_,_,_,lab_state,prefix_score = elt.prev_element.config
+        print(elt.local_score,prefix_score)
         return elt.local_score + prefix_score
 
     
