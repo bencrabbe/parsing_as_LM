@@ -707,7 +707,7 @@ class RNNGparser:
         next_lex_beam = [ ]
         
         for idx in range(len(tokens) + 1):
-            #print(len(all_beam),len(next_lex_beam))
+            print(len(all_beam),len(next_lex_beam))
             while all_beam:
                 next_all_beam = []
                 for elt in all_beam:
@@ -772,7 +772,7 @@ class RNNGparser:
             next_lex_beam = [ ]
             tracker.next_word()
         if not all_beam:
-            print('here',file=sys.stderr,flush=True)
+            print('abort',file=sys.stderr,flush=True)
             return None
         #backtrace
         current    = all_beam[0]
