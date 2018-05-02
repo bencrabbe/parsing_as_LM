@@ -834,7 +834,7 @@ class RNNGparser:
         """
         dy.renew_cg()
         tokens          = ref_tree.tokens()
-        ref_derivation  = self.oracle_derivation(ref_tree)
+        ref_derivation  = self.oracle_derivation(self.init_configuration(len(tokens)),ref_tree,tokens)
         step, max_step  = (0,len(ref_derivation))
         C               = self.init_configuration(len(tokens))
         struct_history = ['<init>'] 
@@ -851,7 +851,7 @@ class RNNGparser:
         """
         dy.renew_cg()
         tokens          = ref_tree.tokens()
-        ref_derivation  = self.oracle_derivation(ref_tree)
+        ref_derivation  = self.oracle_derivation(self.init_configuration(len(tokens)),ref_tree,tokens)
         step, max_step  = (0,len(ref_derivation))
         C               = self.init_configuration(len(tokens))
         struct_history = ['<init>']
@@ -1041,7 +1041,7 @@ if __name__ == '__main__':
     
     warnings.simplefilter("ignore")
     try:
-        opts, args = getopt.getopt(sys.argv[1:],"ht:o:d:r:m:b:L:S:e:c:p:O:")
+        opts, args = getopt.getopt(sys.argv[1:],"ht:o:d:r:m:b:L:S:e:c:p:")
     except getopt.GetoptError:
         print ('rnng.py -t <inputfile> -d <inputfile> -r <inputfile> -o <outputfile> -m <model_file>')
         sys.exit(0)
@@ -1082,29 +1082,8 @@ if __name__ == '__main__':
             config_file = arg
         elif opt in ['-p','--predict']:
             predict_file = arg
-        elif opt in ['-O','--Oracle']:
-            check_oracle = True
-            train_file   = arg
 
-    if check_oracle and train_file:
-        treebank = []
-        train_stream   = open(train_file)
-        for line in train_stream:
-            treebank.append(ConsTree.read_tree(line))
-        train_stream.close()
-        p = RNNGparser()
-        for t in treebank:
-            D = p.oracle_derivation(t)
-            t2 = p.derivation2tree(D,t.tokens())
-            P,R,F = t.compare(t2)
-            if F != 1.0:
-                print(t)
-                print(t2)
-                print(P,R,F)
-                print()
-        exit(0)
-            
-    elif train_file and model_name: #train
+    if train_file and model_name: #train
         read_config(config_file)
         train_treebank = []
         train_stream   = open(train_file)
