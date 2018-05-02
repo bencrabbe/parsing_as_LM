@@ -1149,7 +1149,8 @@ if __name__ == '__main__':
             if result:
                 result.add_gold_tags(tags)
             print(result,file=test_ostream,flush=True)
-
+            print('*',flush=True,file=sys.stderr)
+            
         test_istream.close()
         test_ostream.close()
         parse_tracker.save_table()
