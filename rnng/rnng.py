@@ -565,7 +565,6 @@ class RNNGparser:
             b = dy.parameter(self.struct_bias)
             restr = self.restrict_structural_actions(configuration,structural_history)
             if restr:
-                print(restr)
                 return dy.log_softmax(W * self.rnng_dropout(dy.tanh(stack_state.output())) + b,restr)
             #parse failure (parser trapped)
             warnings.warn('oops. parser trapped (to be fixed)...',RuntimeWarning)
@@ -708,14 +707,12 @@ class RNNGparser:
         next_lex_beam = [ ]
         
         for idx in range(len(tokens) + 1):
-            print('idx',idx,len(all_beam),len(next_lex_beam),lex_beam_size)
             while all_beam:
                 next_all_beam = []
                 for elt in all_beam:
                     C = elt.config
                     _,_,_,_,lab_state,prefix_score = C
                     preds_distrib = self.predict_action_distrib(C,elt.structural_history,tokens)
-                    print('h',preds_distrib)
                     #dispatch predicted items on relevant beams
                     if lab_state == RNNGparser.WORD_LABEL:
                         action,loc_score = preds_distrib[0]
@@ -754,7 +751,6 @@ class RNNGparser:
                 all_beam = next_all_beam
                 
             #Lex beam
-            print('lex',len(next_lex_beam))
             next_lex_beam.sort(key=lambda x:BeamElement.figure_of_merit(x),reverse=True)
             next_lex_beam = next_lex_beam[:lex_beam_size]
             for elt in next_lex_beam:
