@@ -565,9 +565,9 @@ class RNNGparser:
             b = dy.parameter(self.struct_bias)
             restr = self.restrict_structural_actions(configuration,structural_history)
             if restr:
+                print(restr)
                 return dy.log_softmax(W * self.rnng_dropout(dy.tanh(stack_state.output())) + b,restr)
             #parse failure (parser trapped)
-            print('here')
             warnings.warn('oops. parser trapped (to be fixed)...',RuntimeWarning)
             return None
         
@@ -1033,7 +1033,7 @@ class RNNGparser:
   
 if __name__ == '__main__':
     
-    #warnings.simplefilter("ignore")
+    warnings.simplefilter("ignore")
     try:
         opts, args = getopt.getopt(sys.argv[1:],"ht:o:d:r:m:b:L:S:e:c:p:O:")
     except getopt.GetoptError:
