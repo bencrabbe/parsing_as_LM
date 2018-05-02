@@ -226,7 +226,7 @@ class RNNGparser:
         @return a couple made of a derivation and the current configuration
         """
         if ref_tree.is_leaf():
-            if not RNNGparser.SHIFT in [ self.actions[i] for i in self.restrict_structural_actions(config,struct_history) ]
+            if not RNNGparser.SHIFT in [ self.actions[i] for i in self.restrict_structural_actions(config,struct_history) ]:
                 print('oracle unsound <shift>')
             config,struct_history = self.move_state(sentence,config,struct_history,RNNGparser.SHIFT,0)
             config,struct_history = self.move_state(sentence,config,struct_history,ref_tree.label,0)
@@ -235,7 +235,7 @@ class RNNGparser:
             first_child = ref_tree.children[0]
             derivation, config ,struct_history      = self.oracle_derivation(config,first_child,sentence,struct_history,root=False)
     
-            if not RNNGparser.OPEN in [ self.actions[i] for i in self.restrict_structural_actions(config,struct_history) ]
+            if not RNNGparser.OPEN in [ self.actions[i] for i in self.restrict_structural_actions(config,struct_history) ]:
                 print('oracle unsound <open>')
             config,struct_history    = self.move_state(sentence,config,struct_history,RNNGparser.OPEN,0)   
             config,struct_history    = self.move_state(sentence,config,struct_history,ref_tree.label,0)
@@ -243,7 +243,7 @@ class RNNGparser:
             for child in ref_tree.children[1:]:
                 subderivation,config,struct_history = self.oracle_derivation(config,child,sentence,struct_history,root=False) 
                 derivation.extend(subderivation)
-            if not RNNGparser.CLOSE in [ self.actions[i] for i in self.restrict_structural_actions(config,struct_history) ]
+            if not RNNGparser.CLOSE in [ self.actions[i] for i in self.restrict_structural_actions(config,struct_history) ]:
                 print('oracle unsound <close>')
             config,struct_history    =  self.move_state(sentence,config,struct_history,RNNGparser.CLOSE,0)
             derivation.append(RNNGparser.CLOSE)
