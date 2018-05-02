@@ -55,7 +55,7 @@ class ConsTree:
         else:
             result = []
             for child in self.children:
-                result.extend(child.tokens(labels))
+                result.extend(child.pos_tags())
             return result
         
     def index_leaves(self):
