@@ -1140,6 +1140,8 @@ if __name__ == '__main__':
     #runs a test on pos tagged text (! predict file is a treebank) 
     elif model_name and predict_file:
         p = RNNGparser.load_model(model_name)
+        print(p.nonterminals)
+        exit(0)
         test_istream  = open(predict_file)
         out_name = '.'.join(predict_file.split('.')[:-1]+['pred.mrg'])
         test_ostream  = open(model_name+'-'+out_name,'w') 
