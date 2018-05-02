@@ -771,6 +771,7 @@ class RNNGparser:
             next_lex_beam = [ ]
             tracker.next_word()
         if not all_beam:
+            print('here',file=sys.stderr,flush=True)
             return None
         #backtrace
         current    = all_beam[0]
