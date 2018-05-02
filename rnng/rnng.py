@@ -1159,10 +1159,21 @@ if __name__ == '__main__':
         
     #despaired debugging
     elif not model_name:
-        t  = ConsTree.read_tree('(S (NP Le chat ) (VP mange  (NP la souris)))')
-        t2 = ConsTree.read_tree('(S (NP Le chat ) (VP voit  (NP le chien) (PP sur (NP le paillasson))))')
-        t3 = ConsTree.read_tree('(S (NP La souris (Srel qui (VP dort (PP sur (NP le paillasson))))) (VP sera mangée (PP par (NP le chat ))))')
-        train_treebank = [t,t2,t3]
+        if train_file:#takes the 100 first sentences
+            train_treebank = []
+            train_stream   = open(train_file)
+            idx  = 0
+            for line in train_stream:
+                train_treebank.append(ConsTree.read_tree(line))
+                if idx >= 100:
+                    break
+                idx += 1
+            train_stream.close()
+        else:
+            t  = ConsTree.read_tree('(S (NP Le chat ) (VP mange  (NP la souris)))')
+            t2 = ConsTree.read_tree('(S (NP Le chat ) (VP voit  (NP le chien) (PP sur (NP le paillasson))))')
+            t3 = ConsTree.read_tree('(S (NP La souris (Srel qui (VP dort (PP sur (NP le paillasson))))) (VP sera mangée (PP par (NP le chat ))))')
+            train_treebank = [t,t2,t3]
         
         p = RNNGparser(max_vocabulary_size=TrainingParams.LEX_MAX_SIZE,\
                         stack_embedding_size=StructParams.STACK_EMB_SIZE,\
