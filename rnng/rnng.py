@@ -1141,7 +1141,8 @@ if __name__ == '__main__':
         test_ostream  = open(model_name+'-'+out_name,'w') 
         for line in test_istream:
             result = p.beam_parse(line.split(),all_beam_size=struct_beam,lex_beam_size=lex_beam,kbest=kbest)
-            print(result,file=test_ostream,flush=True)
+            for elt in result:
+                print(elt,file=test_ostream,flush=True)
         test_istream.close()
         test_ostream.close()
 
@@ -1158,9 +1159,10 @@ if __name__ == '__main__':
             words = [elt.get_child().label for elt in wordsXtags]
             tags  = [elt.label for elt in wordsXtags]
             result = p.beam_parse(words,all_beam_size=struct_beam,lex_beam_size=lex_beam,tracker=parse_tracker,kbest=kbest)
-            if result:
-                result.add_gold_tags(tags)
-            print(result,file=test_ostream,flush=True)
+            for elt in result:
+                if elt:
+                    elt.add_gold_tags(tags)
+                    print(elt,file=test_ostream,flush=True)
             #print('*',flush=True,file=sys.stderr)
             
         test_istream.close()
