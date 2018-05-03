@@ -1215,7 +1215,7 @@ if __name__ == '__main__':
                     pred_tree = RNNGparser.derivation2tree(best_deriv,tokens)
                     pred_tree.expand_unaries() 
                     print("%s %f"%(str(pred_tree),t.compare(pred_tree)[2]),flush=True)
-    
+                    
             #Compares the best parse derivation with the reference annotation
             print(p.eval_sentence(t,get_derivation=True))
             print(results[0])
