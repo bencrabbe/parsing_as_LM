@@ -225,7 +225,6 @@ class RNNGparser:
         @param struct_history : the history of structural actions as list
         @return a couple made of a derivation and the current configuration
         """
-        print(ref_tree.label)
         if ref_tree.is_leaf():
             if not RNNGparser.SHIFT in [ self.actions[i] for i in self.restrict_structural_actions(config,struct_history) ]:
                 print('oracle unsound <shift>')
@@ -1215,6 +1214,7 @@ if __name__ == '__main__':
             #words      = [elt.get_child().label for elt in wordsXtags]
             #tags       = [elt.label for elt in wordsXtags]
             ConsTree.strip_tags(t)
+            ConsTree.close_unaries(t)
             #print(t,t.compare(t))
             tokens = t.tokens()
             results= p.beam_parse(tokens,all_beam_size=struct_beam,lex_beam_size=lex_beam,kbest=kbest,tracker=dtracker,get_derivation=True)
