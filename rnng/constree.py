@@ -134,7 +134,7 @@ class ConsTree:
             child.normalize_OOV(lexicon,unk_token)
         return self
 
-    def add_gold_tags(self,tag_sequence=None):
+    def add_gold_tags(self,tag_sequence=None,idx=0):
         """
         Adds gold tags to the tree on top of leaves(for evalb compatibility).
         Destructive method.
@@ -142,14 +142,15 @@ class ConsTree:
         newchildren = []
         for child in self.children:
             if child.is_leaf():
-                label = tag_sequence.pop(0)
+                label = tag_sequence[idx]
                 tag = ConsTree(label,children=[child])
                 newchildren.append(tag)
+                idx += 1
             else:
                 newchildren.append(child)
-                child.add_gold_tags(tag_sequence)
+                idx = child.add_gold_tags(tag_sequence,idx)
         self.children=newchildren
-        
+        return idx
     
     def add_dummy_root(self,root_label='TOP'):
         """
