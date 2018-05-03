@@ -1226,7 +1226,9 @@ if __name__ == '__main__':
                     
             #Compares the best parse derivation with the reference annotation
             ConsTree.close_unaries(t)
-            print( '\n'.join(['%s %f'%(a,p) for a,p in zip(p.eval_sentence(t,get_derivation=True))]))
+            ref,probs = p.eval_sentence(t,get_derivation=True)
+            print(ref,probs)
+            print( '\n'.join(['%s %f'%(a,p) for a,p in zip(ref,probs)]))
             print()
             print('\n'.join(['%s %f'%(a,p) for a,p in zip(results[0])]))
             #print('\n'.join(["%s %f"%(str(r),t.compare(r)[2]) for r in results]))
