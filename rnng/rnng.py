@@ -225,6 +225,7 @@ class RNNGparser:
         @param struct_history : the history of structural actions as list
         @return a couple made of a derivation and the current configuration
         """
+        print(ref_tree.label)
         if ref_tree.is_leaf():
             if not RNNGparser.SHIFT in [ self.actions[i] for i in self.restrict_structural_actions(config,struct_history) ]:
                 print('oracle unsound <shift>')
@@ -1219,7 +1220,7 @@ if __name__ == '__main__':
             results= p.beam_parse(tokens,all_beam_size=struct_beam,lex_beam_size=lex_beam,kbest=kbest,tracker=dtracker,get_derivation=True)
             for elt in results:
                 if elt:
-                    deriv = [d for d,p in elt]
+                    deriv = [d for (d,_) in elt]
                     pred_tree = RNNGparser.derivation2tree(deriv,tokens)
                     pred_tree.expand_unaries() 
                     print("%s %f"%(str(pred_tree),t.compare(pred_tree)[2]),flush=True)
@@ -1227,8 +1228,6 @@ if __name__ == '__main__':
             #Compares the best parse derivation with the reference annotation
             print(p.eval_sentence(t,get_derivation=True))
             print(results[0])
-
-                    
             #print('\n'.join(["%s %f"%(str(r),t.compare(r)[2]) for r in results]))
             #print(p.beam_parse(t.tokens(),all_beam_size=struct_beam,lex_beam_size=lex_beam,tracker=dtracker))
         dtracker.save_table()
