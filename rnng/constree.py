@@ -99,8 +99,6 @@ class ConsTree:
         other.index_leaves()
         
         #filter out leaves
-        print(self)
-        print(other)
         #ref_triples  = set([(i,j,X) for i,j,X in self.triples() if j != i+1])
         #pred_triples = set([(i,j,X) for i,j,X in other.triples() if j != i+1])
 
