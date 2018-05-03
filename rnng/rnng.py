@@ -1201,7 +1201,7 @@ if __name__ == '__main__':
         for t in train_treebank:
             #print(p.parse_sentence(t.tokens()))
             results = p.beam_parse(t.tokens(),all_beam_size=struct_beam,lex_beam_size=lex_beam,kbest=kbest,tracker=dtracker)
-            print('\n'.join([str(r) for r in results]))
+            print('\n'.join(["%s %f"%(str(r),t.compare(r)[2]) for r in results]))
             #print(p.beam_parse(t.tokens(),all_beam_size=struct_beam,lex_beam_size=lex_beam,tracker=dtracker))
         dtracker.save_table()
         print()
