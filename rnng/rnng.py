@@ -1201,7 +1201,7 @@ if __name__ == '__main__':
         for t in train_treebank:
             #print(p.parse_sentence(t.tokens()))
             results = p.beam_parse(t.tokens(),all_beam_size=struct_beam,lex_beam_size=lex_beam,kbest=kbest,tracker=dtracker)
-            for elt in result:
+            for elt in results:
                 if elt:
                     elt.add_gold_tags(tags)
                     print("%s %f"%(str(r),t.compare(elt)[2]),file=test_ostream,flush=True)
