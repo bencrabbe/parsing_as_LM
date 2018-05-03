@@ -871,8 +871,7 @@ class RNNGparser:
         """
         dy.renew_cg()
         tokens              = ref_tree.tokens()
-        
-        print(ref_tree,tokens)
+    
         ref_derivation,_,_  = self.oracle_derivation(self.init_configuration(len(tokens)),ref_tree,tokens,['<init>'])
         step, max_step      = (0,len(ref_derivation))
         C                   = self.init_configuration(len(tokens))
@@ -1214,7 +1213,6 @@ if __name__ == '__main__':
             #words      = [elt.get_child().label for elt in wordsXtags]
             #tags       = [elt.label for elt in wordsXtags]
             ConsTree.strip_tags(t)
-            ConsTree.close_unaries(t)
             #print(t,t.compare(t))
             tokens = t.tokens()
             results= p.beam_parse(tokens,all_beam_size=struct_beam,lex_beam_size=lex_beam,kbest=kbest,tracker=dtracker,get_derivation=True)
@@ -1226,8 +1224,9 @@ if __name__ == '__main__':
                     print("%s %f"%(str(pred_tree),t.compare(pred_tree)[2]),flush=True)
                     
             #Compares the best parse derivation with the reference annotation
-            print(p.eval_sentence(t,get_derivation=True))
-            print(results[0])
+            ConsTree.close_unaries(t)
+            print(list(p.eval_sentence(t,get_derivation=True)))
+            print(list(results[0]))
             #print('\n'.join(["%s %f"%(str(r),t.compare(r)[2]) for r in results]))
             #print(p.beam_parse(t.tokens(),all_beam_size=struct_beam,lex_beam_size=lex_beam,tracker=dtracker))
         dtracker.save_table()
