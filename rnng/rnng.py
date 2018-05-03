@@ -1206,6 +1206,7 @@ if __name__ == '__main__':
             results = p.beam_parse(words,all_beam_size=struct_beam,lex_beam_size=lex_beam,kbest=kbest,tracker=dtracker)
             for elt in results:
                 if elt:
+                    print(elt)
                     elt.add_gold_tags(tags)
                     print("%s %f"%(str(elt),t.compare(elt)[2]),file=test_ostream,flush=True)
             #print('\n'.join(["%s %f"%(str(r),t.compare(r)[2]) for r in results]))
