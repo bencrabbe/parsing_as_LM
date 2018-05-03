@@ -710,7 +710,7 @@ class RNNGparser:
         @param kbest: max number of parses returned (actual number is bounded by lex_beam_size)
         @param ref_tree: if provided return an eval against ref_tree rather than a parse tree
         @param tracker: a tracker object instance, subclass of AbstractTracker.
-        @return a derivation, a ConsTree or some evaluation metrics or a list of these.
+        @return a list of either derivation, a ConsTree or some evaluation metrics. 
         """
         dy.renew_cg()
 
