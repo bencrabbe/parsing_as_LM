@@ -77,16 +77,16 @@ class ConsTree:
         Extracts a list of evalb triples from the tree
         (supposes leaves are indexed)
         """
+        subtriples = []
         if self.is_leaf():
             return [(self.idx,self.idx+1,self.label)]
-        else:
-            subtriples = []
-            for child in self.children:
+
+        for child in self.children:
                 subtriples.extend(child.triples())
-            leftidx  = min([idx for idx,jdx,label in subtriples])
-            rightidx = max([jdx for idx,jdx,label in subtriples])
-            subtriples.append((leftidx,rightidx,self.label))
-            return subtriples
+        leftidx  = min([idx for idx,jdx,label in subtriples])
+        rightidx = max([jdx for idx,jdx,label in subtriples])
+        subtriples.append((leftidx,rightidx,self.label))
+        return subtriples
 
     def compare(self,other):
         """
@@ -97,8 +97,11 @@ class ConsTree:
         """
         self.index_leaves()
         other.index_leaves()
-        ref_triples  = set(self.triples())
-        pred_triples = set(other.triples())
+        
+        #filter out leaves
+        ref_triples  = set([(i,j,X) for i,j,X in self.triples() if j != i+1])
+        pred_triples = set([(i,j,X) for i,j,X in other.triples() if j != i+1])
+        
         intersect = ref_triples.intersection(pred_triples)
         isize = len(intersect)
         P = isize/len(pred_triples)
