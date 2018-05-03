@@ -1196,7 +1196,7 @@ if __name__ == '__main__':
             StructParams.STACK_EMB_SIZE = 100
             StructParams.STACK_HIDDEN_SIZE = 100
             TrainingParams.DROPOUT = 0.1
-            TrainingParams.NUM_EPOCHS = 20
+            TrainingParams.NUM_EPOCHS = 10
         else:
             t  = ConsTree.read_tree('(S (NP Le chat ) (VP mange  (NP la souris)))')
             t2 = ConsTree.read_tree('(S (NP Le chat ) (VP voit  (NP le chien) (PP sur (NP le paillasson))))')
@@ -1228,6 +1228,7 @@ if __name__ == '__main__':
             ConsTree.close_unaries(t)
             ref,probs = p.eval_sentence(t,get_derivation=True)
             print( '\n'.join(['%s %f'%(a,p) for a,p in zip(ref,probs)]))
+            print()
             deriv,probs = results[0]
             i = 0
             for idx, elt in enumerate(deriv):
