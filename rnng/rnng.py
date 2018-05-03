@@ -801,17 +801,21 @@ class RNNGparser:
         for k in range(min(kbest,len(all_beam))): #K-best results 
             #backtrace
             current    = all_beam[k]
+            _,_,_,_,_,prefix_score = current.config
             best_deriv = [current.incoming_action]
+            best_probs  = [prefix_score]
             while current.prev_element != None:
                 current = current.prev_element
+                _,_,_,_,_,prefix_score = current.config
                 best_deriv.append(current.incoming_action)
+                best_probs.append(prefix_score)
             best_deriv.reverse()
             pred_tree = RNNGparser.derivation2tree(best_deriv,tokens)
             pred_tree.expand_unaries() 
             if ref_tree: #returns F-score etc instead of the tree)
                 results.append(ref_tree.compare(pred_tree))
             elif get_derivation:
-                results.append(best_deriv)
+                results.append(zip(best_deriv,best_probs))
             else:        #returns the tree
                 results.append(pred_tree)
                 
@@ -1209,7 +1213,7 @@ if __name__ == '__main__':
             ConsTree.strip_tags(t)
             #print(t,t.compare(t))
             tokens = t.tokens()
-            results= p.beam_parse(tokens,all_beam_size=struct_beam,lex_beam_size=lex_beam,kbest=kbest,tracker=dtracker,get_deriv=True)
+            results= p.beam_parse(tokens,all_beam_size=struct_beam,lex_beam_size=lex_beam,kbest=kbest,tracker=dtracker,get_derivation=True)
             for elt in results:
                 if elt:
                     pred_tree = RNNGparser.derivation2tree(best_deriv,tokens)
