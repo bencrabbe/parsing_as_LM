@@ -813,7 +813,7 @@ class RNNGparser:
             else:        #returns the tree
                 results.append(pred_tree)
                 
-        return results[0] if kbest == 1 else results
+        return results
             
         
     def parse_sentence(self,tokens,get_derivation=False,ref_tree=None):
@@ -1177,10 +1177,10 @@ if __name__ == '__main__':
             train_stream   = open(train_file)
             idx  = 0
             for line in train_stream:
-                if idx >= 1000:
+                if idx >= 0:
                     train_treebank.append(ConsTree.read_tree(line))
                 idx += 1
-                if idx >= 1020:
+                if idx >= 20:
                     break
             train_stream.close()
             StructParams.STACK_EMB_SIZE = 100
