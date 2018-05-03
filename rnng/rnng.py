@@ -1229,8 +1229,13 @@ if __name__ == '__main__':
             ref,probs = p.eval_sentence(t,get_derivation=True)
             print(ref,probs)
             print( '\n'.join(['%s %f'%(a,p) for a,p in zip(ref,probs)]))
-            print(len(results[0][0]),len(results[0][1]))
-            print('\n'.join(['%s %f'%(a,p) for a,p in zip(results[0][0],results[0][1])]))
+            deriv,probs = results[0]
+            i = 0
+            for idx, elt in enumerate(deriv):
+                if type(elt) == int:
+                    deriv[idx] = tokens[i]
+                    i += 1
+            print('\n'.join(['%s %f'%(a,p) for a,p in zip(deriv,probs)]))
             #print('\n'.join(["%s %f"%(str(r),t.compare(r)[2]) for r in results]))
             #print(p.beam_parse(t.tokens(),all_beam_size=struct_beam,lex_beam_size=lex_beam,tracker=dtracker))
         dtracker.save_table()
