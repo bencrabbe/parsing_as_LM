@@ -1204,6 +1204,7 @@ if __name__ == '__main__':
             #wordsXtags = t.pos_tags()
             #words      = [elt.get_child().label for elt in wordsXtags]
             #tags       = [elt.label for elt in wordsXtags]
+            print(t.compare(t))
             results    = p.beam_parse(t.tokens(),all_beam_size=struct_beam,lex_beam_size=lex_beam,kbest=kbest,tracker=dtracker)
             for elt in results:
                 if elt:
