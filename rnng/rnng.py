@@ -1207,7 +1207,7 @@ if __name__ == '__main__':
             results    = p.beam_parse(t.tokens(),all_beam_size=struct_beam,lex_beam_size=lex_beam,kbest=kbest,tracker=dtracker)
             for elt in results:
                 if elt:
-                    elt.add_gold_tags(tags)
+                    #elt.add_gold_tags(tags)
                     print("%s"%(str(elt)),flush=True)
             #print('\n'.join(["%s %f"%(str(r),t.compare(r)[2]) for r in results]))
             #print(p.beam_parse(t.tokens(),all_beam_size=struct_beam,lex_beam_size=lex_beam,tracker=dtracker))

@@ -101,8 +101,11 @@ class ConsTree:
         #filter out leaves
         print(self)
         print(other)
-        ref_triples  = set([(i,j,X) for i,j,X in self.triples() if j != i+1])
-        pred_triples = set([(i,j,X) for i,j,X in other.triples() if j != i+1])
+        #ref_triples  = set([(i,j,X) for i,j,X in self.triples() if j != i+1])
+        #pred_triples = set([(i,j,X) for i,j,X in other.triples() if j != i+1])
+
+        ref_triples  = set(self.triples())
+        pred_triples = set(other.triples())
         
         intersect = ref_triples.intersection(pred_triples)
         isize = len(intersect)
