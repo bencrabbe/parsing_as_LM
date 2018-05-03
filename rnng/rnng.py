@@ -871,6 +871,7 @@ class RNNGparser:
         """
         dy.renew_cg()
         tokens              = ref_tree.tokens()
+        print(ref_tree)
         ref_derivation,_,_  = self.oracle_derivation(self.init_configuration(len(tokens)),ref_tree,tokens,['<init>'])
         step, max_step      = (0,len(ref_derivation))
         C                   = self.init_configuration(len(tokens))
@@ -1217,7 +1218,6 @@ if __name__ == '__main__':
             for elt in results:
                 if elt:
                     deriv = [d for d,p in elt]
-                    print(deriv)
                     pred_tree = RNNGparser.derivation2tree(deriv,tokens)
                     pred_tree.expand_unaries() 
                     print("%s %f"%(str(pred_tree),t.compare(pred_tree)[2]),flush=True)
