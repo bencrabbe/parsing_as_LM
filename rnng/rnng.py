@@ -700,7 +700,7 @@ class RNNGparser:
             
         return C,struct_history        
    
-    def beam_parse(self,tokens,all_beam_size,lex_beam_size,kbest=1,ref_tree=None,tracker=None):
+    def beam_parse(self,tokens,all_beam_size,lex_beam_size,kbest=1,ref_tree=None,tracker=None,get_derivation=False):
         """
         This parses a sentence with word sync beam search.
         The beam search assumes the number of structural actions between two words to be bounded 
@@ -710,10 +710,10 @@ class RNNGparser:
         @param kbest: max number of parses returned (actual number is bounded by lex_beam_size)
         @param ref_tree: if provided return an eval against ref_tree rather than a parse tree
         @param tracker: a tracker object instance, subclass of AbstractTracker.
+        @param get_derivation: returns a derivation or a tree
         @return a list of either derivation, a ConsTree or some evaluation metrics. 
         """
         dy.renew_cg()
-
         if tracker is None:
             tracker = AbstractTracker()
         tracker.set_known_vocabulary(self.lexicon.i2words)
@@ -810,40 +810,35 @@ class RNNGparser:
             pred_tree.expand_unaries() 
             if ref_tree: #returns F-score etc instead of the tree)
                 results.append(ref_tree.compare(pred_tree))
+            elif get_derivation;
+                results.append(best_deriv)
             else:        #returns the tree
                 results.append(pred_tree)
                 
         return results
             
-        
-    def parse_sentence(self,tokens,get_derivation=False,ref_tree=None):
+    def parse_sentence(self,tokens,get_derivation=False,oracle_tree=None):
         """
         Parses a sentence greedily. if a ref_tree is provided, return Prec,Rec
         and a Fscore else returns a Constree object, the predicted
         parse tree.        
         @param tokens: a list of strings
         @param get_derivation : returns a parse derivation instead of a parse tree
-        @param ref_tree: a reference PS tree
+        @param oracle_tree: a reference tree whose oracle will be used to guide parsing
         @return a derivation, a ConsTree or some evaluation metrics
         """
         dy.renew_cg()
-
         C              = self.init_configuration(len(tokens))
         struct_history = ['<init>'] 
         deriv = [ ]
         pred_action    = None
         while pred_action != RNNGparser.TERMINATE :
-
             pred_action,score = self.predict_action_distrib(C,struct_history,tokens,max_only=True)
             deriv.append(pred_action)
             C,struct_history = self.move_state(tokens,C,struct_history,pred_action,score)
-
         if get_derivation:
             return deriv
-        pred_tree  = RNNGparser.derivation2tree(deriv,tokens)
-        if ref_tree:
-            return ref_tree.compare(pred_tree)
-        return pred_tree
+        return RNNGparser.derivation2tree(deriv,tokens)
 
     def train_sentence(self,ref_tree,monitor):
         """
@@ -862,11 +857,13 @@ class RNNGparser:
             monitor.add_NLL_datum(NLL,C)
             C,struct_history = self.move_state(tokens,C,struct_history,ref_action,-NLL)
 
-    def eval_sentence(self,ref_tree,monitor):
+    def eval_sentence(self,ref_tree,monitor=None,get_derivation=False):
         """
         Evaluates a single sentence from dev set.
         @param ref_tree: a tree to eval against
         @param monitor: a monitor for logging the eval process
+        @param get_derivation_probs: bool it True return the derivation with prefix logprobs instead of the NLL
+        @return NLL
         """
         dy.renew_cg()
         tokens              = ref_tree.tokens()
@@ -874,13 +871,18 @@ class RNNGparser:
         step, max_step      = (0,len(ref_derivation))
         C                   = self.init_configuration(len(tokens))
         struct_history      = ['<init>']
+        logprobs            = [] 
         NLL = 0 
         for ref_action in ref_derivation:
             loc_NLL,correct = self.eval_action_distrib(C,struct_history,ref_action)
-            monitor.add_NLL_datum(loc_NLL,C)
-            monitor.add_ACC_datum(correct,C)
+            if monitor:
+                monitor.add_NLL_datum(loc_NLL,C)
+                monitor.add_ACC_datum(correct,C)
             C,struct_history = self.move_state(tokens,C,struct_history,ref_action,-loc_NLL)
             NLL +=  - max(-loc_NLL,np.log(np.finfo(float).eps))  #smoothes potential zeroes
+            logprobs.append(-NLL)
+        if get_derivation:
+            return zip(ref_derivation,logprobs)
         return NLL
     
     #parsing, training etc on a full treebank
@@ -1206,11 +1208,19 @@ if __name__ == '__main__':
             #tags       = [elt.label for elt in wordsXtags]
             ConsTree.strip_tags(t)
             #print(t,t.compare(t))
-            results    = p.beam_parse(t.tokens(),all_beam_size=struct_beam,lex_beam_size=lex_beam,kbest=kbest,tracker=dtracker)
+            tokens = t.tokens()
+            results= p.beam_parse(tokens,all_beam_size=struct_beam,lex_beam_size=lex_beam,kbest=kbest,tracker=dtracker,get_deriv=True)
             for elt in results:
                 if elt:
-                    #elt.add_gold_tags(tags)
-                    print("%s %f"%(str(elt),t.compare(elt)[2]),flush=True)
+                    pred_tree = RNNGparser.derivation2tree(best_deriv,tokens)
+                    pred_tree.expand_unaries() 
+                    print("%s %f"%(str(pred_tree),t.compare(pred_tree)[2]),flush=True)
+    
+            #Compares the best parse derivation with the reference annotation
+            print(p.eval_sentence(t,get_derivation=True))
+            print(results[0])
+
+                    
             #print('\n'.join(["%s %f"%(str(r),t.compare(r)[2]) for r in results]))
             #print(p.beam_parse(t.tokens(),all_beam_size=struct_beam,lex_beam_size=lex_beam,tracker=dtracker))
         dtracker.save_table()
