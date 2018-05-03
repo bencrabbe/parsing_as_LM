@@ -1209,7 +1209,8 @@ if __name__ == '__main__':
         p.load_model('none')
         dtracker = DefaultTracker('cog_stats.csv')
         for t in train_treebank:
-            print(p.parse_sentence(t.tokens()))         
-            print(p.beam_parse(t.tokens(),all_beam_size=struct_beam,lex_beam_size=lex_beam,tracker=dtracker))
+            #print(p.parse_sentence(t.tokens()))         
+            results = p.beam_parse(t.tokens(),all_beam_size=struct_beam,lex_beam_size=lex_beam,tracker=dtracker)
+            print('\n'.join(["%s %f"%(str(r),t.compare(r)[2]) for r in results]))            
         dtracker.save_table()
         
