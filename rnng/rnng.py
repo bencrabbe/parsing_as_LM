@@ -810,7 +810,7 @@ class RNNGparser:
             pred_tree.expand_unaries() 
             if ref_tree: #returns F-score etc instead of the tree)
                 results.append(ref_tree.compare(pred_tree))
-            elif get_derivation;
+            elif get_derivation:
                 results.append(best_deriv)
             else:        #returns the tree
                 results.append(pred_tree)
