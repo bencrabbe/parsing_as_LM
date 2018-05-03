@@ -1206,7 +1206,8 @@ if __name__ == '__main__':
                         stack_embedding_size=StructParams.STACK_EMB_SIZE,\
                         stack_memory_size=StructParams.STACK_HIDDEN_SIZE)
         p.train_generative_model('none',TrainingParams.NUM_EPOCHS,[t.copy() for t in train_treebank],[t.copy() for t in train_treebank],learning_rate=TrainingParams.LEARNING_RATE,dropout=TrainingParams.DROPOUT,cls_filename=brown_file,lex_embeddings_filename=embedding_file)
-        dtracker = DefaultTracker('cog_stats.csv')
+        dtracker = D-
+        efaultTracker('cog_stats.csv')
         for t in train_treebank:
             #print(p.parse_sentence(t.tokens()))
             #wordsXtags = t.pos_tags()
@@ -1225,8 +1226,8 @@ if __name__ == '__main__':
                     
             #Compares the best parse derivation with the reference annotation
             ConsTree.close_unaries(t)
-            print(list(p.eval_sentence(t,get_derivation=True)))
-            print(list(results[0]))
+            print( '\n'.join(['%s %f'%(a,p) for a,p in p.eval_sentence(t,get_derivation=True)]))
+            print('\n'.join(['%s %f'%(a,p) for a,p in results[0]]))
             #print('\n'.join(["%s %f"%(str(r),t.compare(r)[2]) for r in results]))
             #print(p.beam_parse(t.tokens(),all_beam_size=struct_beam,lex_beam_size=lex_beam,tracker=dtracker))
         dtracker.save_table()
