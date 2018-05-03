@@ -700,14 +700,17 @@ class RNNGparser:
             
         return C,struct_history        
    
-    def beam_parse(self,tokens,all_beam_size,lex_beam_size,ref_tree=None,tracker=None):
+    def beam_parse(self,tokens,all_beam_size,lex_beam_size,kbest=1,ref_tree=None,tracker=None):
         """
         This parses a sentence with word sync beam search.
         The beam search assumes the number of structural actions between two words to be bounded 
         @param tokens: the sentence tokens
+        @param all_beam_size: size of the structural beam
+        @param lex_beam_size: size of the lexical beam
+        @param kbest: max number of parses returned (actual number is bounded by lex_beam_size)
         @param ref_tree: if provided return an eval against ref_tree rather than a parse tree
         @param tracker: a tracker object instance, subclass of AbstractTracker.
-        @return a derivation, a ConsTree or some evaluation metrics
+        @return a derivation, a ConsTree or some evaluation metrics or a list of these.
         """
         dy.renew_cg()
 
@@ -787,22 +790,31 @@ class RNNGparser:
             all_beam = next_lex_beam
             next_lex_beam = [ ]
             tracker.next_word()
+
+        #parse failure management
         if not all_beam:
             print('abort',file=sys.stderr,flush=True)
             return None
-        #backtrace
-        current    = all_beam[0]
-        best_deriv = [current.incoming_action]
-        while current.prev_element != None:
-            current = current.prev_element
-            best_deriv.append(current.incoming_action)
-        best_deriv.reverse()
 
-        pred_tree = RNNGparser.derivation2tree(best_deriv,tokens)
-        pred_tree.expand_unaries() 
-        if ref_tree:
-            return ref_tree.compare(pred_tree)
-        return pred_tree
+        #regular case
+        results = []
+        for k in range(kbest):#K-best results 
+            #backtrace
+            current    = all_beam[k]
+            best_deriv = [current.incoming_action]
+            while current.prev_element != None:
+                current = current.prev_element
+                best_deriv.append(current.incoming_action)
+            best_deriv.reverse()
+            pred_tree = RNNGparser.derivation2tree(best_deriv,tokens)
+            pred_tree.expand_unaries() 
+            if ref_tree: #returns F-score etc instead of the tree)
+                results.append(ref_tree.compare(pred_tree))
+            else:        #returns the tree
+                results.append(pred_tree)
+                
+        return results[0] if kbest == 1 else results
+            
         
     def parse_sentence(self,tokens,get_derivation=False,ref_tree=None):
         """
@@ -1049,7 +1061,7 @@ if __name__ == '__main__':
     
     warnings.simplefilter("ignore")
     try:
-        opts, args = getopt.getopt(sys.argv[1:],"ht:o:d:r:m:b:L:S:e:c:p:")
+        opts, args = getopt.getopt(sys.argv[1:],"ht:o:d:r:m:b:L:S:e:c:p:k:")
     except getopt.GetoptError:
         print ('rnng.py -t <inputfile> -d <inputfile> -r <inputfile> -o <outputfile> -m <model_file>')
         sys.exit(0)
@@ -1063,6 +1075,7 @@ if __name__ == '__main__':
     predict_file = ''
     lex_beam     = 10  #40
     struct_beam  = 100 #400
+    kbest        = 1
     config_file  = 'defaultconfig.prm'
     check_oracle = False
     
@@ -1090,6 +1103,8 @@ if __name__ == '__main__':
             config_file = arg
         elif opt in ['-p','--predict']:
             predict_file = arg
+        elif opt in ['-k','--kbest']:
+            kbest = int(arg)
 
     if train_file and model_name: #train
         read_config(config_file)
@@ -1125,7 +1140,7 @@ if __name__ == '__main__':
         out_name = '.'.join(raw_file.split('.')[:-1]+['mrg'])
         test_ostream  = open(model_name+'-'+out_name,'w') 
         for line in test_istream:
-            result = p.beam_parse(line.split(),all_beam_size=struct_beam,lex_beam_size=lex_beam)
+            result = p.beam_parse(line.split(),all_beam_size=struct_beam,lex_beam_size=lex_beam,kbest=kbest)
             print(result,file=test_ostream,flush=True)
         test_istream.close()
         test_ostream.close()
@@ -1142,7 +1157,7 @@ if __name__ == '__main__':
             wordsXtags = tree.pos_tags()
             words = [elt.get_child().label for elt in wordsXtags]
             tags  = [elt.label for elt in wordsXtags]
-            result = p.beam_parse(words,all_beam_size=struct_beam,lex_beam_size=lex_beam,tracker=parse_tracker)
+            result = p.beam_parse(words,all_beam_size=struct_beam,lex_beam_size=lex_beam,tracker=parse_tracker,kbest=kbest)
             if result:
                 result.add_gold_tags(tags)
             print(result,file=test_ostream,flush=True)
@@ -1182,8 +1197,10 @@ if __name__ == '__main__':
         p.train_generative_model('none',TrainingParams.NUM_EPOCHS,train_treebank,[t.copy() for t in train_treebank],learning_rate=TrainingParams.LEARNING_RATE,dropout=TrainingParams.DROPOUT,cls_filename=brown_file,lex_embeddings_filename=embedding_file)
         dtracker = DefaultTracker('cog_stats.csv')
         for t in train_treebank:
-            print(p.parse_sentence(t.tokens()))         
-            print(p.beam_parse(t.tokens(),all_beam_size=struct_beam,lex_beam_size=lex_beam,tracker=dtracker))
+            #print(p.parse_sentence(t.tokens()))
+            results = p.beam_parse(t.tokens(),all_beam_size=struct_beam,lex_beam_size=lex_beam,kbest=kbest,tracker=dtracker)
+            print('\n'.join([str(r) for r in results]))
+            #print(p.beam_parse(t.tokens(),all_beam_size=struct_beam,lex_beam_size=lex_beam,tracker=dtracker))
         dtracker.save_table()
         print()
         p.save_model('none')
