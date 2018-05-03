@@ -1217,6 +1217,7 @@ if __name__ == '__main__':
             for elt in results:
                 if elt:
                     deriv = [d for d,p in elt]
+                    print(d)
                     pred_tree = RNNGparser.derivation2tree(elt,tokens)
                     pred_tree.expand_unaries() 
                     print("%s %f"%(str(pred_tree),t.compare(pred_tree)[2]),flush=True)
