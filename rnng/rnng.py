@@ -1190,7 +1190,7 @@ if __name__ == '__main__':
                 if idx >= 0:
                     train_treebank.append(ConsTree.read_tree(line))
                 idx += 1
-                if idx >= 20:
+                if idx >= 100:
                     break
             train_stream.close()
             StructParams.STACK_EMB_SIZE = 100
@@ -1227,7 +1227,6 @@ if __name__ == '__main__':
             #Compares the best parse derivation with the reference annotation
             ConsTree.close_unaries(t)
             ref,probs = p.eval_sentence(t,get_derivation=True)
-            print(ref,probs)
             print( '\n'.join(['%s %f'%(a,p) for a,p in zip(ref,probs)]))
             deriv,probs = results[0]
             i = 0
