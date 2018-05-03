@@ -1216,6 +1216,7 @@ if __name__ == '__main__':
             results= p.beam_parse(tokens,all_beam_size=struct_beam,lex_beam_size=lex_beam,kbest=kbest,tracker=dtracker,get_derivation=True)
             for elt in results:
                 if elt:
+                    deriv = [d for d,p in elt]
                     pred_tree = RNNGparser.derivation2tree(elt,tokens)
                     pred_tree.expand_unaries() 
                     print("%s %f"%(str(pred_tree),t.compare(pred_tree)[2]),flush=True)
