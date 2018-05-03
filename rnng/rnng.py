@@ -798,7 +798,7 @@ class RNNGparser:
 
         #regular case
         results = []
-        for k in range(kbest):#K-best results 
+        for k in range(min(kbest,len(all_beam)):#K-best results 
             #backtrace
             current    = all_beam[k]
             best_deriv = [current.incoming_action]
