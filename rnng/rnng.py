@@ -1200,7 +1200,10 @@ if __name__ == '__main__':
         dtracker = DefaultTracker('cog_stats.csv')
         for t in train_treebank:
             #print(p.parse_sentence(t.tokens()))
-            results = p.beam_parse(t.tokens(),all_beam_size=struct_beam,lex_beam_size=lex_beam,kbest=kbest,tracker=dtracker)
+            wordsXtags = tree.pos_tags()
+            words = [elt.get_child().label for elt in wordsXtags]
+            tags  = [elt.label for elt in wordsXtags]
+            results = p.beam_parse(words,all_beam_size=struct_beam,lex_beam_size=lex_beam,kbest=kbest,tracker=dtracker)
             for elt in results:
                 if elt:
                     elt.add_gold_tags(tags)
