@@ -1213,7 +1213,7 @@ if __name__ == '__main__':
             #wordsXtags = t.pos_tags()
             #words      = [elt.get_child().label for elt in wordsXtags]
             #tags       = [elt.label for elt in wordsXtags]
-            ConsTree.strip_tags(t.copy())
+            ConsTree.strip_tags(t)
             #print(t,t.compare(t))
             tokens = t.tokens()
             results= p.beam_parse(tokens,all_beam_size=struct_beam,lex_beam_size=lex_beam,kbest=kbest,tracker=dtracker,get_derivation=True)
