@@ -1155,14 +1155,14 @@ if __name__ == '__main__':
         parse_tracker = DefaultTracker(model_name+'.csv')
         for line in test_istream:
             tree = ConsTree.read_tree(line)
-            #wordsXtags = tree.pos_tags()
-            #words = [elt.get_child().label for elt in wordsXtags]
-            #tags  = [elt.label for elt in wordsXtags]
+            wordsXtags = tree.pos_tags()
+            words = [elt.get_child().label for elt in wordsXtags]
+            tags  = [elt.label for elt in wordsXtags]
             print(tree.tokens())
-            result = p.beam_parse(tree.tokens(),all_beam_size=struct_beam,lex_beam_size=lex_beam,tracker=parse_tracker,kbest=kbest)
+            result = p.beam_parse(words,all_beam_size=struct_beam,lex_beam_size=lex_beam,tracker=parse_tracker,kbest=kbest)
             for elt in result:
                 if elt:
-                    #elt.add_gold_tags(tags)
+                    elt.add_gold_tags(tags)
                     print(elt,file=test_ostream,flush=True)
             #print('*',flush=True,file=sys.stderr)
             
