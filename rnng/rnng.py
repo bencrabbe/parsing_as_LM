@@ -810,12 +810,13 @@ class RNNGparser:
                 best_deriv.append(current.incoming_action)
                 best_probs.append(prefix_score)
             best_deriv.reverse()
+            best_probs.reverse()
             pred_tree = RNNGparser.derivation2tree(best_deriv,tokens)
             pred_tree.expand_unaries() 
             if ref_tree: #returns F-score etc instead of the tree)
                 results.append(ref_tree.compare(pred_tree))
             elif get_derivation:
-                results.append(zip(best_deriv,best_probs))
+                results.append((best_deriv,best_probs))
             else:        #returns the tree
                 results.append(pred_tree)
                 
@@ -888,7 +889,7 @@ class RNNGparser:
             if get_derivation:
                 logprobs.append(-NLL)
         if get_derivation:
-            return zip(ref_derivation,logprobs)
+            return (ref_derivation,logprobs)
         return NLL
     
     #parsing, training etc on a full treebank
@@ -1209,7 +1210,7 @@ if __name__ == '__main__':
         dtracker = DefaultTracker('cog_stats.csv')
         for t in train_treebank:
             #print(p.parse_sentence(t.tokens()))
-            #wordsXtags = t.pos_tags()
+            #wordsXtags = t.pos_tags(
             #words      = [elt.get_child().label for elt in wordsXtags]
             #tags       = [elt.label for elt in wordsXtags]
             ConsTree.strip_tags(t)
@@ -1218,16 +1219,16 @@ if __name__ == '__main__':
             results= p.beam_parse(tokens,all_beam_size=struct_beam,lex_beam_size=lex_beam,kbest=kbest,tracker=dtracker,get_derivation=True)
             for elt in results:
                 if elt:
-                    deriv = [d for (d,_) in elt]
+                    deriv,_ = elt
                     pred_tree = RNNGparser.derivation2tree(deriv,tokens)
                     pred_tree.expand_unaries() 
                     print("%s %f"%(str(pred_tree),t.compare(pred_tree)[2]),flush=True)
                     
             #Compares the best parse derivation with the reference annotation
             ConsTree.close_unaries(t)
-            print( '\n'.join(['%s %f'%(a,p) for a,p in p.eval_sentence(t,get_derivation=True)]))
+            print( '\n'.join(['%s %f'%(a,p) for a,p in zip(p.eval_sentence(t,get_derivation=True))]))
             print(list(results[0]))
-            print('\n'.join(['%s %f'%(a,p) for a,p in results[0]]))
+            print('\n'.join(['%s %f'%(a,p) for a,p in zip(results[0])]))
             #print('\n'.join(["%s %f"%(str(r),t.compare(r)[2]) for r in results]))
             #print(p.beam_parse(t.tokens(),all_beam_size=struct_beam,lex_beam_size=lex_beam,tracker=dtracker))
         dtracker.save_table()
