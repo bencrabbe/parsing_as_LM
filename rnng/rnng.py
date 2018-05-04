@@ -227,7 +227,7 @@ class RNNGparser:
         """
         if ref_tree.is_leaf():
             if not RNNGparser.SHIFT in [ self.actions[i] for i in self.restrict_structural_actions(config,struct_history) ]:
-                print('oracle unsound <shift>')
+                print('oracle unsound <shift>',ref_tree)
             config,struct_history = self.move_state(sentence,config,struct_history,RNNGparser.SHIFT,0)
             config,struct_history = self.move_state(sentence,config,struct_history,ref_tree.label,0)
             return ( [RNNGparser.SHIFT, ref_tree.label] , config, struct_history)
@@ -236,7 +236,7 @@ class RNNGparser:
             derivation, config ,struct_history      = self.oracle_derivation(config,first_child,sentence,struct_history,root=False)
     
             if not RNNGparser.OPEN in [ self.actions[i] for i in self.restrict_structural_actions(config,struct_history) ]:
-                print('oracle unsound <open>')
+                print('oracle unsound <open>',ref_tree)
             config,struct_history    = self.move_state(sentence,config,struct_history,RNNGparser.OPEN,0)   
             config,struct_history    = self.move_state(sentence,config,struct_history,ref_tree.label,0)
             derivation.extend([RNNGparser.OPEN,ref_tree.label])
@@ -244,7 +244,7 @@ class RNNGparser:
                 subderivation,config,struct_history = self.oracle_derivation(config,child,sentence,struct_history,root=False) 
                 derivation.extend(subderivation)
             if not RNNGparser.CLOSE in [ self.actions[i] for i in self.restrict_structural_actions(config,struct_history) ]:
-                print('oracle unsound <close>')
+                print('oracle unsound <close>',ref_tree)
             config,struct_history    =  self.move_state(sentence,config,struct_history,RNNGparser.CLOSE,0)
             derivation.append(RNNGparser.CLOSE)
         if root:
@@ -456,7 +456,8 @@ class RNNGparser:
         
         x = dy.concatenate([fwd_tree_embedding,bwd_tree_embedding])
         W = dy.parameter(self.tree_rnn_out)
-        tree_embedding = self.rnng_dropout(dy.tanh(W * x))
+        b = dy.parameter(self.tree_rnn_bias)
+        tree_embedding = self.rnng_dropout(dy.tanh(W * x + b))
         return (S[:root_idx]+[root_symbol],B,n-1,stack_state.add_input(tree_embedding),RNNGparser.NO_LABEL,score+local_score)
 
     def restrict_structural_actions(self,configuration,structural_history):
