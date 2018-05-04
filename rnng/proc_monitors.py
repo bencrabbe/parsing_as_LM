@@ -151,7 +151,7 @@ def beam_search_debug(parser,ref_tree,all_beam_size,lex_beam_size,kbest,tracker,
             deriv,_ = elt
             pred_tree = RNNGparser.derivation2tree(deriv,tokens)
             pred_tree.expand_unaries() 
-            print("%s %f"%(str(pred_tree),t.compare(pred_tree)[2]),flush=True)
+            print("%s %f"%(str(pred_tree),ref_tree.compare(pred_tree)[2]),flush=True)
                     
     #Compares the best parse derivation with the reference annotation
     ConsTree.close_unaries(ref_tree)
