@@ -4,6 +4,7 @@
 import numpy as np
 import pandas as pd
 import rnng
+from constree import *
 
 """
 This module implements monitoring tools for tracking measures of
