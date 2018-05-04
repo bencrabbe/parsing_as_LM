@@ -406,8 +406,8 @@ class RNNGparser:
         S,B,n,stack_state,lab_state,score = configuration
 
         nt_idx = self.nonterminals.index(X)
-        nonterminal_embedding = self.rnng_dropout(self.nt_embedding_matrix[nt_idx])
-
+        #nonterminal_embedding = self.rnng_dropout(self.nt_embedding_matrix[nt_idx])
+        nonterminal_embedding = self.nt_embedding_matrix[nt_idx]
         #We backup the current stack top
         first_child = S[-1]
         #We pop the first child, push the non terminal and re-push the first child 
@@ -532,6 +532,7 @@ class RNNGparser:
         self.fwd_tree_rnn          = dy.LSTMBuilder(1,self.stack_embedding_size, self.stack_hidden_size,self.model)        # bi-rnn for tree embeddings
         self.bwd_tree_rnn          = dy.LSTMBuilder(1,self.stack_embedding_size, self.stack_hidden_size,self.model)
         self.tree_rnn_out          = self.model.add_parameters((self.stack_embedding_size,self.stack_hidden_size*2),init='glorot')       # out layer merging the tree bi-rnn output
+        self.tree_rnn_bias         = self.model.add_parameters((self.stack_embedding_size),init='glorot')
         
     def rnng_dropout(self,expr):
         """
