@@ -1172,7 +1172,7 @@ if __name__ == '__main__':
             rL,pL = beam_search_debug(p,ref_tree,struct_beam,lex_beam,kbest,parse_tracker,RNNGparser.SHIFT)
             r_cumS += rL
             p_cumS += pL
-        print("Derivations sizes: ref ", r_cumS/float(N), 'pred',p_cumS/float(N))
+            print("Derivations sizes: ref ", r_cumS/float(N), 'pred',p_cumS/float(N))
             
             
         # for line in test_istream:
