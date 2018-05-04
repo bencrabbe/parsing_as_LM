@@ -138,13 +138,13 @@ class DefaultTracker(AbstractTracker):
 ####################################
 #BEAM & SEARCH EXPLORATION FUNCTIONS 
 
-def beam_search_debug(ref_tree,all_beam_size,lex_beam_size,kbest,tracker,WORD_BREAK_ACTION):
+def beam_search_debug(parser,ref_tree,all_beam_size,lex_beam_size,kbest,tracker,WORD_BREAK_ACTION):
     """
     Parses a tree and dumps beam & search related displays.
     """
     ConsTree.strip_tags(ref_tree)
     tokens = ref_tree.tokens()
-    results= p.beam_parse(tokens,all_beam_size=struct_beam,lex_beam_size=lex_beam,kbest=kbest,tracker=dtracker,get_derivation=True)
+    results= parser.beam_parse(tokens,all_beam_size=struct_beam,lex_beam_size=lex_beam,kbest=kbest,tracker=dtracker,get_derivation=True)
     for elt in results:
         if elt:
             deriv,_ = elt
@@ -154,7 +154,7 @@ def beam_search_debug(ref_tree,all_beam_size,lex_beam_size,kbest,tracker,WORD_BR
                     
     #Compares the best parse derivation with the reference annotation
     ConsTree.close_unaries(ref_tree)
-    ref,rprobs = p.eval_sentence(ref_tree,get_derivation=True)
+    ref,rprobs = parser.eval_sentence(ref_tree,get_derivation=True)
     pred_deriv,pprobs = results[0]
 
     i = 0
