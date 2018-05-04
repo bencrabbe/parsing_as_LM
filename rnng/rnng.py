@@ -1164,7 +1164,7 @@ if __name__ == '__main__':
         parse_tracker = DefaultTracker(model_name+'.csv')
         for line in test_istream:
             ref_tree = ConsTree.read_tree(line)
-            beam_search_debug(ref_tree,all_beam_size,lex_beam_size,kbest,parse_tracker,RNNGparser.SHIFT)
+            beam_search_debug(ref_tree,struct_beam,lex_beam,kbest,parse_tracker,RNNGparser.SHIFT)
         # for line in test_istream:
         #     tree = ConsTree.read_tree(line)
         #     wordsXtags = tree.pos_tags()
