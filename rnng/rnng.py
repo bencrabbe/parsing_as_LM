@@ -812,7 +812,9 @@ class RNNGparser:
             best_deriv.reverse()
             best_probs.reverse()
             pred_tree = RNNGparser.derivation2tree(best_deriv,tokens)
-            pred_tree.expand_unaries() 
+            pred_tree.expand_unaries()
+            if pred_tree.is_leaf():#for single word sentences it is likely to fail -> recovery
+                pred_tree = ConsTree("TOP",[pred_tree])
             if ref_tree: #returns F-score etc instead of the tree)
                 results.append(ref_tree.compare(pred_tree))
             elif get_derivation:
