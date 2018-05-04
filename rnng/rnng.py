@@ -439,7 +439,7 @@ class RNNGparser:
         root_symbol = S[root_idx].copy()
         root_symbol.complete()
         children    = S[root_idx+1:]
-        print(','.join([str(elt) for elt in [root_symbol.symbol]+children]))
+        print('CLOSE,'','.join([str(elt) for elt in [root_symbol.symbol]+children]))
         #compute the tree embedding with the tree_rnn
         nt_idx = self.nonterminals.index(root_symbol.symbol)
         NT_embedding = self.rnng_dropout(self.nt_embedding_matrix[nt_idx])
@@ -1260,6 +1260,7 @@ if __name__ == '__main__':
         dtracker.save_table()
         print()
         p.save_model('none')
+        exit(0)
         p.load_model('none')
         dtracker = DefaultTracker('cog_stats.csv')
         for t in train_treebank:
