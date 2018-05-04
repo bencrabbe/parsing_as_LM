@@ -1,6 +1,6 @@
 #!/bin/sh
 
-MKL_NUM_THREADS=4
+MKL_NUM_THREADS=6
 NUM_EPOCHS=10
 
 make_config(){
@@ -24,7 +24,10 @@ train_brown(){
    mkdir -p $NAME
    make_config "$NAME/$NAME" $1 $2 $3
    source activate py36
-   nohup python rnng.py -m $NAME/$NAME -t ptb_train.mrg -d -ptb_dev.mrg -b ptb-250.brown -c "$NAME/$NAME.prm" > "nohup.$NAME.out" & 
+   #nohup python rnng.py -m $NAME/$NAME -t ptb_train.mrg -d
+   #-ptb_dev.mrg -b ptb-250.brown -c "$NAME/$NAME.prm" >
+   #"nohup.$NAME.out" & 
+   nohup python rnng.py -m $NAME/$NAME -t ptb_train.mrg -d -ptb_dev.mrg -b ptb-1000.brown -c "$NAME/$NAME.prm" > "nohup.$NAME.out" & 
    #nohup python rnng.py -m $NAME/$NAME -t ptb_train.mrg -d -ptb_dev.mrg -b ptb-1000.brown -e word_embeddings/w2v-ptb.txt -c "$NAME/$NAME.prm" > "nohup.$NAME.out" & 
    #python rnng.py -m $NAME/$NAME -t ptb_train.mrg -d -ptb_dev.mrg -b ptb-1000.brown -c "$NAME/$NAME.prm"
 }
@@ -41,9 +44,9 @@ train_lexicalized(){
 #Brown clusters
 #train_brown 300 200 0.3
 #train_brown 300 300 0.3
-#train_brown 300 100 0.3
+train_brown 300 100 0.3
 
-train_brown 100 100 0.3
+#train_brown 100 100 0.3
 
 
 #Fully lexicalized
