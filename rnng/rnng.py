@@ -439,7 +439,7 @@ class RNNGparser:
         root_symbol = S[root_idx].copy()
         root_symbol.complete()
         children    = S[root_idx+1:]
-        print(','.join([str(elt) for elt in root_symbol+children]))
+        print(','.join([str(elt) for elt in [root_symbol.symbol]+children]))
         #compute the tree embedding with the tree_rnn
         nt_idx = self.nonterminals.index(root_symbol.symbol)
         NT_embedding = self.rnng_dropout(self.nt_embedding_matrix[nt_idx])
