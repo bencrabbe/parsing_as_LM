@@ -955,7 +955,7 @@ class RNNGparser:
         print('num training trees  :',len(train_bank),flush=True)
         
         #training
-        self.trainer = SimpleSGDTrainer(self.model,learning_rate=learning_rate)
+        self.trainer = dy.SimpleSGDTrainer(self.model,learning_rate=learning_rate)
         #self.trainer = dy.AdamTrainer(self.model,alpha=learning_rate)
         best_model_loss = np.inf     #stores the best model on dev
         monitor =  OptimMonitor()
