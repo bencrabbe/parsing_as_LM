@@ -196,10 +196,11 @@ def compare_derivations(wsync_deriv_A,wsync_deriv_B,margin=40):
     assert(len(wsync_deriv_A) == len(wsync_deriv_B))
     for X,Y in zip(wsync_deriv_A,wsync_deriv_B):
 
-        line  = ', '.join(['%s:%f'%(d,p) for (d,p) in X])
-        line += ' '*max(0,margin-len(line))
-        line +=  ', '.join(['%s:%f'%(d,p) for (d,p) in Y])
+        line  = ', '.join(['%s:%.2f'%(d,p) for (d,p) in X])
+        line += '\n'#*max(0,margin-len(line))
+        line +=  ', '.join(['%s:%.2f'%(d,p) for (d,p) in Y])
         print(line)
+        print()
 
 
 
