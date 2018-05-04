@@ -185,7 +185,7 @@ def word_sync_derivation(derivation,prob_sequence, WORD_BREAK_ACTION):
             result.append(derivation[start_idx:idx+2])
             start_idx = idx+1
     result.append(derivation[start_idx:])
-
+    return result
 
 def compare_derivations(wsync_deriv_A,wsync_deriv_B,margin=40):
     """
