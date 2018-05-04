@@ -133,3 +133,73 @@ class DefaultTracker(AbstractTracker):
         for line in flat_dataset:
             print(','.join([str(elt) for elt in line]),file=ostream)
         ostream.close()
+
+####################################
+#BEAM & SEARCH EXPLORATION FUNCTIONS 
+
+def beam_search_debug(ref_tree,all_beam_size,lex_beam_size,kbest,tracker,WORD_BREAK_ACTION):
+    """
+    Parses a tree and dumps beam & search related displays.
+    """
+    ConsTree.strip_tags(t)
+    tokens = t.tokens()
+    results= p.beam_parse(tokens,all_beam_size=struct_beam,lex_beam_size=lex_beam,kbest=kbest,tracker=dtracker,get_derivation=True)
+    for elt in results:
+        if elt:
+            deriv,_ = elt
+            pred_tree = RNNGparser.derivation2tree(deriv,tokens)
+            pred_tree.expand_unaries() 
+            print("%s %f"%(str(pred_tree),t.compare(pred_tree)[2]),flush=True)
+                    
+    #Compares the best parse derivation with the reference annotation
+    ConsTree.close_unaries(t)
+    ref,rprobs = p.eval_sentence(t,get_derivation=True)
+    pred_deriv,pprobs = results[0]
+
+    i = 0
+    for idx, elt in enumerate(pred_deriv):
+        if type(elt) == int:
+            pred_deriv[idx] = tokens[i]
+            i += 1
+    ref_sync  = word_sync_derivation(derivation,rprobs,WORD_BREAK_ACTION)
+    pred_sync = word_sync_derivation(pred_deriv,pprobs,WORD_BREAK_ACTION)
+    compare_derivations(ref_sync,pred_sync)
+    
+def word_sync_derivation(derivation,prob_sequence, WORD_BREAK_ACTION):
+    """
+    This function a derivation as a list of subderivations wordwise aligning words and
+    probs.
+    @param derivation: a derivation
+    @param prob_sequence: a list of prefix probs same size as
+    derivation
+    @param WORD_BREAK_ACTION: the action that indicates the word boundary
+    @return a list of subderivations
+    """
+    assert(len(derivation) == len(prob_sequence))
+    start_idx = 0
+    result = [] 
+    for idx, deriv, prob in zip(range(len(derivation)),derivation,prob_sequence):
+        if deriv == WORD_BREAK_ACTION:
+            result.append(derivation[start_idx:idx+2])
+            start_idx = idx+1
+    result.append(derivation[start_idx:])
+
+
+def compare_derivations(wsync_deriv_A,wsync_deriv_B,margin=40):
+    """
+    Prints two derivations word-wise aligned.
+    @param : wsync_deriv_A = output of word_sync_derivation func
+    @param : wsync_deriv_B = output of word_sync_derivation func
+    """
+    assert(len(wsync_deriv_A) == len(wsync_deriv_B))
+    for X,Y in zip(wsync_deriv_A,wsync_deriv_B):
+
+        line  = ', '.join(['%s:%f'%(d,p) for (d,p) in X])
+        line += ' '*max(0,margin-len(line))
+        line +=  ', '.join(['%s:%f'%(d,p) for (d,p) in Y])
+        print(line)
+
+
+
+
+        

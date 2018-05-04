@@ -1163,16 +1163,19 @@ if __name__ == '__main__':
         test_ostream  = open(model_name+'-'+out_name,'w') 
         parse_tracker = DefaultTracker(model_name+'.csv')
         for line in test_istream:
-            tree = ConsTree.read_tree(line)
-            wordsXtags = tree.pos_tags()
-            words = [elt.get_child().label for elt in wordsXtags]
-            tags  = [elt.label for elt in wordsXtags]
-            print(tree.tokens())
-            result = p.beam_parse(words,all_beam_size=struct_beam,lex_beam_size=lex_beam,tracker=parse_tracker,kbest=kbest)
-            for elt in result:
-                if elt:
-                    elt.add_gold_tags(tags)
-                    print(elt,file=test_ostream,flush=True)
+            ref_tree = ConsTree.read_tree(line)
+            beam_search_debug(ref_tree,all_beam_size,lex_beam_size,kbest,parse_tracker,RNNGparser.SHIFT)
+        # for line in test_istream:
+        #     tree = ConsTree.read_tree(line)
+        #     wordsXtags = tree.pos_tags()
+        #     words = [elt.get_child().label for elt in wordsXtags]
+        #     tags  = [elt.label for elt in wordsXtags]
+        #     print(tree.tokens())
+        #     result = p.beam_parse(words,all_beam_size=struct_beam,lex_beam_size=lex_beam,tracker=parse_tracker,kbest=kbest)
+        #     for elt in result:
+        #         if elt:
+        #             elt.add_gold_tags(tags)
+        #             print(elt,file=test_ostream,flush=True)
             #print('*',flush=True,file=sys.stderr)
             
         test_istream.close()
