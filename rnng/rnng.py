@@ -1163,31 +1163,31 @@ if __name__ == '__main__':
         test_ostream  = open(model_name+'-'+out_name,'w') 
         parse_tracker = DefaultTracker(model_name+'.csv')
 
-        r_cumS = 0
-        p_cumS = 0
-        N      = 0
+        # r_cumS = 0
+        # p_cumS = 0
+        # N      = 0
           
-        for line in test_istream:
-            ref_tree = ConsTree.read_tree(line)
-            rL,pL = beam_search_debug(p,ref_tree,struct_beam,lex_beam,kbest,parse_tracker,RNNGparser.SHIFT)
-            r_cumS += rL
-            p_cumS += pL
-            N      += 1
-            print("Derivations sizes: ref ", r_cumS/float(N), 'pred',p_cumS/float(N))
-            
-            
         # for line in test_istream:
-        #     tree = ConsTree.read_tree(line)
-        #     wordsXtags = tree.pos_tags()
-        #     words = [elt.get_child().label for elt in wordsXtags]
-        #     tags  = [elt.label for elt in wordsXtags]
-        #     print(tree.tokens())
-        #     result = p.beam_parse(words,all_beam_size=struct_beam,lex_beam_size=lex_beam,tracker=parse_tracker,kbest=kbest)
-        #     for elt in result:
-        #         if elt:
-        #             elt.add_gold_tags(tags)
-        #             print(elt,file=test_ostream,flush=True)
-            #print('*',flush=True,file=sys.stderr)
+        #     ref_tree = ConsTree.read_tree(line)
+        #     rL,pL = beam_search_debug(p,ref_tree,struct_beam,lex_beam,kbest,parse_tracker,RNNGparser.SHIFT)
+        #     r_cumS += rL
+        #     p_cumS += pL
+        #     N      += 1
+        #     print("Derivations sizes: ref ", r_cumS/float(N), 'pred',p_cumS/float(N))
+            
+            
+        for line in test_istream:
+            tree = ConsTree.read_tree(line)
+            wordsXtags = tree.pos_tags()
+            words = [elt.get_child().label for elt in wordsXtags]
+            tags  = [elt.label for elt in wordsXtags]
+            print(tree.tokens())
+            result = p.beam_parse(words,all_beam_size=struct_beam,lex_beam_size=lex_beam,tracker=parse_tracker,kbest=kbest)
+            for elt in result:
+                if elt:
+                    elt.add_gold_tags(tags)
+                    print(elt,file=test_ostream,flush=True)
+            print('*',flush=True,file=sys.stderr)
             
         test_istream.close()
         test_ostream.close()
