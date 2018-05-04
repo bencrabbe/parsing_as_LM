@@ -142,8 +142,8 @@ def beam_search_debug(ref_tree,all_beam_size,lex_beam_size,kbest,tracker,WORD_BR
     """
     Parses a tree and dumps beam & search related displays.
     """
-    ConsTree.strip_tags(t)
-    tokens = t.tokens()
+    ConsTree.strip_tags(ref_tree)
+    tokens = ref_tree.tokens()
     results= p.beam_parse(tokens,all_beam_size=struct_beam,lex_beam_size=lex_beam,kbest=kbest,tracker=dtracker,get_derivation=True)
     for elt in results:
         if elt:
@@ -153,8 +153,8 @@ def beam_search_debug(ref_tree,all_beam_size,lex_beam_size,kbest,tracker,WORD_BR
             print("%s %f"%(str(pred_tree),t.compare(pred_tree)[2]),flush=True)
                     
     #Compares the best parse derivation with the reference annotation
-    ConsTree.close_unaries(t)
-    ref,rprobs = p.eval_sentence(t,get_derivation=True)
+    ConsTree.close_unaries(ref_tree)
+    ref,rprobs = p.eval_sentence(ref_tree,get_derivation=True)
     pred_deriv,pprobs = results[0]
 
     i = 0
