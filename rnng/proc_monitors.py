@@ -155,7 +155,7 @@ def beam_search_debug(parser,ref_tree,all_beam_size,lex_beam_size,kbest,tracker,
                     
     #Compares the best parse derivation with the reference annotation
     ConsTree.close_unaries(ref_tree)
-    ref,rprobs = parser.eval_sentence(ref_tree,get_derivation=True)
+    ref_deriv,rprobs = parser.eval_sentence(ref_tree,get_derivation=True)
     pred_deriv,pprobs = results[0]
 
     i = 0
@@ -163,7 +163,7 @@ def beam_search_debug(parser,ref_tree,all_beam_size,lex_beam_size,kbest,tracker,
         if type(elt) == int:
             pred_deriv[idx] = tokens[i]
             i += 1
-    ref_sync  = word_sync_derivation(derivation,rprobs,WORD_BREAK_ACTION)
+    ref_sync  = word_sync_derivation(ref_deriv,rprobs,WORD_BREAK_ACTION)
     pred_sync = word_sync_derivation(pred_deriv,pprobs,WORD_BREAK_ACTION)
     compare_derivations(ref_sync,pred_sync)
     
