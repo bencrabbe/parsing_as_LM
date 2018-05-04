@@ -166,6 +166,7 @@ def beam_search_debug(parser,ref_tree,all_beam_size,lex_beam_size,kbest,tracker,
     ref_sync  = word_sync_derivation(ref_deriv,rprobs,WORD_BREAK_ACTION)
     pred_sync = word_sync_derivation(pred_deriv,pprobs,WORD_BREAK_ACTION)
     compare_derivations(ref_sync,pred_sync)
+    return (len(ref_deriv),len(pred_deriv))
     
 def word_sync_derivation(derivation,prob_sequence, WORD_BREAK_ACTION):
     """

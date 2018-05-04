@@ -1162,9 +1162,19 @@ if __name__ == '__main__':
         out_name = '.'.join(predict_file.split('.')[:-1]+['pred.mrg'])
         test_ostream  = open(model_name+'-'+out_name,'w') 
         parse_tracker = DefaultTracker(model_name+'.csv')
+
+        r_cumS = 0,
+        p_cumS = 0
+        N      = 0
+          
         for line in test_istream:
             ref_tree = ConsTree.read_tree(line)
-            beam_search_debug(p,ref_tree,struct_beam,lex_beam,kbest,parse_tracker,RNNGparser.SHIFT)
+            rL,pL = beam_search_debug(p,ref_tree,struct_beam,lex_beam,kbest,parse_tracker,RNNGparser.SHIFT)
+            r_cumS += rL
+            p_cumS += pL
+        print("Derivations sizes: ref ", r_cumS/float(N), 'pred',p_cumS/float(N))
+            
+            
         # for line in test_istream:
         #     tree = ConsTree.read_tree(line)
         #     wordsXtags = tree.pos_tags()
