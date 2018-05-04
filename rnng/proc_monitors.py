@@ -144,7 +144,7 @@ def beam_search_debug(parser,ref_tree,all_beam_size,lex_beam_size,kbest,tracker,
     """
     ConsTree.strip_tags(ref_tree)
     tokens = ref_tree.tokens()
-    results= parser.beam_parse(tokens,all_beam_size,lex_beam_size,kbest,tracker,get_derivation=True)
+    results= parser.beam_parse(tokens,all_beam_size=all_beam_size,lex_beam_size=lex_beam_size,kbest=kbest,tracker=tracker,get_derivation=True)
     for elt in results:
         if elt:
             deriv,_ = elt
