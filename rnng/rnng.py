@@ -558,7 +558,6 @@ class RNNGparser:
        else:
            return expr
             
-        
     def raw_action_distrib(self,configuration,structural_history): #max_prediction=False,ref_action=None,backprop=True):
         """
         This predicts the next action distribution and constrains it given the configuration context.
@@ -845,6 +844,7 @@ class RNNGparser:
             pred_action,score = self.predict_action_distrib(C,struct_history,tokens,max_only=True)
             deriv.append(pred_action)
             C,struct_history = self.move_state(tokens,C,struct_history,pred_action,score)
+            self.pretty_print_configuration(configuration)
         if get_derivation:
             return deriv
         return RNNGparser.derivation2tree(deriv,tokens)
@@ -974,7 +974,7 @@ class RNNGparser:
                      
             monitor.display_NLL_log(reset=True)            
             devloss = self.eval_all(dev_bank)
-            #shuffle(train_bank)
+            shuffle(train_bank)
             if devloss <= best_model_loss :
                 best_model_loss=devloss
                 print(" => saving model",devloss)
@@ -1228,35 +1228,35 @@ if __name__ == '__main__':
         p.train_generative_model('none',TrainingParams.NUM_EPOCHS,[t.copy() for t in train_treebank],[t.copy() for t in train_treebank],learning_rate=TrainingParams.LEARNING_RATE,dropout=TrainingParams.DROPOUT,cls_filename=brown_file,lex_embeddings_filename=embedding_file)
         dtracker = DefaultTracker('cog_stats.csv')
         for t in train_treebank:
-            #print(p.parse_sentence(t.tokens()))
-            #wordsXtags = t.pos_tags(
-            #words      = [elt.get_child().label for elt in wordsXtags]
-            #tags       = [elt.label for elt in wordsXtags]
-            ConsTree.strip_tags(t)
-            #print(t,t.compare(t))
-            tokens = t.tokens()
-            results= p.beam_parse(tokens,all_beam_size=struct_beam,lex_beam_size=lex_beam,kbest=kbest,tracker=dtracker,get_derivation=True)
-            for elt in results:
-                if elt:
-                    deriv,_ = elt
-                    pred_tree = RNNGparser.derivation2tree(deriv,tokens)
-                    pred_tree.expand_unaries() 
-                    print("%s %f"%(str(pred_tree),t.compare(pred_tree)[2]),flush=True)
+            print(p.parse_sentence(t.tokens()))
+            # #wordsXtags = t.pos_tags(
+            # #words      = [elt.get_child().label for elt in wordsXtags]
+            # #tags       = [elt.label for elt in wordsXtags]
+            # ConsTree.strip_tags(t)
+            # #print(t,t.compare(t))
+            # tokens = t.tokens()
+            # results= p.beam_parse(tokens,all_beam_size=struct_beam,lex_beam_size=lex_beam,kbest=kbest,tracker=dtracker,get_derivation=True)
+            # for elt in results:
+            #     if elt:
+            #         deriv,_ = elt
+            #         pred_tree = RNNGparser.derivation2tree(deriv,tokens)
+            #         pred_tree.expand_unaries() 
+            #         print("%s %f"%(str(pred_tree),t.compare(pred_tree)[2]),flush=True)
                     
-            #Compares the best parse derivation with the reference annotation
-            ConsTree.close_unaries(t)
-            ref,probs = p.eval_sentence(t,get_derivation=True)
-            print( '\n'.join(['%s %f'%(a,p) for a,p in zip(ref,probs)]))
-            print()
-            deriv,probs = results[0]
-            i = 0
-            for idx, elt in enumerate(deriv):
-                if type(elt) == int:
-                    deriv[idx] = tokens[i]
-                    i += 1
-            print('\n'.join(['%s %f'%(a,p) for a,p in zip(deriv,probs)]))
-            #print('\n'.join(["%s %f"%(str(r),t.compare(r)[2]) for r in results]))
-            #print(p.beam_parse(t.tokens(),all_beam_size=struct_beam,lex_beam_size=lex_beam,tracker=dtracker))
+            # #Compares the best parse derivation with the reference annotation
+            # ConsTree.close_unaries(t)
+            # ref,probs = p.eval_sentence(t,get_derivation=True)
+            # print( '\n'.join(['%s %f'%(a,p) for a,p in zip(ref,probs)]))
+            # print()
+            # deriv,probs = results[0]
+            # i = 0
+            # for idx, elt in enumerate(deriv):
+            #     if type(elt) == int:
+            #         deriv[idx] = tokens[i]
+            #         i += 1
+            # print('\n'.join(['%s %f'%(a,p) for a,p in zip(deriv,probs)]))
+            # #print('\n'.join(["%s %f"%(str(r),t.compare(r)[2]) for r in results]))
+            # #print(p.beam_parse(t.tokens(),all_beam_size=struct_beam,lex_beam_size=lex_beam,tracker=dtracker))
         dtracker.save_table()
         print()
         p.save_model('none')
