@@ -169,7 +169,7 @@ def beam_search_debug(parser,ref_tree,all_beam_size,lex_beam_size,kbest,tracker,
     
 def word_sync_derivation(derivation,prob_sequence, WORD_BREAK_ACTION):
     """
-    This function a derivation as a list of subderivations wordwise aligning words and
+    This function splits a derivation as a list of subderivations wordwise aligning words and
     probs.
     @param derivation: a derivation
     @param prob_sequence: a list of prefix probs same size as
@@ -182,9 +182,9 @@ def word_sync_derivation(derivation,prob_sequence, WORD_BREAK_ACTION):
     result = [] 
     for idx, deriv, prob in zip(range(len(derivation)),derivation,prob_sequence):
         if deriv == WORD_BREAK_ACTION:
-            result.append(derivation[start_idx:idx+2])
+            result.append(list(zip(derivation[start_idx:idx+2],prob_sequence[start_idx:idx+2])))
             start_idx = idx+1
-    result.append(derivation[start_idx:])
+    result.append(list(zip(derivation[start_idx:],prob_sequence[start_idx:])))
     return result
 
 def compare_derivations(wsync_deriv_A,wsync_deriv_B,margin=40):
