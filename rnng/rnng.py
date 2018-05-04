@@ -1163,7 +1163,7 @@ if __name__ == '__main__':
         test_ostream  = open(model_name+'-'+out_name,'w') 
         parse_tracker = DefaultTracker(model_name+'.csv')
 
-        r_cumS = 0,
+        r_cumS = 0
         p_cumS = 0
         N      = 0
           
