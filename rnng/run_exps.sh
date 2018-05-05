@@ -27,7 +27,7 @@ train_brown(){
    #nohup python rnng.py -m $NAME/$NAME -t ptb_train.mrg -d
    #-ptb_dev.mrg -b ptb-250.brown -c "$NAME/$NAME.prm" >
    #"nohup.$NAME.out" & 
-   nohup python rnng.py -m $NAME/$NAME -t ptb_train.mrg -d -ptb_dev.mrg -b ptb-1000.brown -c "$NAME/$NAME.prm" > "nohup.$NAME.out" & 
+   nohup python rnng.py -m $NAME/$NAME -t ptb_train.mrg -d -ptb_dev.mrg -b ptb-250.brown -c "$NAME/$NAME.prm" > "nohup.$NAME.out" & 
    #nohup python rnng.py -m $NAME/$NAME -t ptb_train.mrg -d -ptb_dev.mrg -b ptb-1000.brown -e word_embeddings/w2v-ptb.txt -c "$NAME/$NAME.prm" > "nohup.$NAME.out" & 
    #python rnng.py -m $NAME/$NAME -t ptb_train.mrg -d -ptb_dev.mrg -b ptb-1000.brown -c "$NAME/$NAME.prm"
 }
