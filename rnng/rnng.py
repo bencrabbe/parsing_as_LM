@@ -1,7 +1,7 @@
 
-import dynet_config
+#import dynet_config
 # Declare GPU as the default device type
-dynet_config.set(profiling=2)
+#dynet_config.set(profiling=2)
 import dynet as dy
 import numpy as np
 import numpy.random as npr
