@@ -536,7 +536,6 @@ class RNNGparser:
         self.tree_rnn_out          = self.model.add_parameters((self.stack_embedding_size,self.stack_hidden_size*2),init='glorot')       # out layer merging the tree bi-rnn output
         self.tree_rnn_bias         = self.model.add_parameters((self.stack_embedding_size),init='glorot')
 
-        print(self.model)
         
     def rnng_dropout(self,expr):
         """
