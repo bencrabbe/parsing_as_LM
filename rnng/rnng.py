@@ -495,7 +495,6 @@ class RNNGparser:
        
         #Model structure
         self.model                 = dy.ParameterCollection()
-        self.model.set_profiling(2)
         #symbols & word embeddings (some setups may affect the structure of the network)
         self.nt_embedding_matrix   = self.model.add_lookup_parameters((self.nonterminals.size(),self.stack_embedding_size),init='glorot') #symbols embeddings
 
@@ -1213,6 +1212,9 @@ if __name__ == '__main__':
         
     #despaired debugging
     elif not model_name:
+        prm = dy.DynetParams()
+        prm.set_profiling(2)
+
         if train_file:#takes the 20 first sentences
             train_treebank = []
             train_stream   = open(train_file)
