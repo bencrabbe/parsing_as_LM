@@ -1,3 +1,7 @@
+
+import dynet_config
+# Declare GPU as the default device type
+dynet_config.set_profiling(2)
 import dynet as dy
 import numpy as np
 import numpy.random as npr
@@ -1212,10 +1216,6 @@ if __name__ == '__main__':
         
     #despaired debugging
     elif not model_name:
-        prm = dy.DynetParams()
-        prm.set_profiling(2)
-        prm.init()
-
         if train_file:#takes the 20 first sentences
             train_treebank = []
             train_stream   = open(train_file)
