@@ -432,17 +432,20 @@ class RNNGparser:
         assert( n > 0 )
         
         #Finds the closest predicted constituent in the stack and backtracks the stack lstm.
-        midx = -1
-        for idx,symbol in enumerate(reversed(S)):
+        rev_children = []
+        for symbol in reversed(S):
             if symbol.status == StackSymbol.PREDICTED:
-                root_idx = len(S)-idx-1
                 break
+                #root_idx = len(S)-idx-1
             else:
+                rev_children.append(S.pop())
                 stack_state = stack_state.prev()
         stack_state = stack_state.prev()
-        root_symbol = S[root_idx].copy()
+        #root_symbol = S[root_idx].copy()
+        root_symbol = S[-1]
         root_symbol.complete()
-        children    = S[root_idx+1:]
+        children    = list(reversed(rev_children))
+        
         #compute the tree embedding with the tree_rnn
         nt_idx = self.nonterminals.index(root_symbol.symbol)
         NT_embedding = self.rnng_dropout(self.nt_embedding_matrix[nt_idx])
@@ -461,7 +464,7 @@ class RNNGparser:
         W = dy.parameter(self.tree_rnn_out)
         b = dy.parameter(self.tree_rnn_bias)
         tree_embedding = self.rnng_dropout(dy.rectify(W * x + b))
-        return (S[:root_idx]+[root_symbol],B,n-1,stack_state.add_input(tree_embedding),RNNGparser.NO_LABEL,score+local_score)
+        return (S,B,n-1,stack_state.add_input(tree_embedding),RNNGparser.NO_LABEL,score+local_score)
 
     def restrict_structural_actions(self,configuration,structural_history):
         """ 
