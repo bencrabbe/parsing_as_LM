@@ -1213,6 +1213,7 @@ if __name__ == '__main__':
         
     #despaired debugging
     elif not model_name:
+        dy.set_profiling(2)
         if train_file:#takes the 20 first sentences
             train_treebank = []
             train_stream   = open(train_file)
