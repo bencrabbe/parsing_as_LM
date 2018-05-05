@@ -921,7 +921,7 @@ class RNNGparser:
             line = line = line / line.sum()
             labsxconf = list(zip(self.nonterminals.i2words,line))
             print(labsxconf)
-            kbest = labsxconf.sort(key=lambda x,y:y, reverse=True))[:5]
+            kbest = labsxconf.sort(key=lambda x,y:y, reverse=True)[:5]
         
             print(self.nonterminals.wordform(idx)+':'+','.join(['%s:%f'%(x,y) for x,y in kbest]))
             
