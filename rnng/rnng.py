@@ -570,19 +570,19 @@ class RNNGparser:
             
             W = dy.parameter(self.lex_out)
             b = dy.parameter(self.lex_bias)
-            return dy.log_softmax(W * self.rnng_dropout(dy.tanh(stack_state.output())) + b)
+            return dy.log_softmax(W * self.rnng_dropout(dy.rectify(stack_state.output())) + b)
         
         elif lab_state == RNNGparser.NT_LABEL:                             #generates a non terminal labelling
             W = dy.parameter(self.nt_out)
             b = dy.parameter(self.nt_bias)
-            return dy.log_softmax(W * self.rnng_dropout(dy.tanh(stack_state.output())) + b)
+            return dy.log_softmax(W * self.rnng_dropout(dy.rectify(stack_state.output())) + b)
             
         else:                                                               #lab_state == RNNGparser.NO_LABEL perform a structural action
             W = dy.parameter(self.struct_out)
             b = dy.parameter(self.struct_bias)
             restr = self.restrict_structural_actions(configuration,structural_history)
             if restr:
-                return dy.log_softmax(W * self.rnng_dropout(dy.tanh(stack_state.output())) + b,restr)
+                return dy.log_softmax(W * self.rnng_dropout(dy.rectify(stack_state.output())) + b,restr)
             #parse failure (parser trapped)
             warnings.warn('oops. parser trapped (to be fixed)...',RuntimeWarning)
             return None
