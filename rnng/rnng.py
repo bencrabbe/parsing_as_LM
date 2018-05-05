@@ -1214,6 +1214,7 @@ if __name__ == '__main__':
     elif not model_name:
         prm = dy.DynetParams()
         prm.set_profiling(2)
+        prm.init()
 
         if train_file:#takes the 20 first sentences
             train_treebank = []
