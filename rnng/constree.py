@@ -393,7 +393,7 @@ class PennTreebank:
         
         for d in train_dirs:
             print('Processing wsj-%s'%(d,),file=sys.stderr)
-            print('\n'.join([str(t) for t in PennTreebank.preprocess_src_dir(str(os.path.join(ptb_root,d)),,strip_tags=False,close_unaries=False)]),file=train_file)
+            print('\n'.join([str(t) for t in PennTreebank.preprocess_src_dir(str(os.path.join(ptb_root,d)),strip_tags=False,close_unaries=False)]),file=train_file)
             print('\n'.join([' '.join(t.tokens(labels=True)) for t in PennTreebank.preprocess_src_dir(str(os.path.join(ptb_root,d)),strip_tags=False,close_unaries=False)]),file=train_raw)
 
             
