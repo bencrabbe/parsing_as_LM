@@ -485,7 +485,6 @@ class RNNGparser:
         restr_list = [idx for idx,mval in enumerate(MASK) if mval]
         return restr_list
     
-        
     #scoring & representation system
     def make_structure(self,w2vfilename=None):
         """
@@ -646,12 +645,13 @@ class RNNGparser:
         self.trainer.update()
         return loss_val
     
-    def eval_action_distrib(self,configuration,structural_history,ref_action):
+    def eval_action_distrib(self,configuration,structural_history,ref_action,conf_matrix=None):
         """
         This performs a forward pass on the network for this datum and returns the ref_action NLL
         @param configuration: the current configuration
         @param structural history: the list of structural actions performed so far
         @param ref_action  : the reference action
+        @param conf_matrix : a (sparse) confusion matrix for evalutation
         @return : (NLL,correct) where NLL for the ref action and correct is true if the argmax of the distrib = ref_action
         """
         S,B,n,stack_state,lab_state,local_score = configuration
@@ -667,6 +667,8 @@ class RNNGparser:
         loss       = -dy.pick(logprobs,ref_prediction)
         loss_val   = loss.value()
         best_pred  = np.argmax(logprobs.npvalue())
+        if lab_state == RNNGparser.NT_LABEL:
+            conf_matrix[ref_prediction,best_pred] += 1.0
         return loss_val,(best_pred==ref_prediction)
 
     #parsing, training, eval one sentence        
@@ -865,7 +867,7 @@ class RNNGparser:
             monitor.add_NLL_datum(NLL,C)
             C,struct_history = self.move_state(tokens,C,struct_history,ref_action,-NLL)
 
-    def eval_sentence(self,ref_tree,monitor=None,get_derivation=False):
+    def eval_sentence(self,ref_tree,monitor=None,get_derivation=False,conf_matrix=None):
         """
         Evaluates a single sentence from dev set.
         @param ref_tree: a tree to eval against
@@ -883,7 +885,7 @@ class RNNGparser:
         logprobs            = [] 
         NLL = 0 
         for ref_action in ref_derivation:
-            loc_NLL,correct = self.eval_action_distrib(C,struct_history,ref_action)
+            loc_NLL,correct = self.eval_action_distrib(C,struct_history,ref_action,conf_matrix=conf_matrix)
             if monitor:
                 monitor.add_NLL_datum(loc_NLL,C)
                 monitor.add_ACC_datum(correct,C)
@@ -902,14 +904,24 @@ class RNNGparser:
         """
         print('\nEval on dev...',flush=True)
         monitor =  OptimMonitor()
+        conf_matrix = np.zeros((self.nonterminals.size(),self.nonterminals.size()))
         D = self.dropout
         self.dropout = 0.0
         L = 0
         for tree in dev_bank:
-           L += self.eval_sentence(tree,monitor)
+           L += self.eval_sentence(tree,monitor,conf_matrix=conf_matrix)
            
         monitor.display_NLL_log(reset=True)
         monitor.display_ACC_log(reset=True)
+
+
+        #On the fly debug
+        print('NT confusion...')
+        for idx,line in enumerate(conf_matrix):
+            line = line/ = line.sum()
+            kbest = list(sorted(zip(self.nonterminals.i2words,line),key=lamba x,y:y,reverse=True))[:5]
+            print(self.nonterminals.wordform(idx)+':'+','.join(['%s:%f'%(x,y) in kbest]))
+            
         self.dropout = D
         return L
 
