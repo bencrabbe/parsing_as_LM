@@ -304,7 +304,7 @@ class PennTreebank:
     
     
     @staticmethod
-    def preprocess_file(filename,strip_tags=True,close_unaries=True):
+    def preprocess_file(filename,strip_tags,close_unaries):
         """
         That's a generator function yielding tree objects.
         @yield ConsTree objects
@@ -319,7 +319,6 @@ class PennTreebank:
             PennTreebank.strip_traces(tree)
             PennTreebank.strip_decoration(tree)
             if strip_tags:
-                print('h')
                 ConsTree.strip_tags(tree)
             if close_unaries:
                 ConsTree.close_unaries(tree)
@@ -360,7 +359,7 @@ class PennTreebank:
 
                 
     @staticmethod
-    def preprocess_src_dir(dirpath,strip_tags=True,close_unaries=True):
+    def preprocess_src_dir(dirpath,strip_tags,close_unaries):
         """
         A path to a PTB mrg directory.
         @param dirpath: the path
@@ -395,15 +394,15 @@ class PennTreebank:
         for d in train_dirs:
             print('Processing wsj-%s'%(d,),file=sys.stderr)
             print('\n'.join([str(t) for t in PennTreebank.preprocess_src_dir(str(os.path.join(ptb_root,d)))]),file=train_file)
-            print('\n'.join([' '.join(t.tokens(labels=True)) for t in PennTreebank.preprocess_src_dir(str(os.path.join(ptb_root,d)),close_unaries=False,strip_tags=False)]),file=train_raw)
+            print('\n'.join([' '.join(t.tokens(labels=True)) for t in PennTreebank.preprocess_src_dir(str(os.path.join(ptb_root,d)),strip_tags=False,close_unaries=False)]),file=train_raw)
 
             
         print('Processing wsj-%s'%(dev_dir,),file=sys.stderr)
-        devtrees = PennTreebank.preprocess_src_dir(str(os.path.join(ptb_root,dev_dir)),close_unaries=False,strip_tags=False)
+        devtrees = PennTreebank.preprocess_src_dir(str(os.path.join(ptb_root,dev_dir)),strip_tags=False,close_unaries=False)
         print('\n'.join([str(t) for t in devtrees]),file=dev_file)
         print('\n'.join([' '.join(t.tokens(labels=True)) for t in devtrees]),file=dev_raw)
         print('Processing wsj-%s'%(test_dir,),file=sys.stderr)
-        testtrees = PennTreebank.preprocess_src_dir(str(os.path.join(ptb_root,test_dir)),close_unaries=False,strip_tags=False)
+        testtrees = PennTreebank.preprocess_src_dir(str(os.path.join(ptb_root,test_dir)),strip_tags=False,close_unaries=False)
         print('\n'.join([str(t) for t in testtrees]),file=test_file)
         print('\n'.join([' '.join(t.tokens(labels=True)) for t in testtrees]),file=test_raw)
 
