@@ -919,8 +919,10 @@ class RNNGparser:
         print('NT confusion...')
         for idx,line in enumerate(conf_matrix):
             line = line = line / line.sum()
-            kbest = list(sorted(zip(self.nonterminals.i2words,line),key=lambda x,y:y,reverse=True))[:5]
-            print(self.nonterminals.wordform(idx)+':'+','.join(['%s:%f'%(x,y) in kbest]))
+            labsxconf = list(zip(self.nonterminals.i2words,line))
+            kbest = list(sorted(labsxconf,key=lambda x,y:y,reverse=True))[:5]
+        
+            print(self.nonterminals.wordform(idx)+':'+','.join(['%s:%f'%(x,y) for x,y in kbest]))
             
         self.dropout = D
         return L
