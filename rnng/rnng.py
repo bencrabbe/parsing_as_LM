@@ -1248,7 +1248,7 @@ if __name__ == '__main__':
         dtracker = DefaultTracker('cog_stats.csv')
         for t in train_treebank:
             print(p.parse_sentence(t.tokens()))
-            # #wordsXtags = t.pos_tags(
+            # #wordsXtags = t.pos_tags()
             # #words      = [elt.get_child().label for elt in wordsXtags]
             # #tags       = [elt.label for elt in wordsXtags]
             # ConsTree.strip_tags(t)

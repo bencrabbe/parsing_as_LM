@@ -319,6 +319,7 @@ class PennTreebank:
             PennTreebank.strip_traces(tree)
             PennTreebank.strip_decoration(tree)
             if strip_tags:
+                print('h')
                 ConsTree.strip_tags(tree)
             if close_unaries:
                 ConsTree.close_unaries(tree)
