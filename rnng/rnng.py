@@ -525,7 +525,7 @@ class RNNGparser:
             self.lex_out            = self.model.add_parameters((self.lexicon.size(),self.stack_hidden_size),init='glorot')          #lex action output layer
             self.lex_bias           = self.model.add_parameters((self.lexicon.size()),init='glorot')
 
-        self.nt_out                 = self.model.add_parameters((self.nonterminals.size(),self.stack_hidden_size,name='kk'),init='glorot')               #nonterminal action output layer
+        self.nt_out                 = self.model.add_parameters((self.nonterminals.size(),self.stack_hidden_size),name='kk',init='glorot')               #nonterminal action output layer
         self.nt_bias                = self.model.add_parameters((self.nonterminals.size()),init='glorot')
 
         #stack rnn 
