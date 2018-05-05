@@ -569,6 +569,7 @@ class RNNGparser:
         @return a dynet expression
         """        
         S,B,n,stack_state,lab_state,local_score = configuration
+        print(stack_state.output())
         
         if lab_state == RNNGparser.WORD_LABEL:                             #generate wordform action
             
