@@ -571,7 +571,7 @@ class RNNGparser:
         @return a dynet expression
         """        
         S,B,n,stack_state,lab_state,local_score = configuration
-        print('Main LSTM out',stack_state.output().npvalue.shape())
+        print('Main LSTM out',stack_state.output().npvalue().shape)
         
         if lab_state == RNNGparser.WORD_LABEL:                             #generate wordform action
             
