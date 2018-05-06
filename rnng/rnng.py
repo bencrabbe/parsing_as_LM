@@ -1,7 +1,7 @@
 
 #import dynet_config
-# Declare GPU as the default device type
 #dynet_config.set(profiling=2)
+
 import dynet as dy
 import numpy as np
 import numpy.random as npr
@@ -15,6 +15,7 @@ from constree import *
 from lexicons import *
 from proc_monitors import *
 from rnng_params import *
+
 
 class StackSymbol:
     """
