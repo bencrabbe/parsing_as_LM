@@ -869,7 +869,8 @@ class RNNGparser:
         ref_derivation,_,_  = self.oracle_derivation(self.init_configuration(len(tokens)),ref_tree,tokens,['<init>'])
         step, max_step      = (0,len(ref_derivation))
         C                   = self.init_configuration(len(tokens))
-        struct_history      = ['<init>'] 
+        struct_history      = ['<init>']
+        print(ref_derivation)
         for ref_action in ref_derivation:
             NLL = self.backprop_action_distrib(C,struct_history,ref_action)
             monitor.add_NLL_datum(NLL,C)
