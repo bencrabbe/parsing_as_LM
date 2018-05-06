@@ -1249,6 +1249,8 @@ if __name__ == '__main__':
             TrainingParams.DROPOUT = 0.1
             TrainingParams.NUM_EPOCHS = 10
         else:
+            TrainingParams.NUM_EPOCHS = 25
+
             t0  = ConsTree.read_tree('(S (NP Le chat ) (XP (VP (V dort))))')
             t  = ConsTree.read_tree('(S (NP Le chat ) (VP mange  (NP la souris)))')
             t2 = ConsTree.read_tree('(S (NP Le chat ) (VP voit  (NP le chien) (PP sur (NP le paillasson))))')
