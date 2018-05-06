@@ -262,7 +262,6 @@ class RNNGparser:
         @param derivation: a derivation to use for generating a tree
         @tokens : the source tokens of the sentence
         """
-        print("DERIVATION2TREE",derivation)
         stack = []
         tok_idx   = 0
         prev_action = None
@@ -1249,7 +1248,6 @@ if __name__ == '__main__':
             TrainingParams.DROPOUT = 0.1
             TrainingParams.NUM_EPOCHS = 10
         else:
-            TrainingParams.NUM_EPOCHS = 25
 
             t0  = ConsTree.read_tree('(S (NP Le chat ) (XP (VP (V dort))))')
             t  = ConsTree.read_tree('(S (NP Le chat ) (VP mange  (NP la souris)))')
