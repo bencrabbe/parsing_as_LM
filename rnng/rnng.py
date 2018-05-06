@@ -951,11 +951,11 @@ class RNNGparser:
         #Trees preprocessing
         for t in train_bank:
             ConsTree.strip_tags(t)
-            ConsTree.close_unaries(t)
+            #ConsTree.close_unaries(t)
 
         for t in dev_bank:
             ConsTree.strip_tags(t)
-            ConsTree.close_unaries(t)
+            #ConsTree.close_unaries(t)
             
         if cls_filename:
             print("Using clusters")
