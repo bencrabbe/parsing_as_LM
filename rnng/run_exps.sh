@@ -14,7 +14,7 @@ make_config(){
     echo "[learning]"  >> $CNAME
     echo "lex_max_size  = 10000"  >> $CNAME
     echo "num_epochs    = $NUM_EPOCHS" >> $CNAME
-    echo "learning_rate = 0.1" >> $CNAME
+    echo "learning_rate = 0.01" >> $CNAME
     echo "dropout       = $4"     >> $CNAME
 }
 
