@@ -663,6 +663,7 @@ class RNNGparser:
         loss.backward()
         self.trainer.update()
         print(self.trainer.get_clip_threshold())
+        print(self.trainer.status())
         return loss_val
     
     def eval_action_distrib(self,configuration,structural_history,ref_action,conf_matrix=None):
