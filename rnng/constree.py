@@ -376,6 +376,7 @@ class PennTreebank:
         for line in treebankstream:
             T = ConsTree.read_tree(line)
             if close_unaries:
+                T.strip_tags()
                 T.close_unaries()
             rec_count(T,c)
         treebankstream.close()
