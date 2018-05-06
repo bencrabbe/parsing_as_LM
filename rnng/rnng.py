@@ -262,6 +262,7 @@ class RNNGparser:
         @param derivation: a derivation to use for generating a tree
         @tokens : the source tokens of the sentence
         """
+        print("DERIVATION2TREE",derivation)
         stack = []
         tok_idx   = 0
         prev_action = None
