@@ -2,6 +2,7 @@ import sys
 import os
 import os.path
 import re
+from collections import Counter
 
 class ConsTree:
     """
@@ -357,7 +358,26 @@ class PennTreebank:
             ctree.children = [child for flag,child in zip(removals,ctree.children) if not flag]
             return False
 
-                
+    @staticmethod
+    def count_categories(treebankfile,close_unaries=False):
+        """
+        Counts the occurrences of nonterminal categories and returns
+        the result as a counter
+        @return a Counter
+        """
+        def rec_count(tree_node,counter):
+            counter[tree_node.label] += 1
+            for child in tree_node.children:
+                rec_count(child,counter)
+
+        c = Counter()
+        for line in treebankfile:
+            T = ConsTree.read_tree(line)
+            if close_unaries:
+                T.close_unaries()
+            rec_count(T,c)
+        return c
+            
     @staticmethod
     def preprocess_src_dir(dirpath,strip_tags,close_unaries):
         """
@@ -427,8 +447,9 @@ class PennTreebank:
                 
 if __name__ == '__main__':
     #Generates Penn TB with classical setup
-    PennTreebank.generate_standard_split('/data/Corpus/ptb/treebank_3/parsed/mrg/wsj','/home/bcrabbe/parsing_as_LM/rnng')
-    
+    #PennTreebank.generate_standard_split('/data/Corpus/ptb/treebank_3/parsed/mrg/wsj','/home/bcrabbe/parsing_as_LM/rnng')
     #PennTreebank.generate_standard_split('/Users/bcrabbe/Desktop/ptb/treebank_3/parsed/mrg/wsj','/Users/bcrabbe/parsing_as_LM/rnng')
 
-    
+    c = count_categories('ptb_train.mrg',close_unaries=True)
+    for cat,count in c.items():
+        print('%f :: %d'%(cat,count))
