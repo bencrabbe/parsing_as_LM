@@ -452,4 +452,4 @@ if __name__ == '__main__':
 
     c = PennTreebank.count_categories('ptb_train.mrg',close_unaries=True)
     for cat,count in c.items():
-        print('%f :: %d'%(cat,count))
+        print('%s :: %d'%(cat,count))
