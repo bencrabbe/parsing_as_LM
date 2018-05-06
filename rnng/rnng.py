@@ -487,7 +487,7 @@ class RNNGparser:
             MASK *= self.terminate_mask
         if not B:
             MASK *= self.shift_mask
-        if not S or n == 0 or (hist_1 == RNNGparser.OPEN and hist_2 != RNNGparser.SHIFT):
+        if not S or n == 0:# or (hist_1 == RNNGparser.OPEN and hist_2 != RNNGparser.SHIFT):
             MASK *= self.close_mask
 
         restr_list = [idx for idx,mval in enumerate(MASK) if mval]
