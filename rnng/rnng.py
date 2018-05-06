@@ -490,9 +490,9 @@ class RNNGparser:
         S,B,n,stack_state,lab_state,local_score = configuration
         
         hist_1  = structural_history[-1]
-        hist_2  = structural_history[-2] if len(structural_history) >= 2 else None
+        #hist_2  = structural_history[-2] if len(structural_history) >= 2 else None
         
-        if not S or (hist_1 == RNNGparser.OPEN and hist_2 == RNNGparser.OPEN) or upperbound_unaries(structural_history):
+        if not S or hist_1 == RNNGparser.OPEN or upperbound_unaries(structural_history):
             MASK *= self.open_mask
         if B or n > 0 or len(S) > 1:
             MASK *= self.terminate_mask
