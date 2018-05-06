@@ -48,6 +48,7 @@ train_lexicalized(){
 
 train_brown 300 200 0.1
 train_brown 100 100 0.1
+train_brown 300 200 0.3
 
 
 #Fully lexicalized
