@@ -368,7 +368,8 @@ class PennTreebank:
         def rec_count(tree_node,counter):
             counter[tree_node.label] += 1
             for child in tree_node.children:
-                rec_count(child,counter)
+                if not child.is_leaf():
+                    rec_count(child,counter)
 
         treebankstream = open(treebankfile)
         c = Counter()
