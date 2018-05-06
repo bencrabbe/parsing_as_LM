@@ -370,12 +370,14 @@ class PennTreebank:
             for child in tree_node.children:
                 rec_count(child,counter)
 
+        treebankstream = open('treebankfile')
         c = Counter()
-        for line in treebankfile:
+        for line in treebankstream:
             T = ConsTree.read_tree(line)
             if close_unaries:
                 T.close_unaries()
             rec_count(T,c)
+        treebankstream.close()
         return c
             
     @staticmethod
