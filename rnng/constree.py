@@ -359,7 +359,7 @@ class PennTreebank:
             return False
 
     @staticmethod
-    def count_categories(treebankfile,close_unaries=False):
+    def count_categories(treebankfile):
         """
         Counts the occurrences of nonterminal categories and returns
         the result as a counter
@@ -376,8 +376,6 @@ class PennTreebank:
         for line in treebankstream:
             T = ConsTree.read_tree(line)
             T.strip_tags()
-            if close_unaries:
-                T.close_unaries()
             rec_count(T,c)
         treebankstream.close()
         return c
@@ -452,8 +450,8 @@ class PennTreebank:
 if __name__ == '__main__':
     #Generates Penn TB with classical setup
     #PennTreebank.generate_standard_split('/data/Corpus/ptb/treebank_3/parsed/mrg/wsj','/home/bcrabbe/parsing_as_LM/rnng')
-    #PennTreebank.generate_standard_split('/Users/bcrabbe/Desktop/ptb/treebank_3/parsed/mrg/wsj','/Users/bcrabbe/parsing_as_LM/rnng')
+    PennTreebank.generate_standard_split('/Users/bcrabbe/Desktop/ptb/treebank_3/parsed/mrg/wsj','/Users/bcrabbe/parsing_as_LM/rnng')
 
-    c = PennTreebank.count_categories('ptb_train.mrg',close_unaries=False)
+    c = PennTreebank.count_categories('ptb_train.mrg')
     for cat,count in c.items():
         print('%s :: %d'%(cat,count))
