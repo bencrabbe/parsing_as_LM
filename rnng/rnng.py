@@ -480,7 +480,8 @@ class RNNGparser:
             """
             if len(history) >= 6:
                 print(history)
-                for idx in range(0,6,2):
+                N = len(history)
+                for idx in range(N-1-6,N-1,2):
                     if history[idx] != RNNGparser.OPEN or history[idx+1] == RNNGparser.CLOSE:
                         return False
                 return True
