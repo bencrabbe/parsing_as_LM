@@ -485,6 +485,7 @@ class RNNGparser:
                     print(history[idx],history[idx+1])
                     if history[idx] != RNNGparser.OPEN or history[idx+1] == RNNGparser.CLOSE:
                         return False
+                print('UB reached')
                 return True
             return False
         
