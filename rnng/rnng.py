@@ -479,14 +479,10 @@ class RNNGparser:
             Returns true if the upper limit of unary branching is reached
             """
             if len(history) >= 6:
-                #print(history)
                 N = len(history)
                 for idx in range(N-6,N-1,2):
-                    print(history[idx],history[idx+1])
                     if history[idx] != RNNGparser.OPEN or history[idx+1] != RNNGparser.CLOSE:
-                        print('----')
                         return False
-                print('UB reached')
                 return True
             return False
         
