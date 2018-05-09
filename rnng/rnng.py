@@ -484,6 +484,7 @@ class RNNGparser:
                 for idx in range(N-6,N-1,2):
                     print(history[idx],history[idx+1])
                     if history[idx] != RNNGparser.OPEN or history[idx+1] == RNNGparser.CLOSE:
+                        print('***')
                         return False
                 return True
             return False
