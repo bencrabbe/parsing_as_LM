@@ -781,6 +781,7 @@ class RNNGparser:
                         elt.config = self.nonterminal_action(C,action,loc_score)
                         elt.update_history()
                     elif action == RNNGparser.CLOSE:
+                        print(self.pretty_print_configuration(C))
                         elt.config = self.close_action(C,loc_score)
                         elt.update_history(RNNGparser.CLOSE)
                     elif action == RNNGparser.OPEN:
