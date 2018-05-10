@@ -725,7 +725,7 @@ class RNNGparser:
         This parses a sentence with word sync beam search.
         The beam search assumes the number of structural actions between two words to be bounded 
         @param tokens: the sentence tokens
-        @param all_beam_size: size of the structural beam
+        @param this_beam_size: size of the structural beam
         @param lex_beam_size: size of the lexical beam
         @param kbest: max number of parses returned (actual number is bounded by lex_beam_size)
         @param ref_tree: if provided return an eval against ref_tree rather than a parse tree
@@ -761,6 +761,7 @@ class RNNGparser:
                             fringe.append(BeamElement(elt,action,loc_score))
                 fringe.sort(key=lambda x:BeamElement.figure_of_merit(x),reverse=True)
                 fringe = fringe[:this_beam_size]
+                this_beam = []
                 for elt in fringe:
                     loc_score = elt.local_score
                     action    = elt.incoming_action
@@ -773,30 +774,30 @@ class RNNGparser:
                     elif action == RNNGparser.TERMINATE:
                         elt.config = C
                         elt.update_history( RNNGparser.TERMINATE )
-                        next_beam.append(elt)
+                        this_beam.append(elt)
                     elif lab_state == RNNGparser.NT_LABEL:
                         elt.config = self.nonterminal_action(C,action,loc_score)
                         elt.update_history()
-                        next_beam.append(elt)
+                        this_beam.append(elt)
                     elif action == RNNGparser.CLOSE:
                         elt.config = self.close_action(C,loc_score)
                         elt.update_history(RNNGparser.CLOSE)
-                        next_beam.append(elt)
+                        this_beam.append(elt)
                     elif action == RNNGparser.OPEN:
                         elt.config = self.open_action(C,loc_score)
                         elt.update_history(RNNGparser.OPEN)
-                        next_beam.append(elt)
+                        this_beam.append(elt)
                     elif action == RNNGparser.SHIFT:
                         elt.config = self.shift_action(C,loc_score)
                         elt.update_history(RNNGparser.SHIFT)
-                        next_beam.append(elt)
-
-                this_beam = next_beam
-
+                        this_beam.append(elt)
+            next_beam.sort(key=lambda x:BeamElement.figure_of_merit(x),reverse=True)
+            next_beam = next_beam[:lex_beam_size]
+                
         results = []
-        for k in range(min(kbest,len(this_beam))): #K-best results 
+        for k in range(min(kbest,len(next_beam))): #K-best results 
             #backtrace
-            current    = this_beam[k]
+            current    = next_beam[k]
             print(self.pretty_print_configuration(current.config))
             _,_,_,_,_,prefix_score = current.config
             best_deriv = [current.incoming_action]
