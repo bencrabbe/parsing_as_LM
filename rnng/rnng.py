@@ -1032,6 +1032,7 @@ class RNNGparser:
         dy.renew_cg()
         tokens              = ref_tree.tokens()
         ref_derivation,_,_  = self.oracle_derivation(self.init_configuration(len(tokens)),ref_tree,tokens,['<init>'])
+        print(ref_derivation)
         step, max_step      = (0,len(ref_derivation))
         C                   = self.init_configuration(len(tokens))
         struct_history      = ['<init>']
@@ -1407,6 +1408,7 @@ if __name__ == '__main__':
         else:
 
             t0  = ConsTree.read_tree('(S (NP Le chat ) (XP (VP (V dort))))')
+            t0  = ConsTree.read_tree("(S (PRN (S (VP See))) , (NP (NP the other rule) (PP of (NP thumb)) (PP about (NP ballooning))) (VP is (SBAR that (S (NP you) (VP ca n't (VP steer))))) .)") 
             t  = ConsTree.read_tree('(S (NP Le chat ) (VP mange  (NP la souris)))')
             t2 = ConsTree.read_tree('(S (NP Le chat ) (VP voit  (NP le chien) (PP sur (NP le paillasson))))')
             t3 = ConsTree.read_tree('(S (NP La souris (Srel qui (VP dort (PP sur (NP le paillasson))))) (VP sera mangée (PP par (NP le chat ))))')
