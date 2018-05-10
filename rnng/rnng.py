@@ -761,7 +761,7 @@ class RNNGparser:
                         for action,loc_score in preds_distrib:
                             fringe.append(BeamElement(elt,action,loc_score))
                 #fast track
-                ft = [elt for elt in fringe if elt.config[4] == RNNGparser.WORD_LABEL]
+                ft = [elt for elt in fringe if elt.prev_element.config[4] == RNNGparser.WORD_LABEL]
                 ft.sort(key=lambda x:BeamElement.figure_of_merit(x),reverse=True)
                 ft = ft[:fast_track_size]
                 next_beam.extend(ft)
