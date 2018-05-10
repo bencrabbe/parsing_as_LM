@@ -767,7 +767,7 @@ class RNNGparser:
                 next_beam.extend(ft)
                 #print(len(ft))
                 #print(len(this_beam))
-                this_beam = [elt for elt in this_beam if not elt in ft]
+                fringe = [elt for elt in fringe if not elt in ft]
                 #print(len(this_beam))
                 #print('---')
                 
