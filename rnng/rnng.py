@@ -764,8 +764,10 @@ class RNNGparser:
                 ft = [elt for elt in this_beam if elt.config[4] == RNNGparser.WORD_LABEL]
                 ft.sort(key=lambda x:BeamElement.figure_of_merit(x),reverse=True)
                 ft = ft[:fast_track_size]
+                next_beam.extend(ft)
                 this_beam = [elt for elt in this_beam if not elt in ft]
-                            
+
+                #pruning fringe and adding
                 fringe.sort(key=lambda x:BeamElement.figure_of_merit(x),reverse=True)
                 fringe    = fringe[:this_beam_size]
                 this_beam = [ ]
