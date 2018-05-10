@@ -747,7 +747,9 @@ class RNNGparser:
         next_lex_beam = [ ]
         
         for idx in range(len(tokens) + 1):
+            print('widx',idx)
             while all_beam:
+                print('------------')
                 next_all_beam = []
                 for elt in all_beam:
                     C = elt.config
@@ -756,15 +758,15 @@ class RNNGparser:
                     #dispatch predicted items on relevant beams
                     if lab_state == RNNGparser.WORD_LABEL:
                         action,loc_score = preds_distrib[0]
-                        #print(action,loc_score)
+                        print(action,loc_score)
                         next_lex_beam.append(BeamElement(elt,action,loc_score))
                     elif lab_state == RNNGparser.NT_LABEL:
                         for action,loc_score in preds_distrib:
-                            #print(action,loc_score)
+                            print(action,loc_score)
                             next_all_beam.append(BeamElement(elt,action,loc_score))
                     else:
                         for action,loc_score in preds_distrib:
-                            #print(action,loc_score,self.pretty_print_configuration(C))
+                            print(action,loc_score,self.pretty_print_configuration(C))
                             if action == RNNGparser.TERMINATE:
                                 next_lex_beam.append(BeamElement(elt, action,loc_score))
                             else:
