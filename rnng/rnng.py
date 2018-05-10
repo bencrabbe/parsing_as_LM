@@ -791,7 +791,7 @@ class RNNGparser:
                         elt.config = self.shift_action(C,loc_score)
                         elt.update_history(RNNGparser.SHIFT)
                         this_beam.append(elt)
-                    print(action,elt.config)
+                    print(action,self.pretty_print_configuration(elt.config))
             next_beam.sort(key=lambda x:BeamElement.figure_of_merit(x),reverse=True)
             next_beam = next_beam[:lex_beam_size]
                 
