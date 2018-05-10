@@ -749,21 +749,26 @@ class RNNGparser:
             next_beam = [ ]
             #print('widx',idx,'B',len( this_beam )) 
             while this_beam and len(next_beam) < lex_beam_size:
-                fringe    = [ ] 
+                fringe  = [ ] 
                 for elt in this_beam:
                     C = elt.config
                     _,_,_,_,lab_state,prefix_score = C
                     preds_distrib = self.predict_action_distrib(C,elt.structural_history,tokens)
-                    #dispatch predicted items on relevant beams
                     if lab_state == RNNGparser.WORD_LABEL:
                         action,loc_score = preds_distrib[0]
                         fringe.append(BeamElement(elt,action,loc_score))
                     else:
                         for action,loc_score in preds_distrib:
                             fringe.append(BeamElement(elt,action,loc_score))
+                #fast track
+                ft = [elt for elt in this_beam if elt.config[4] == RNNGparser.WORD_LABEL]
+                ft.sort(key=lambda x:BeamElement.figure_of_merit(x),reverse=True)
+                ft = ft[:fast_track_size]
+                this_beam = [elt for elt in this_beam if not elt in ft]
+                            
                 fringe.sort(key=lambda x:BeamElement.figure_of_merit(x),reverse=True)
                 fringe    = fringe[:this_beam_size]
-                this_beam = []
+                this_beam = [ ]
                 for elt in fringe:
                     loc_score = elt.local_score
                     action    = elt.incoming_action
