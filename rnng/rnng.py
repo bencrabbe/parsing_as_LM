@@ -430,8 +430,6 @@ class RNNGparser:
         @return a configuration resulting from closing the current constituent
         """
         S,B,n,stack_state,lab_state,score = configuration
-        print('n',n)
-
         assert( n > 0 )
         
         #Finds the closest predicted constituent in the stack and backtracks the stack lstm.
@@ -781,18 +779,8 @@ class RNNGparser:
                         elt.config = self.nonterminal_action(C,action,loc_score)
                         elt.update_history()
                     elif action == RNNGparser.CLOSE:
-                        print(action,self.pretty_print_configuration(C))
-                        try:
-                            elt.config = self.close_action(C,loc_score)
-                            elt.update_history(RNNGparser.CLOSE)
-                        except:
-                            print('err')
-                            E = elt.prev_element
-                            while E != None:
-                                print(E.incoming_action,self.pretty_print_configuration(E.config))
-                                E = E.prev_element
-                                
-                            exit(1)
+                        elt.config = self.close_action(C,loc_score)
+                        elt.update_history(RNNGparser.CLOSE)
                     elif action == RNNGparser.OPEN:
                         elt.config = self.open_action(C,loc_score)
                         elt.update_history(RNNGparser.OPEN)
