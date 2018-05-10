@@ -844,6 +844,7 @@ class RNNGparser:
         for k in range(min(kbest,len(all_beam))): #K-best results 
             #backtrace
             current    = all_beam[k]
+            print(self.pretty_print_configuration(current.config))
             _,_,_,_,_,prefix_score = current.config
             best_deriv = [current.incoming_action]
             best_probs  = [prefix_score]
