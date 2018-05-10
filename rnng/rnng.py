@@ -430,6 +430,8 @@ class RNNGparser:
         @return a configuration resulting from closing the current constituent
         """
         S,B,n,stack_state,lab_state,score = configuration
+        print('n',n)
+
         assert( n > 0 )
         
         #Finds the closest predicted constituent in the stack and backtracks the stack lstm.
