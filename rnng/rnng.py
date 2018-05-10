@@ -443,8 +443,7 @@ class RNNGparser:
                 rev_children.append(S.pop())
                 stack_state = stack_state.prev()
         stack_state = stack_state.prev()
-        #root_symbol = S[root_idx].copy()
-        root_symbol = S[-1]
+        root_symbol = S[-1].copy()
         root_symbol.complete()
         children    = list(reversed(rev_children))
 
