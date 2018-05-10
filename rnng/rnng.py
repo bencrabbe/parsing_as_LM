@@ -768,7 +768,7 @@ class RNNGparser:
                             next_all_beam.append(BeamElement(elt,action,loc_score))
                     else:
                         for action,loc_score in preds_distrib:
-                            #print(action,loc_score)
+                            print(action,loc_score)
                             if action == RNNGparser.TERMINATE:
                                 next_lex_beam.append(BeamElement(elt, action,loc_score))
                             else:
