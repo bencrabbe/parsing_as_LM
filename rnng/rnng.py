@@ -793,7 +793,7 @@ class RNNGparser:
                         elt.config = self.shift_action(C,loc_score)
                         elt.update_history(RNNGparser.SHIFT)
                         this_beam.append(elt)
-                    print(action,self.pretty_print_configuration(elt.config))
+                    #print(action,self.pretty_print_configuration(elt.config))
             next_beam.sort(key=lambda x:BeamElement.figure_of_merit(x),reverse=True)
             next_beam = next_beam[:lex_beam_size]
                 
@@ -801,20 +801,20 @@ class RNNGparser:
         for k in range(min(kbest,len(next_beam))): #K-best results 
             #backtrace
             current    = next_beam[k]
-            print(self.pretty_print_configuration(current.config))
+            #print(self.pretty_print_configuration(current.config))
             _,_,_,_,_,prefix_score = current.config
             best_deriv = [current.incoming_action]
             best_probs  = [prefix_score]
             while current.prev_element != None:
-                print(current.incoming_action)
+                #print(current.incoming_action)
                 current = current.prev_element
                 _,_,_,_,_,prefix_score = current.config
-                print(self.pretty_print_configuration(current.config))
+                #print(self.pretty_print_configuration(current.config))
                 best_deriv.append(current.incoming_action)
                 best_probs.append(prefix_score)
             best_deriv.reverse()
             best_probs.reverse()
-            print(best_deriv)
+            #print(best_deriv)
             pred_tree = RNNGparser.derivation2tree(best_deriv,tokens)
             pred_tree.expand_unaries()
             if pred_tree.is_leaf():#for single word sentences it is likely to fail -> recovery
