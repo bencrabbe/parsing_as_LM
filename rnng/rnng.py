@@ -760,15 +760,15 @@ class RNNGparser:
                     #dispatch predicted items on relevant beams
                     if lab_state == RNNGparser.WORD_LABEL:
                         action,loc_score = preds_distrib[0]
-                        print(action,loc_score)
+                        #print(action,loc_score)
                         next_lex_beam.append(BeamElement(elt,action,loc_score))
                     elif lab_state == RNNGparser.NT_LABEL:
                         for action,loc_score in preds_distrib:
-                            print(action,loc_score)
+                            #print(action,loc_score)
                             next_all_beam.append(BeamElement(elt,action,loc_score))
                     else:
                         for action,loc_score in preds_distrib:
-                            print(action,loc_score)
+                            #print(action,loc_score)
                             if action == RNNGparser.TERMINATE:
                                 next_lex_beam.append(BeamElement(elt, action,loc_score))
                             else:
