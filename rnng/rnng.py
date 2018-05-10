@@ -1224,7 +1224,7 @@ if __name__ == '__main__':
             tags  = [elt.label for elt in wordsXtags]
             print(tree.tokens())
 
-            print(p.parse_sentence(words)         
+            print(p.parse_sentence(words))         
 
             result = p.beam_parse(words,all_beam_size=struct_beam,lex_beam_size=lex_beam,tracker=parse_tracker,kbest=kbest)
             for elt in result:
