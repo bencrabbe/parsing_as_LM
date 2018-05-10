@@ -748,8 +748,8 @@ class RNNGparser:
         
         for idx in range(len(tokens) + 1):
             print('widx',idx)
-            if idx > 1:
-                exit(1)
+            #if idx > 1:
+            #    exit(1)
             while all_beam:
                 print('-------')
                 next_all_beam = []
