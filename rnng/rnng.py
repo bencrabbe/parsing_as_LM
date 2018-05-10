@@ -436,7 +436,6 @@ class RNNGparser:
         
         #Finds the closest predicted constituent in the stack and backtracks the stack lstm.
         rev_children = []
-        S = S[:]
         for symbol in reversed(S):
             if symbol.status == StackSymbol.PREDICTED:
                 break
@@ -784,8 +783,17 @@ class RNNGparser:
                         elt.update_history()
                     elif action == RNNGparser.CLOSE:
                         print(self.pretty_print_configuration(C))
-                        elt.config = self.close_action(C,loc_score)
-                        elt.update_history(RNNGparser.CLOSE)
+                        try:
+                            elt.config = self.close_action(C,loc_score)
+                            elt.update_history(RNNGparser.CLOSE)
+                        except:
+                            print('err')
+                            E = elt
+                            while E != None:
+                                print(self.pretty_print_configuration(E.config))
+                                E = E.prev_element
+                                
+                            exit(1)
                     elif action == RNNGparser.OPEN:
                         elt.config = self.open_action(C,loc_score)
                         elt.update_history(RNNGparser.OPEN)
