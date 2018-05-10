@@ -748,7 +748,7 @@ class RNNGparser:
         next_lex_beam = [ ]
 
         fast_track = [ ]
-        fast_track_size = int(struct_beam_size / 100)
+        fast_track_size = int(all_beam_size / 100)
         
         for idx in range(len(tokens) + 1):
             print('widx',idx)
