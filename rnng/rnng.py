@@ -739,12 +739,12 @@ class RNNGparser:
         start.config = self.init_configuration(len(tokens))
         start.structural_history = ['init']
         
-        this_beam     = [ start ]
-        next_beam     = [ ]
+        next_beam     = [ start ]
         fast_track_size = int(this_beam_size / 100)
     
         for idx in range(len(tokens) + 1):
             print('widx',idx)
+            this_beam = next_beam
             next_beam = [ ]
             while this_beam and len(this_beam) < lex_beam_size:
                 fringe    = [ ] 
