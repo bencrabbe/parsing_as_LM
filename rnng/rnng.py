@@ -750,7 +750,7 @@ class RNNGparser:
         for idx in range(len(tokens) + 1):
             print('widx',idx)
             #while all_beam:
-            while next_lex_beam < lex_beam_size and all_beam:
+            while len(next_lex_beam) < lex_beam_size and all_beam:
                 print('------------')
                 next_all_beam = []
                 for elt in all_beam:
