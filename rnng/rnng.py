@@ -805,6 +805,7 @@ class RNNGparser:
             while current.prev_element != None:
                 current = current.prev_element
                 _,_,_,_,_,prefix_score = current.config
+                print(self.pretty_print_configuration(current.config))
                 best_deriv.append(current.incoming_action)
                 best_probs.append(prefix_score)
             best_deriv.reverse()
