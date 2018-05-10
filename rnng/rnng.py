@@ -764,6 +764,14 @@ class RNNGparser:
                 ft = [elt for elt in fringe if elt.prev_element.config[4] == RNNGparser.WORD_LABEL]
                 ft.sort(key=lambda x:BeamElement.figure_of_merit(x),reverse=True)
                 ft = ft[:fast_track_size]
+                for elt in ft:
+                    loc_score = elt.local_score
+                    action    = elt.incoming_action
+                    C         = elt.prev_element.config
+                    _,_,_,_,lab_state,prefix_score = C
+                    elt.config = self.word_action(C,tokens,loc_score)
+                    elt.update_history()
+                    next_beam.append(elt)
                 next_beam.extend(ft)
                 #print(len(ft))
                 #print(len(this_beam))
