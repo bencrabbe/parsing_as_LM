@@ -1361,7 +1361,7 @@ if __name__ == '__main__':
                     elt.add_gold_tags(tags)
                     print(elt,file=test_ostream,flush=True)
             print('*',flush=True,file=sys.stderr)
-            exit(1)
+            #exit(1)
             
         test_istream.close()
         test_ostream.close()
