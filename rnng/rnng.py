@@ -809,6 +809,7 @@ class RNNGparser:
                 best_probs.append(prefix_score)
             best_deriv.reverse()
             best_probs.reverse()
+            print(best_deriv)
             pred_tree = RNNGparser.derivation2tree(best_deriv,tokens)
             pred_tree.expand_unaries()
             if pred_tree.is_leaf():#for single word sentences it is likely to fail -> recovery
