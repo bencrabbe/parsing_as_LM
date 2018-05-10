@@ -786,6 +786,7 @@ class RNNGparser:
                 #prune and exec other actions
                 next_all_beam.sort(key=lambda x:BeamElement.figure_of_merit(x),reverse=True)
                 next_all_beam = next_all_beam[:all_beam_size]
+                all_beam = []
                 for elt in next_all_beam:#exec actions
                     loc_score = elt.local_score
                     action    = elt.incoming_action
@@ -796,15 +797,19 @@ class RNNGparser:
                     elif lab_state == RNNGparser.NT_LABEL:
                         elt.config = self.nonterminal_action(C,action,loc_score)
                         elt.update_history()
+                        all_beam.append(elt)
                     elif action == RNNGparser.CLOSE:
                         elt.config = self.close_action(C,loc_score)
                         elt.update_history(RNNGparser.CLOSE)
+                        all_beam.append(elt)
                     elif action == RNNGparser.OPEN:
                         elt.config = self.open_action(C,loc_score)
                         elt.update_history(RNNGparser.OPEN)
+                        all_beam.append(elt)
                     elif action == RNNGparser.SHIFT:
                         elt.config = self.shift_action(C,loc_score)
                         elt.update_history(RNNGparser.SHIFT)
+                        all_beam.append(elt)
                     else:
                         print('bug beam exec struct actions')
                 all_beam = next_all_beam
