@@ -743,9 +743,9 @@ class RNNGparser:
         fast_track_size = int(this_beam_size / 100)
     
         for idx in range(len(tokens) + 1):
-            print('widx',idx)
             this_beam = next_beam
             next_beam = [ ]
+            print('widx',idx,'B',len( this_beam)) 
             while this_beam and len(this_beam) < lex_beam_size:
                 fringe    = [ ] 
                 for elt in this_beam:
