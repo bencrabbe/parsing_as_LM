@@ -820,15 +820,15 @@ class RNNGparser:
         for k in range(min(kbest,len(next_beam))): #K-best results 
             #backtrace
             current    = next_beam[k]
-            #print(self.pretty_print_configuration(current.config))
+            print(self.pretty_print_configuration(current.config))
             _,_,_,_,_,prefix_score = current.config
             best_deriv = [current.incoming_action]
             best_probs  = [prefix_score]
             while current.prev_element != None:
-                #print(current.incoming_action)
+                print(current.incoming_action)
                 current = current.prev_element
                 _,_,_,_,_,prefix_score = current.config
-                #print(self.pretty_print_configuration(current.config))
+                print(self.pretty_print_configuration(current.config))
                 best_deriv.append(current.incoming_action)
                 best_probs.append(prefix_score)
             best_deriv.reverse()
@@ -1380,7 +1380,7 @@ if __name__ == '__main__':
                     elt.add_gold_tags(tags)
                     print(elt,file=test_ostream,flush=True)
             print('*',flush=True,file=sys.stderr)
-            #exit(1)
+            exit(1)
             
         test_istream.close()
         test_ostream.close()
