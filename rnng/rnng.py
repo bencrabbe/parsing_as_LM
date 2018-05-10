@@ -783,7 +783,7 @@ class RNNGparser:
                 fast_track.sort(key=lambda x:BeamElement.figure_of_merit(x),reverse=True)
                 fast_track = fast_track[:fast_track_size]
                 next_lex_beam.extend(fast_track)
-                #print('FT',len(next_lex_beam))
+                print('FT',len(next_lex_beam))
                 #prune and exec other actions
                 next_all_beam.sort(key=lambda x:BeamElement.figure_of_merit(x),reverse=True)
                 next_all_beam = next_all_beam[:all_beam_size]
