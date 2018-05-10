@@ -746,6 +746,9 @@ class RNNGparser:
         
         all_beam  = [ start ]
         next_lex_beam = [ ]
+
+        fast_track = [ ]
+        fast_track_size = int(struct_beam_size / 100)
         
         for idx in range(len(tokens) + 1):
             print('widx',idx)
@@ -761,7 +764,8 @@ class RNNGparser:
                     if lab_state == RNNGparser.WORD_LABEL:
                         action,loc_score = preds_distrib[0]
                         #print(action,loc_score)
-                        next_lex_beam.append(BeamElement(elt,action,loc_score))
+                        fast_track.append(BeamElement(elt,action,loc_score))
+                        #next_lex_beam.append(BeamElement(elt,action,loc_score))
                     elif lab_state == RNNGparser.NT_LABEL:
                         for action,loc_score in preds_distrib:
                             #print(action,loc_score)
@@ -770,10 +774,16 @@ class RNNGparser:
                         for action,loc_score in preds_distrib:
                             #print(action,loc_score,self.pretty_print_configuration(C))
                             if action == RNNGparser.TERMINATE:
-                                next_lex_beam.append(BeamElement(elt, action,loc_score))
+                                #next_lex_beam.append(BeamElement(elt, action,loc_score))
+                                fast_track.append(BeamElement(elt,action,loc_score))
                             else:
                                 next_all_beam.append(BeamElement(elt,action,loc_score))
-                #prune and exec actions
+
+                #fast track
+                fast_track.sort(key=lambda x:BeamElement.figure_of_merit(x),reverse=True)
+                fast_track = fast_track[:fast_track_size]
+                next_lex_beam.extend(fast_track)
+                #prune and exec other actions
                 next_all_beam.sort(key=lambda x:BeamElement.figure_of_merit(x),reverse=True)
                 next_all_beam = next_all_beam[:all_beam_size]
                 for elt in next_all_beam:#exec actions
@@ -781,7 +791,9 @@ class RNNGparser:
                     action    = elt.incoming_action
                     C         = elt.prev_element.config
                     _,_,_,_,lab_state,prefix_score = C
-                    if lab_state == RNNGparser.NT_LABEL:
+                    if lab_state == RNNGparser.WORD_LABEL or lab_state == RNNGparser.TERMINATE:
+                         next_lex_beam.append(elt)
+                    elif lab_state == RNNGparser.NT_LABEL:
                         elt.config = self.nonterminal_action(C,action,loc_score)
                         elt.update_history()
                     elif action == RNNGparser.CLOSE:
