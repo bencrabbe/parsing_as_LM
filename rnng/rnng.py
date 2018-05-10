@@ -788,7 +788,7 @@ class RNNGparser:
                             elt.update_history(RNNGparser.CLOSE)
                         except:
                             print('err')
-                            E = elt
+                            E = elt.prev_element
                             while E != None:
                                 print(self.pretty_print_configuration(E.config))
                                 E = E.prev_element
