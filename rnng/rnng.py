@@ -741,7 +741,7 @@ class RNNGparser:
         
         this_beam     = [ start ]
         next_beam     = [ ]
-        fast_track_size = int(all_beam_size / 100)
+        fast_track_size = int(this_beam_size / 100)
     
         for idx in range(len(tokens) + 1):
             print('widx',idx)
