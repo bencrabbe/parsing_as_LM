@@ -782,7 +782,7 @@ class RNNGparser:
                         elt.config = self.nonterminal_action(C,action,loc_score)
                         elt.update_history()
                     elif action == RNNGparser.CLOSE:
-                        print(self.pretty_print_configuration(C))
+                        print(action,self.pretty_print_configuration(C))
                         try:
                             elt.config = self.close_action(C,loc_score)
                             elt.update_history(RNNGparser.CLOSE)
@@ -790,7 +790,7 @@ class RNNGparser:
                             print('err')
                             E = elt.prev_element
                             while E != None:
-                                print(self.pretty_print_configuration(E.config))
+                                print(E.incoming_action,self.pretty_print_configuration(E.config))
                                 E = E.prev_element
                                 
                             exit(1)
