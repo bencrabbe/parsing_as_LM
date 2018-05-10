@@ -478,9 +478,11 @@ class RNNGparser:
             """
             Returns true if the upper limit of unary branching is reached
             """
-            if len(history) >= 6:
+            if len(history) >= 8:
                 N = len(history)
-                for idx in range(N-6,N-1,2):
+                if history[N-1] != RNNGparser.OPEN:
+                        return False
+                for idx in range(N-7,N-2,2):
                     if history[idx] != RNNGparser.OPEN or history[idx+1] != RNNGparser.CLOSE:
                         return False
                 return True
@@ -737,6 +739,7 @@ class RNNGparser:
         """
 
         dy.renew_cg()
+        
         start = BeamElement(None,'init',0)
         start.config = self.init_configuration(len(tokens))
         start.structural_history = ['init']
