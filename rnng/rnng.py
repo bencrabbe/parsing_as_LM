@@ -36,8 +36,10 @@ class StackSymbol:
         return StackSymbol(self.symbol,self.status,self.embedding)
 
     def complete(self):
-        self.status = StackSymbol.COMPLETED
-         
+        c = self.copy()
+        c.status = StackSymbol.COMPLETED
+        return c
+    
     def __str__(self):
         s =  '*%s'%(self.symbol,) if self.status == StackSymbol.PREDICTED else '%s*'%(self.symbol,)
         return s
@@ -441,8 +443,8 @@ class RNNGparser:
                 rev_children.append(S.pop())
                 stack_state = stack_state.prev()
         stack_state = stack_state.prev()
-        root_symbol = S[-1].copy()
-        root_symbol.complete()
+        root_symbol = S[-1].complete()
+        S[-1] = root_symbol
         children    = list(reversed(rev_children))
 
         #compute the tree embedding with the tree_rnn
