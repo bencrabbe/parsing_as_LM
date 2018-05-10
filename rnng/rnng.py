@@ -765,6 +765,7 @@ class RNNGparser:
                         action,loc_score = preds_distrib[0]
                         #print(action,loc_score)
                         fast_track.append(BeamElement(elt,action,loc_score))
+                        next_all_beam.append(BeamElement(elt,action,loc_score))
                         #next_lex_beam.append(BeamElement(elt,action,loc_score))
                     elif lab_state == RNNGparser.NT_LABEL:
                         for action,loc_score in preds_distrib:
@@ -776,6 +777,7 @@ class RNNGparser:
                             if action == RNNGparser.TERMINATE:
                                 #next_lex_beam.append(BeamElement(elt, action,loc_score))
                                 fast_track.append(BeamElement(elt,action,loc_score))
+                                next_all_beam.append(BeamElement(elt,action,loc_score))
                             else:
                                 next_all_beam.append(BeamElement(elt,action,loc_score))
 
