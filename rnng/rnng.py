@@ -751,6 +751,7 @@ class RNNGparser:
             if idx > 1:
                 exit(1)
             while all_beam:
+                print('-------')
                 next_all_beam = []
                 for elt in all_beam:
                     C = elt.config
