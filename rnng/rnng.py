@@ -1349,7 +1349,7 @@ if __name__ == '__main__':
             print(tree.tokens())
             #print(p.parse_sentence(words))         
 
-            result = p.beam_parse(words,all_beam_size=struct_beam,lex_beam_size=lex_beam,tracker=parse_tracker,kbest=kbest)
+            result = p.beam_parse(words,this_beam_size=struct_beam,lex_beam_size=lex_beam,tracker=parse_tracker,kbest=kbest)
             for elt in result:
                 if elt:
                     elt.add_gold_tags(tags)
