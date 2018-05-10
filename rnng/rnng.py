@@ -765,11 +765,11 @@ class RNNGparser:
                 ft.sort(key=lambda x:BeamElement.figure_of_merit(x),reverse=True)
                 ft = ft[:fast_track_size]
                 next_beam.extend(ft)
-                print(len(ft))
-                print(len(this_beam))
+                #print(len(ft))
+                #print(len(this_beam))
                 this_beam = [elt for elt in this_beam if not elt in ft]
-                print(len(this_beam))
-                print('---')
+                #print(len(this_beam))
+                #print('---')
                 
                 #pruning fringe and adding
                 fringe.sort(key=lambda x:BeamElement.figure_of_merit(x),reverse=True)
