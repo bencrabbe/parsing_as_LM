@@ -1032,11 +1032,9 @@ class RNNGparser:
         @param ref_tree: a tree to train from
         @param monitor: a monitor for logging the training process
         """
-        print(ref_tree)
         dy.renew_cg()
         tokens              = ref_tree.tokens()
         ref_derivation,_,_  = self.oracle_derivation(self.init_configuration(len(tokens)),ref_tree,tokens,['<init>'])
-        print(ref_derivation)
         step, max_step      = (0,len(ref_derivation))
         C                   = self.init_configuration(len(tokens))
         struct_history      = ['<init>']
