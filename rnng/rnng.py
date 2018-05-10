@@ -719,6 +719,7 @@ class RNNGparser:
             C = configuration
             
         return C,struct_history        
+
    
     def beam_parse(self,tokens,all_beam_size,lex_beam_size,kbest=1,ref_tree=None,tracker=None,get_derivation=False):
         """
@@ -748,7 +749,8 @@ class RNNGparser:
         
         for idx in range(len(tokens) + 1):
             print('widx',idx)
-            while all_beam:
+            #while all_beam:
+            while next_lex_beam < lex_beam_size and all_beam:
                 print('------------')
                 next_all_beam = []
                 for elt in all_beam:
