@@ -745,7 +745,7 @@ class RNNGparser:
         for idx in range(len(tokens) + 1):
             this_beam = next_beam
             next_beam = [ ]
-            print('widx',idx,'B',len( this_beam)) 
+            print('widx',idx,'B',len( this_beam )) 
             while this_beam and len(next_beam) < lex_beam_size:
                 fringe    = [ ] 
                 for elt in this_beam:
@@ -760,7 +760,7 @@ class RNNGparser:
                         for action,loc_score in preds_distrib:
                             fringe.append(BeamElement(elt,action,loc_score))
                 fringe.sort(key=lambda x:BeamElement.figure_of_merit(x),reverse=True)
-                fringe = fringe[:this_beam_size]
+                fringe    = fringe[:this_beam_size]
                 this_beam = []
                 for elt in fringe:
                     loc_score = elt.local_score
@@ -774,7 +774,7 @@ class RNNGparser:
                     elif action == RNNGparser.TERMINATE:
                         elt.config = C
                         elt.update_history( RNNGparser.TERMINATE )
-                        this_beam.append(elt)
+                        next_beam.append(elt)
                     elif lab_state == RNNGparser.NT_LABEL:
                         elt.config = self.nonterminal_action(C,action,loc_score)
                         elt.update_history()
