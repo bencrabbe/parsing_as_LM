@@ -420,7 +420,6 @@ class RNNGparser:
         stack_state = stack_state.add_input(nonterminal_embedding)
         stack_state = stack_state.add_input(first_child.embedding)
         return (S[:-1] + [StackSymbol(X,StackSymbol.PREDICTED,nonterminal_embedding),first_child],B,n+1,stack_state,RNNGparser.NO_LABEL,score+local_score)
-
     
     def close_action(self,configuration,local_score):
         """
@@ -803,6 +802,7 @@ class RNNGparser:
             best_deriv = [current.incoming_action]
             best_probs  = [prefix_score]
             while current.prev_element != None:
+                print(current.incoming_action)
                 current = current.prev_element
                 _,_,_,_,_,prefix_score = current.config
                 print(self.pretty_print_configuration(current.config))
