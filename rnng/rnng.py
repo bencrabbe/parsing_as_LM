@@ -811,7 +811,6 @@ class RNNGparser:
                 else:
                     print('bug beam exec lex actions')
             all_beam = next_lex_beam
-            print('Lex',len(next_lex_beam))
             next_lex_beam = [ ]
             tracker.next_word()
         #parse failure management
