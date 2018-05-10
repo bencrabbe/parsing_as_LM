@@ -1203,7 +1203,7 @@ if __name__ == '__main__':
         r_cumS = 0
         p_cumS = 0
         N      = 0
-          
+    
         # for line in test_istream:
         #     ref_tree = ConsTree.read_tree(line)
         #     rL,pL = beam_search_debug(p,ref_tree,struct_beam,lex_beam,kbest,parse_tracker,RNNGparser.SHIFT)
@@ -1227,6 +1227,7 @@ if __name__ == '__main__':
                     elt.add_gold_tags(tags)
                     print(elt,file=test_ostream,flush=True)
             print('*',flush=True,file=sys.stderr)
+            exit(1)
             
         test_istream.close()
         test_ostream.close()
