@@ -436,10 +436,10 @@ class RNNGparser:
         
         #Finds the closest predicted constituent in the stack and backtracks the stack lstm.
         rev_children = []
+        S = S[:]
         for symbol in reversed(S):
             if symbol.status == StackSymbol.PREDICTED:
                 break
-                #root_idx = len(S)-idx-1
             else:
                 rev_children.append(S.pop())
                 stack_state = stack_state.prev()
@@ -448,7 +448,7 @@ class RNNGparser:
         root_symbol = S[-1]
         root_symbol.complete()
         children    = list(reversed(rev_children))
-        
+
         #compute the tree embedding with the tree_rnn
         nt_idx = self.nonterminals.index(root_symbol.symbol)
         NT_embedding = self.rnng_dropout(self.nt_embedding_matrix[nt_idx])
@@ -1223,9 +1223,6 @@ if __name__ == '__main__':
             words = [elt.get_child().label for elt in wordsXtags]
             tags  = [elt.label for elt in wordsXtags]
             print(tree.tokens())
-
-            print(p.parse_sentence(words))         
-
             result = p.beam_parse(words,all_beam_size=struct_beam,lex_beam_size=lex_beam,tracker=parse_tracker,kbest=kbest)
             for elt in result:
                 if elt:
