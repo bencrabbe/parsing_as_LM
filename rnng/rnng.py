@@ -747,7 +747,7 @@ class RNNGparser:
         for idx in range(len(tokens) + 1):
             this_beam = next_beam
             next_beam = [ ]
-            print('widx',idx,'B',len( this_beam )) 
+            #print('widx',idx,'B',len( this_beam )) 
             while this_beam and len(next_beam) < lex_beam_size:
                 fringe    = [ ] 
                 for elt in this_beam:
