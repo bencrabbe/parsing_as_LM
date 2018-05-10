@@ -463,7 +463,7 @@ class RNNGparser:
         W = dy.parameter(self.tree_rnn_out)
         b = dy.parameter(self.tree_rnn_bias)
         tree_embedding = self.rnng_dropout(dy.rectify(W * x + b))
-        return (S,B,n-1,stack_state.add_input(tree_embedding),RNNGparser.NO_LABEL,score+local_score)
+        return (S[:-1]+[root_symbol],B,n-1,stack_state.add_input(tree_embedding),RNNGparser.NO_LABEL,score+local_score)
 
     def restrict_structural_actions(self,configuration,structural_history):
         """ 
