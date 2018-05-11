@@ -244,6 +244,7 @@ class RNNGparser:
     
             if not RNNGparser.OPEN in [ self.actions[i] for i in self.restrict_structural_actions(config,struct_history) ]:
                 print('oracle unsound <open>',ref_tree)
+            print(ref_tree.label)
             config,struct_history    = self.move_state(sentence,config,struct_history,RNNGparser.OPEN,0)   
             config,struct_history    = self.move_state(sentence,config,struct_history,ref_tree.label,0)
             derivation.extend([RNNGparser.OPEN,ref_tree.label])
@@ -1049,7 +1050,6 @@ class RNNGparser:
         """
         dy.renew_cg()
         tokens              = ref_tree.tokens()
-        print(tokens)
         ref_derivation,_,_  = self.oracle_derivation(self.init_configuration(len(tokens)),ref_tree,tokens,['<init>'])
         step, max_step      = (0,len(ref_derivation))
         C                   = self.init_configuration(len(tokens))
