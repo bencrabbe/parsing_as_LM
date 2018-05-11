@@ -1049,7 +1049,7 @@ class RNNGparser:
         """
         dy.renew_cg()
         tokens              = ref_tree.tokens()
-    
+        print(tokens)
         ref_derivation,_,_  = self.oracle_derivation(self.init_configuration(len(tokens)),ref_tree,tokens,['<init>'])
         step, max_step      = (0,len(ref_derivation))
         C                   = self.init_configuration(len(tokens))
