@@ -154,7 +154,7 @@ def beam_search_debug(parser,ref_tree,all_beam_size,lex_beam_size,kbest,tracker,
             print("%s %f"%(str(pred_tree),ref_tree.compare(pred_tree)[2]),flush=True)
                     
     #Compares the best parse derivation with the reference annotation
-    ConsTree.close_unaries(ref_tree)
+    #ConsTree.close_unaries(ref_tree)
     ref_deriv,rprobs = parser.eval_sentence(ref_tree,get_derivation=True)
     pred_deriv,pprobs = results[0]
 
