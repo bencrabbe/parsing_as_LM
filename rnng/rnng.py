@@ -244,7 +244,6 @@ class RNNGparser:
     
             if not RNNGparser.OPEN in [ self.actions[i] for i in self.restrict_structural_actions(config,struct_history) ]:
                 print('oracle unsound <open>',ref_tree)
-            print(ref_tree.label)
             config,struct_history    = self.move_state(sentence,config,struct_history,RNNGparser.OPEN,0)   
             config,struct_history    = self.move_state(sentence,config,struct_history,ref_tree.label,0)
             derivation.extend([RNNGparser.OPEN,ref_tree.label])
@@ -825,15 +824,15 @@ class RNNGparser:
             best_deriv = [current.incoming_action]
             best_probs  = [prefix_score]
             while current.prev_element != None:
-                print(current.incoming_action)
+                #print(current.incoming_action)
                 current = current.prev_element
                 _,_,_,_,_,prefix_score = current.config
-                print(self.pretty_print_configuration(current.config))
+                #print(self.pretty_print_configuration(current.config))
                 best_deriv.append(current.incoming_action)
                 best_probs.append(prefix_score)
             best_deriv.reverse()
             best_probs.reverse()
-            print(best_deriv)
+            #print(best_deriv)
             pred_tree = RNNGparser.derivation2tree(best_deriv,tokens)
             pred_tree.expand_unaries()
             if pred_tree.is_leaf():#for single word sentences it is likely to fail -> recovery
