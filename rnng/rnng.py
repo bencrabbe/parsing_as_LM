@@ -690,7 +690,7 @@ class RNNGparser:
         loss       = -dy.pick(logprobs,ref_prediction)
         loss_val   = loss.value()
         best_pred  = np.argmax(logprobs.npvalue())
-        if lab_state == RNNGparser.NT_LABEL:
+        if lab_state == RNNGparser.NT_LABEL and conf_matrix:
             conf_matrix[ref_prediction,best_pred] += 1.0
         return loss_val,(best_pred==ref_prediction)
 
