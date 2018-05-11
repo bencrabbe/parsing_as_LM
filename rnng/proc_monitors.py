@@ -155,18 +155,20 @@ def beam_search_debug(parser,ref_tree,all_beam_size,lex_beam_size,kbest,tracker,
                     
     #Compares the best parse derivation with the reference annotation
     #ConsTree.close_unaries(ref_tree)
-    ref_deriv,rprobs = parser.eval_sentence(ref_tree,get_derivation=True)
-    pred_deriv,pprobs = results[0]
+    if results:
+        ref_deriv,rprobs = parser.eval_sentence(ref_tree,get_derivation=True)
+        pred_deriv,pprobs = results[0]
 
-    i = 0
-    for idx, elt in enumerate(pred_deriv):
-        if type(elt) == int:
-            pred_deriv[idx] = tokens[i]
-            i += 1
-    ref_sync  = word_sync_derivation(ref_deriv,rprobs,WORD_BREAK_ACTION)
-    pred_sync = word_sync_derivation(pred_deriv,pprobs,WORD_BREAK_ACTION)
-    compare_derivations(ref_sync,pred_sync)
-    return (len(ref_deriv),len(pred_deriv))
+        i = 0
+        for idx, elt in enumerate(pred_deriv):
+            if type(elt) == int:
+                pred_deriv[idx] = tokens[i]
+                i += 1
+        ref_sync  = word_sync_derivation(ref_deriv,rprobs,WORD_BREAK_ACTION)
+        pred_sync = word_sync_derivation(pred_deriv,pprobs,WORD_BREAK_ACTION)
+        compare_derivations(ref_sync,pred_sync)
+        return (len(ref_deriv),len(pred_deriv))
+    return(0,0)
     
 def word_sync_derivation(derivation,prob_sequence, WORD_BREAK_ACTION):
     """
