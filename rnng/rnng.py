@@ -752,7 +752,7 @@ class RNNGparser:
             next_beam = [ ]
             #print('widx',idx,'B',len( this_beam )) 
             while this_beam:# and len(next_beam) < lex_beam_size:
-                fringe  = [ ] 
+                fringe = [ ] 
                 for elt in this_beam:
                     C = elt.config
                     _,_,_,_,lab_state,prefix_score = C
@@ -776,11 +776,7 @@ class RNNGparser:
                     elt.update_history()
                     next_beam.append(elt)
                 next_beam.extend(ft)
-                #print(len(ft))
-                #print(len(this_beam))
                 fringe = [elt for elt in fringe if not elt in ft]
-                #print(len(this_beam))
-                #print('---')
                 
                 #pruning fringe and adding
                 fringe.sort(key=lambda x:BeamElement.figure_of_merit(x),reverse=True)
@@ -1360,29 +1356,29 @@ if __name__ == '__main__':
         p_cumS = 0
         N      = 0
     
-        # for line in test_istream:
-        #     ref_tree = ConsTree.read_tree(line)
-        #     rL,pL = beam_search_debug(p,ref_tree,struct_beam,lex_beam,kbest,parse_tracker,RNNGparser.SHIFT)
-        #     r_cumS += rL
-        #     p_cumS += pL
-        #     N      += 1
-        #     print("Derivations sizes: ref ", r_cumS/float(N), 'pred',p_cumS/float(N))
-            
-            
         for line in test_istream:
-            tree = ConsTree.read_tree(line)
-            wordsXtags = tree.pos_tags()
-            words = [elt.get_child().label for elt in wordsXtags]
-            tags  = [elt.label for elt in wordsXtags]
-            print(tree.tokens())
-            #print(p.parse_sentence(words))         
+            ref_tree = ConsTree.read_tree(line)
+            rL,pL = beam_search_debug(p,ref_tree,struct_beam,lex_beam,kbest,parse_tracker,RNNGparser.SHIFT)
+            r_cumS += rL
+            p_cumS += pL
+            N      += 1
+            print("Derivations sizes: ref ", r_cumS/float(N), 'pred',p_cumS/float(N))
+            
+            
+        # for line in test_istream:
+        #     tree = ConsTree.read_tree(line)
+        #     wordsXtags = tree.pos_tags()
+        #     words = [elt.get_child().label for elt in wordsXtags]
+        #     tags  = [elt.label for elt in wordsXtags]
+        #     print(tree.tokens())
+        #     #print(p.parse_sentence(words))         
 
-            result = p.beam_parse(words,this_beam_size=struct_beam,lex_beam_size=lex_beam,tracker=parse_tracker,kbest=kbest)
-            for elt in result:
-                if elt:
-                    elt.add_gold_tags(tags)
-                    print(elt,file=test_ostream,flush=True)
-            print('*',flush=True,file=sys.stderr)
+        #     result = p.beam_parse(words,this_beam_size=struct_beam,lex_beam_size=lex_beam,tracker=parse_tracker,kbest=kbest)
+        #     for elt in result:
+        #         if elt:
+        #             elt.add_gold_tags(tags)
+        #             print(elt,file=test_ostream,flush=True)
+        #     print('*',flush=True,file=sys.stderr)
         
             
         test_istream.close()
