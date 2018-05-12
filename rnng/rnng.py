@@ -745,25 +745,30 @@ class RNNGparser:
         start.structural_history = ['init']
         
         next_beam      = [ start ]
-        lex_track_size = max(1,int(this_beam_size / 100)) 
-        
+        fast_track_size = max(1,int(this_beam_size / 100))
+                
         for idx in range(len(tokens) + 1):
             this_beam = next_beam
             next_beam = [ ]
             while this_beam and len(next_beam) < this_beam_size:
                 fringe     = [ ]
                 lex_fringe = [ ]
+                fast_track = [ ]
                 for elt in this_beam:
                     C = elt.config
                     _,_,_,_,lab_state,prefix_score = C
                     preds_distrib = self.predict_action_distrib(C,elt.structural_history,tokens)
                     if lab_state == RNNGparser.WORD_LABEL:
                         action,loc_score = preds_distrib[0]
-                        fringe.append(BeamElement(elt,action,loc_score))
+                        fast_track.append(BeamElement(elt,action,loc_score))
                     else:
                         fringe.extend([BeamElement(elt,action,loc_score) for action,loc_score in preds_distrib])
+
+                fast_track.sort(key=lambda x:BeamElement.figure_of_merit(x),reverse=True)
+                fast_track = fast_track[:fast_track_size]
                 fringe.sort(key=lambda x:BeamElement.figure_of_merit(x),reverse=True)
-                fringe    = fringe[:this_beam_size]
+                fringe     = fringe[:this_beam_size-len(fast_track)]
+                fringe.extend(fast_track)
                 
                 #Actually exec actions and builds the successors
                 this_beam = []
