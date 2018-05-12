@@ -745,7 +745,7 @@ class RNNGparser:
         start.structural_history = ['init']
         
         next_beam      = [ start ]
-        lex_track_size = max(1,int(this_beam_size / 100)) #40?
+        lex_track_size = max(1,int(this_beam_size / 40)) 
         
         for idx in range(len(tokens) + 1):
             this_beam = next_beam
