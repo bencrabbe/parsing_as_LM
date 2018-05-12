@@ -726,6 +726,136 @@ class RNNGparser:
 
     def beam_parse(self,tokens,this_beam_size,lex_beam_size,kbest=1,ref_tree=None,tracker=None,get_derivation=False):
         """
+        This parses a sentence with word sync beam search and lex tracking.
+        The beam search assumes the number of structural actions between two words to be bounded 
+        @param tokens: the sentence tokens
+        @param this_beam_size: size of the structural beam
+        @param lex_beam_size: size of the lexical beam
+        @param kbest: max number of parses returned (actual number is bounded by lex_beam_size)
+        @param ref_tree: if provided return an eval against ref_tree rather than a parse tree
+        @param tracker: a tracker object instance, subclass of AbstractTracker.
+        @param get_derivation: returns a derivation or a tree
+        @return a list of either derivation, a ConsTree or some evaluation metrics. 
+        """
+
+        dy.renew_cg()
+        
+        start = BeamElement(None,'init',0)
+        start.config = self.init_configuration(len(tokens))
+        start.structural_history = ['init']
+        
+        next_beam      = [ start ]
+        lex_track_size = max(1,int(this_beam_size / 100))
+        
+        for idx in range(len(tokens) + 1):
+            this_beam = next_beam
+            next_beam = [ ]
+            while this_beam and len(next_beam) < lex_beam_size:
+                fringe     = [ ]
+                lex_fringe = [ ]
+                for elt in this_beam:
+                    C = elt.config
+                    _,_,_,_,lab_state,prefix_score = C
+                    preds_distrib = self.predict_action_distrib(C,elt.structural_history,tokens)
+                    if lab_state == RNNGparser.WORD_LABEL:
+                        action,loc_score = preds_distrib[0]
+                        next_beam.append(BeamElement(elt,action,loc_score))
+                    else:
+                        for action,loc_score in preds_distrib:
+                            if action == RNNGparser.SHIFT:
+                                lex_fringe.append(BeamElement(elt,action,loc_score))
+                            else:
+                                fringe.append(BeamElement(elt,action,loc_score))
+                lex_fringe.sort(key=lambda x:BeamElement.figure_of_merit(x),reverse=True)
+                lex_fringe    = lex_fringe[:lex_track_size]
+                fringe.extend(lex_fringe)
+                fringe.sort(key=lambda x:BeamElement.figure_of_merit(x),reverse=True)
+                fringe         = fringe[:this_beam_size]
+
+                #Actually exec actions and builds the successors
+                this_beam = []
+                for elt in fringe:
+                    loc_score = elt.local_score
+                    action    = elt.incoming_action
+                    C         = elt.prev_element.config
+                    _,_,_,_,lab_state,prefix_score = C
+                    #if lab_state == RNNGparser.WORD_LABEL:
+                    #    elt.config = self.word_action(C,tokens,loc_score)
+                    #    elt.update_history()
+                    #    next_beam.append(elt)
+                    if action == RNNGparser.TERMINATE:
+                        #elt.config = C
+                        #elt.update_history( RNNGparser.TERMINATE )
+                        next_beam.append(elt)
+                    elif lab_state == RNNGparser.NT_LABEL:
+                        elt.config = self.nonterminal_action(C,action,loc_score)
+                        elt.update_history()
+                        this_beam.append(elt)
+                    elif action == RNNGparser.CLOSE:
+                        elt.config = self.close_action(C,loc_score)
+                        elt.update_history(RNNGparser.CLOSE)
+                        this_beam.append(elt)
+                    elif action == RNNGparser.OPEN:
+                        elt.config = self.open_action(C,loc_score)
+                        elt.update_history(RNNGparser.OPEN)
+                        this_beam.append(elt)
+                    elif action == RNNGparser.SHIFT:
+                        elt.config = self.shift_action(C,loc_score)
+                        elt.update_history(RNNGparser.SHIFT)
+                        this_beam.append(elt)
+
+            #prune and fills the next_beam
+            next_beam.sort(key=lambda x:BeamElement.figure_of_merit(x),reverse=True)
+            next_beam = next_beam[:lex_beam_size]
+            for elt in next_beam:
+                loc_score = elt.local_score
+                action    = elt.incoming_action
+                C         = elt.prev_element.config
+                _,_,_,_,lab_state,prefix_score = C
+                if action == RNNGparser.TERMINATE:
+                    elt.config = C
+                    elt.update_history( RNNGparser.TERMINATE )
+                elif lab_state == RNNGparser.WORD_LABEL:
+                    elt.config = self.word_action(C,tokens,loc_score)
+                    elt.update_history()
+                else:
+                    print('beam search error')
+                    
+        results = []
+        for k in range(min(kbest,len(next_beam))): #K-best results 
+            #backtrace
+            current    = next_beam[k]
+            #print(self.pretty_print_configuration(current.config))
+            _,_,_,_,_,prefix_score = current.config
+            best_deriv = [current.incoming_action]
+            best_probs  = [prefix_score]
+            while current.prev_element != None:
+                #print(current.incoming_action)
+                current = current.prev_element
+                _,_,_,_,_,prefix_score = current.config
+                #print(self.pretty_print_configuration(current.config))
+                best_deriv.append(current.incoming_action)
+                best_probs.append(prefix_score)
+            best_deriv.reverse()
+            best_probs.reverse()
+            #print(best_deriv)
+            pred_tree = RNNGparser.derivation2tree(best_deriv,tokens)
+            pred_tree.expand_unaries()
+            if pred_tree.is_leaf():#for single word sentences it is likely to fail -> recovery
+                pred_tree = ConsTree("TOP",[pred_tree])
+            if ref_tree: #returns F-score etc instead of the tree)
+                results.append(ref_tree.compare(pred_tree))
+            elif get_derivation:
+                results.append((best_deriv,best_probs))
+            else:        #returns the tree
+                results.append(pred_tree)
+                
+        return results
+
+
+    
+    def beam_parse_lessold(self,tokens,this_beam_size,lex_beam_size,kbest=1,ref_tree=None,tracker=None,get_derivation=False):
+        """
         This parses a sentence with word sync beam search.
         The beam search assumes the number of structural actions between two words to be bounded 
         @param tokens: the sentence tokens
