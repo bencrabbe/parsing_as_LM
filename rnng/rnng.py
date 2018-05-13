@@ -552,7 +552,7 @@ class RNNGparser:
         @param w2filename: an external word embedding dictionary
         """
         actions_size = len(self.actions)
-       
+        
         #Model structure
         self.model                 = dy.ParameterCollection()
         #symbols & word embeddings (some setups may affect the structure of the network)
@@ -570,6 +570,12 @@ class RNNGparser:
             E = self.init_ext_embedding_matrix(W,M)
             self.lex_embedding_matrix = self.model.lookup_parameters_from_numpy(E)
 
+        #check geometry
+        if self.stack_embedding_size != self.char_hidden_size + self.word_embedding_size:
+            print('Warning : stack embedding size : %d is not the sum of char_hidden_size and word_embedding_size'%(self.stack_embedding_size))
+            print('Resizing it to %d'%(self.char_hidden_size+self.word_embedding_size,))
+            self.stack_embedding_size = self.char_hidden_size+self.word_embedding_size
+            
         #top level task predictions
         self.struct_out             = self.model.add_parameters((actions_size,self.stack_hidden_size),init='glorot')          #struct action output layer
         self.struct_bias            = self.model.add_parameters((actions_size),init='glorot')
@@ -735,7 +741,7 @@ class RNNGparser:
         loss       = -dy.pick(logprobs,ref_prediction)
         loss_val   = loss.value()
         best_pred  = np.argmax(logprobs.npvalue())
-        if lab_state == RNNGparser.NT_LABEL and conf_matrix:
+        if lab_state == RNNGparser.NT_LABEL and not conf_matrix is None:
             conf_matrix[ref_prediction,best_pred] += 1.0
         return loss_val,(best_pred==ref_prediction)
 
@@ -811,9 +817,9 @@ class RNNGparser:
                         fringe.extend([BeamElement(elt,action,loc_score) for action,loc_score in preds_distrib])
 
                 fast_track.sort(key=lambda x:BeamElement.figure_of_merit(x),reverse=True)
-                fast_track = fast_track[:fast_track_size]
+                del fast_track[fast_track_size:]
                 fringe.sort(key=lambda x:BeamElement.figure_of_merit(x),reverse=True)
-                fringe     = fringe[:this_beam_size-len(fast_track)]
+                del fringe[this_beam_size-len(fast_track):]
                 fringe.extend(fast_track)
                 
                 #Actually exec actions and builds the successors
@@ -850,7 +856,7 @@ class RNNGparser:
 
             #prune and fills the next_beam
             next_beam.sort(key=lambda x:BeamElement.figure_of_merit(x),reverse=True)
-            next_beam = next_beam[:lex_beam_size]
+            del next_beam[lex_beam_size:]
             for elt in next_beam:
                 loc_score = elt.local_score
                 action    = elt.incoming_action
