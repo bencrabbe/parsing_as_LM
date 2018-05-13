@@ -206,16 +206,26 @@ class RNNGparser:
     START_TOKEN   = '<START>'
 
     def __init__(self,max_vocabulary_size=10000,
-                 stack_embedding_size=50,
-                 stack_memory_size=50):
+                 stack_embedding_size=100,
+                 stack_memory_size=100,
+                 word_embedding_size=100,
+                 char_memory_size=50,
+                 char_embedding_size=25):
         """
-        @param max_vocabulary_size     : max number of words in the vocab
+        @param max_vocabulary_size     : max number of words in the lexical vocab
         @param stack_embedding_size    : size of stack lstm input 
         @param stack_memory_size       : size of the stack and tree lstm hidden layers
+        @param word_embedding_size     : size of word embeddings
+        @param char_embedding_size     : size of char lstm input 
+        @param char_memory_size        : size of the char lstm hidden layer
         """
         self.max_vocab_size       = max_vocabulary_size
         self.stack_embedding_size = stack_embedding_size
         self.stack_hidden_size    = stack_memory_size
+        self.word_embedding_size  = word_embedding_size
+        self.char_embedding_size  = char_embedding_size
+        self.char_hidden_size     = char_memory_size
+        
         self.dropout              = 0.0
         #Extras (brown lexicon and external embeddings)
         self.blex = None
@@ -309,11 +319,15 @@ class RNNGparser:
         @param max_vocab_size: the upper bound on the size of the vocabulary
         """
         lexicon = Counter()
+        charset = set([])
         for tree in treebank:
             sentence = tree.tokens(labels=True) 
             lexicon.update(sentence)
+            for word in sentence:
+                charset.update(list(word))
         self.lexicon = SymbolLexicon(lexicon,unk_word=RNNGparser.UNKNOWN_TOKEN,special_tokens=[RNNGparser.START_TOKEN],max_lex_size=max_vocab_size)
-        
+        self.charset = SymbolLexicon(charset,unk_word=RNNGparser.UNKNOWN_TOKEN,special_tokens=[RNNGparser.START_TOKEN])
+
     def code_nonterminals(self,treebank):
         """
         Extracts the nonterminals from a treebank.
@@ -385,12 +399,35 @@ class RNNGparser:
         @return a configuration resulting from shifting the next word into the stack 
         """
         S,B,n,stack_state,lab_state,score = configuration
-        #print(sentence[B[0]],self.lexicon.normal_wordform(sentence[B[0]]))
-        word_idx = self.lexicon.index(sentence[B[0]])  
+
+        wordform = sentence[B[0]]
+        
+        #char embeddings (bi-rnn)
+        sf =  self.fwd_char_rnn.init_state()
+        for char in wordform:
+            char_idx = self.charset.index(char)  
+            cE = dy.parameter(self.char_embedding_matrix)
+            sf = sf.add_input(cE[char_idx])
+            
+        sb =  self.bwd_char_rnn.init_state()
+        for char in reversed(wordform):
+            char_idx = self.charset.index(char)  
+            cE = dy.parameter(self.char_embedding_matrix)
+            sb = sb.add_input(cE[char_idx])
+    
+        W = dy.parameter(self.self.char_rnn_out)
+        b = dy.parameter(self.self.char_rnn_bias)
+        x = dy.concatenate([sf.output(),sb.ouptut()])
+        char_embedding = dy.rectify(W * x + b)
+            
+        #word embedding        
+        word_idx = self.lexicon.index(wordform)  
         E = dy.parameter(self.lex_embedding_matrix)
-        word_embedding = self.rnng_dropout(E[word_idx]) 
         word_embedding = self.rnng_nobackprop(word_embedding,sentence[B[0]]) #we do not want to backprop when using external embeddings
-        return (S + [StackSymbol(B[0],StackSymbol.COMPLETED,word_embedding)],B[1:],n,stack_state.add_input(word_embedding),RNNGparser.NO_LABEL,score+local_score)
+
+        #full word representation
+        embedding = self.rnng_dropout(dy.concatenate([word_embedding,char_embedding]))
+        return (S + [StackSymbol(B[0],StackSymbol.COMPLETED,embedding)],B[1:],n,stack_state.add_input(embedding),RNNGparser.NO_LABEL,score+local_score)
 
     def open_action(self,configuration,local_score):
         """
@@ -521,14 +558,14 @@ class RNNGparser:
         self.nt_embedding_matrix   = self.model.add_lookup_parameters((self.nonterminals.size(),self.stack_embedding_size),init='glorot') #symbols embeddings
 
         if not w2vfilename:
-            self.lex_embedding_matrix  = self.model.add_lookup_parameters((self.lexicon.size(),self.stack_embedding_size),init='glorot')
+            self.lex_embedding_matrix  = self.model.add_lookup_parameters((self.lexicon.size(),self.word_embedding_size),init='glorot')
         else :
             print('Using external embeddings.',flush=True)                                                          #word embeddings
             self.ext_embeddings       =  True
 
             W,M = RNNGparser.load_embedding_file(w2vfilename)
             embed_dim = M.shape[1]
-            self.stack_embedding_size = embed_dim
+            self.word_embedding_size = embed_dim
             E = self.init_ext_embedding_matrix(W,M)
             self.lex_embedding_matrix = self.model.lookup_parameters_from_numpy(E)
 
@@ -555,11 +592,12 @@ class RNNGparser:
         self.tree_rnn_bias         = self.model.add_parameters((self.stack_embedding_size),init='glorot')
 
         #char rnn
-        #self.fwd_char_rnn          = dy.LSTMBuilder(1,self.char_embedding_size, self.stack_embedding_size,self.model)                # bi-rnn for char embeddings
-        #self.bwd_char_rnn          = dy.LSTMBuilder(1,self.char_embedding_size, self.stack_embedding_size,self.model)
-        #self.char_rnn_out          = self.model.add_parameters((self.stack_embedding_size,self.char_embedding_size*2),init='glorot') # out layer merging the tree bi-rnn output
-        #self.char_rnn_bias         = self.model.add_parameters((self.stack_embedding_size),init='glorot')
-
+        self.fwd_char_rnn          = dy.LSTMBuilder(1,self.char_embedding_size, self.char_hidden_size,self.model)                # bi-rnn for char embeddings
+        self.bwd_char_rnn          = dy.LSTMBuilder(1,self.char_embedding_size, self.char_hidden_size,self.model)
+        self.char_rnn_out          = self.model.add_parameters((self.stack_embedding_size,self.char_hidden_size*2),init='glorot') # out layer merging the tree bi-rnn output
+        self.char_rnn_bias         = self.model.add_parameters((self.stack_embedding_size),init='glorot')
+        #char embeddings
+        self.char_embedding_matrix = self.model.add_lookup_parameters((self.charset.size(),self.char_embedding_size),init='glorot')
         
         
     def rnng_dropout(self,expr):
@@ -1237,6 +1275,7 @@ class RNNGparser:
         struct = json.loads(open(model_name+'.json').read())
         parser              = RNNGparser(stack_embedding_size = struct['stack_embedding_size'],stack_memory_size=struct['stack_hidden_size'])
         parser.lexicon      = SymbolLexicon.load(model_name+'.lex')
+        parser.charset      = SymbolLexicon.load(model_name+'.char')
         parser.nonterminals = SymbolLexicon.load(model_name+'.nt')
         try:
             parser.blex = BrownLexicon.load_clusters(model_name+'.cls')
@@ -1258,6 +1297,7 @@ class RNNGparser:
         
         self.model.save(model_name+'.prm')
         self.lexicon.save(model_name+'.lex')
+        self.charset.save(model_name+'.char')
         self.nonterminals.save(model_name+'.nt')
         if self.blex:
             self.blex.save_clusters(model_name+'.cls')
