@@ -1373,7 +1373,11 @@ if __name__ == '__main__':
             
         p = RNNGparser(max_vocabulary_size=TrainingParams.LEX_MAX_SIZE,\
                         stack_embedding_size=StructParams.STACK_EMB_SIZE,\
-                        stack_memory_size=StructParams.STACK_HIDDEN_SIZE)
+                        stack_memory_size=StructParams.STACK_HIDDEN_SIZE,\
+                        word_embedding_size=StructParams.WORD_EMBEDDING_SIZE,\
+                        char_memory_size=StructParams.CHAR_HIDDEN_SIZE,\
+                        char_embedding_size=StructParams.CHAR_EMB_SIZE)
+
         p.train_generative_model(model_name,\
                                  TrainingParams.NUM_EPOCHS,\
                                  train_treebank,\
