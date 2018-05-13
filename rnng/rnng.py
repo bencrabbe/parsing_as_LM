@@ -596,8 +596,8 @@ class RNNGparser:
         #char rnn
         self.fwd_char_rnn          = dy.LSTMBuilder(1,self.char_embedding_size, self.char_hidden_size,self.model)                # bi-rnn for char embeddings
         self.bwd_char_rnn          = dy.LSTMBuilder(1,self.char_embedding_size, self.char_hidden_size,self.model)
-        self.char_rnn_out          = self.model.add_parameters((self.stack_embedding_size,self.char_hidden_size*2),init='glorot') # out layer merging the tree bi-rnn output
-        self.char_rnn_bias         = self.model.add_parameters((self.stack_embedding_size),init='glorot')
+        self.char_rnn_out          = self.model.add_parameters((self.char_hidden_size,self.char_hidden_size*2),init='glorot') # out layer merging the tree bi-rnn output
+        self.char_rnn_bias         = self.model.add_parameters((self.char_hidden_size),init='glorot')
         #char embeddings
         self.char_embedding_matrix = self.model.add_lookup_parameters((self.charset.size(),self.char_embedding_size),init='glorot')
         
