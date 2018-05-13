@@ -416,8 +416,8 @@ class RNNGparser:
             cE = dy.parameter(self.char_embedding_matrix)
             sb = sb.add_input(cE[char_idx])
     
-        W = dy.parameter(self.self.char_rnn_out)
-        b = dy.parameter(self.self.char_rnn_bias)
+        W = dy.parameter(self.char_rnn_out)
+        b = dy.parameter(self.char_rnn_bias)
         x = dy.concatenate([sf.output(),sb.ouptut()])
         char_embedding = dy.rectify(W * x + b)
             
