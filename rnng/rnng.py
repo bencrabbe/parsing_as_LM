@@ -555,10 +555,10 @@ class RNNGparser:
         self.tree_rnn_bias         = self.model.add_parameters((self.stack_embedding_size),init='glorot')
 
         #char rnn
-        self.fwd_char_rnn          = dy.LSTMBuilder(1,self.char_embedding_size, self.stack_embedding_size,self.model)                # bi-rnn for char embeddings
-        self.bwd_char_rnn          = dy.LSTMBuilder(1,self.char_embedding_size, self.stack_embedding_size,self.model)
-        self.char_rnn_out          = self.model.add_parameters((self.stack_embedding_size,self.char_embedding_size*2),init='glorot') # out layer merging the tree bi-rnn output
-        self.char_rnn_bias         = self.model.add_parameters((self.stack_embedding_size),init='glorot')
+        #self.fwd_char_rnn          = dy.LSTMBuilder(1,self.char_embedding_size, self.stack_embedding_size,self.model)                # bi-rnn for char embeddings
+        #self.bwd_char_rnn          = dy.LSTMBuilder(1,self.char_embedding_size, self.stack_embedding_size,self.model)
+        #self.char_rnn_out          = self.model.add_parameters((self.stack_embedding_size,self.char_embedding_size*2),init='glorot') # out layer merging the tree bi-rnn output
+        #self.char_rnn_bias         = self.model.add_parameters((self.stack_embedding_size),init='glorot')
 
         
         
