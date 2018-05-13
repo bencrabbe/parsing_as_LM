@@ -8,7 +8,7 @@ That's a module for loading external param files
 class StructParams:
 
     STACK_EMB_SIZE      = 300 #INPUT to main RNN = either tree embedding or word+char embedding
-    STACK_HIDDEN_SIZE   = 256
+    STACK_HIDDEN_SIZE   = 150 #= word embedding + char hidden size
     WORD_EMBEDDING_SIZE = 100
     CHAR_EMB_SIZE       = 50
     CHAR_HIDDEN_SIZE    = 50

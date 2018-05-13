@@ -374,11 +374,16 @@ class RNNGparser:
         """
         stackS = self.stack_rnn.initial_state()
 
-        word_idx = self.lexicon.index(RNNGparser.START_TOKEN)
+        word_idx       = self.lexicon.index(RNNGparser.START_TOKEN)
         word_embedding = self.lex_embedding_matrix[word_idx]
         char_embedding = dy.vecInput(self.char_hidden_size)#no char embedding for start token
         char_embedding.set([0]*self.char_hidden_size)
-        stackS = stackS.add_input(dy.concatenate([word_embedding,char_embedding]))
+
+        
+        W =  
+        b = 
+        x =  dy.concatenate([word_embedding,char_embedding])
+        stackS = stackS.add_input(self.rnng_dropout(dy.rectify(W * x + b)))
 
         return ([],tuple(range(N)),0,stackS,RNNGparser.NO_LABEL,0.0)
 
