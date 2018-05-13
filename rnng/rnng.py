@@ -424,7 +424,7 @@ class RNNGparser:
         #word embedding        
         word_idx = self.lexicon.index(wordform)  
         E = dy.parameter(self.lex_embedding_matrix)
-        word_embedding = self.rnng_nobackprop(word_embedding,sentence[B[0]]) #we do not want to backprop when using external embeddings
+        word_embedding = self.rnng_nobackprop(E[word_idx],wordform) #we do not want to backprop when using external embeddings
 
         #full word representation
         embedding = self.rnng_dropout(dy.concatenate([word_embedding,char_embedding]))
