@@ -1220,7 +1220,6 @@ class RNNGparser:
         """
         Prints a summary of the parser structure
         """
-
         lexA =   self.blex.size() if self.blex else self.lexicon.size()
         print('Num Lexical actions     :',lexA,flush=True)
         print('Num NT actions          :',self.nonterminals.size(),flush=True)
@@ -1228,7 +1227,12 @@ class RNNGparser:
         print('Lexicon size            :',self.lexicon.size(),flush=True)
         print('Stack embedding size    :',self.stack_embedding_size,flush=True)
         print('Stack hidden size       :',self.stack_hidden_size,flush=True)
+        print('Word embedding size     :',self.word_embedding_size,flush=True)
+        print('Char embedding size     :',self.char_embedding_size,flush=True)
+        print('Char hidden size        :',self.char_hidden_size,flush=True)
+        print('Charset size            :',self.charset.size(),flush=True)
 
+        
     @staticmethod
     def load_embedding_file(w2vfilename):
         """
