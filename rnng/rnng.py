@@ -1071,7 +1071,7 @@ class RNNGparser:
             pred_action,score = self.predict_action_distrib(C,struct_history,tokens,max_only=True)
             deriv.append(pred_action)
             C,struct_history = self.move_state(tokens,C,struct_history,pred_action,score)
-            print(self.pretty_print_configuration(C))
+            #print(self.pretty_print_configuration(C))
         if get_derivation:
             return deriv
         return RNNGparser.derivation2tree(deriv,tokens)
