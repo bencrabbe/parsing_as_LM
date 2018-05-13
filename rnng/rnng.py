@@ -428,7 +428,6 @@ class RNNGparser:
 
         #full word representation
         embedding = self.rnng_dropout(dy.concatenate([word_embedding,char_embedding]))
-        print(embedding.npvalue().shape,char_embedding.npvalue().shape)
         return (S + [StackSymbol(B[0],StackSymbol.COMPLETED,embedding)],B[1:],n,stack_state.add_input(embedding),RNNGparser.NO_LABEL,score+local_score)
 
     def open_action(self,configuration,local_score):
