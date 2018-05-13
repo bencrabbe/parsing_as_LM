@@ -1476,7 +1476,10 @@ if __name__ == '__main__':
             TrainingParams.LEARNING_RATE = 0.1  
         p = RNNGparser(max_vocabulary_size=TrainingParams.LEX_MAX_SIZE,\
                         stack_embedding_size=StructParams.STACK_EMB_SIZE,\
-                        stack_memory_size=StructParams.STACK_HIDDEN_SIZE)
+                        stack_memory_size=StructParams.STACK_HIDDEN_SIZE,\
+                        word_embedding_size=StructParams.WORD_EMBEDDING_SIZE,\
+                        char_memory_size=StructParams.CHAR_HIDDEN_SIZE,\
+                        char_embedding_size=StructParams.CHAR_EMB_SIZE)
         p.train_generative_model('none',TrainingParams.NUM_EPOCHS,[t.copy() for t in train_treebank],[t.copy() for t in train_treebank],learning_rate=TrainingParams.LEARNING_RATE,dropout=TrainingParams.DROPOUT,cls_filename=brown_file,lex_embeddings_filename=embedding_file)
         dtracker = DefaultTracker('cog_stats.csv')
         for t in train_treebank:
