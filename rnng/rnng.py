@@ -424,10 +424,11 @@ class RNNGparser:
         #word embedding        
         word_idx = self.lexicon.index(wordform)  
         E = dy.parameter(self.lex_embedding_matrix)
-        word_embedding = self.rnng_nobackprop(E[word_idx],wordform) #we do not want to backprop when using external embeddings
+        word_embedding = self.rnng_nobackprop(E[word_idx],wordform) #we do not want to backprop on known words when using external embeddings
 
         #full word representation
         embedding = self.rnng_dropout(dy.concatenate([word_embedding,char_embedding]))
+        print(embedding.npvalue().shape)
         return (S + [StackSymbol(B[0],StackSymbol.COMPLETED,embedding)],B[1:],n,stack_state.add_input(embedding),RNNGparser.NO_LABEL,score+local_score)
 
     def open_action(self,configuration,local_score):
