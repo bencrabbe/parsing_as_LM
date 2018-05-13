@@ -378,13 +378,7 @@ class RNNGparser:
         word_embedding = self.lex_embedding_matrix[word_idx]
         char_embedding = dy.vecInput(self.char_hidden_size)#no char embedding for start token
         char_embedding.set([0]*self.char_hidden_size)
-
-        
-        W =  
-        b = 
-        x =  dy.concatenate([word_embedding,char_embedding])
-        stackS = stackS.add_input(self.rnng_dropout(dy.rectify(W * x + b)))
-
+        stackS = stackS.add_input(dy.concatenate([word_embedding,char_embedding]))
         return ([],tuple(range(N)),0,stackS,RNNGparser.NO_LABEL,0.0)
 
     def shift_action(self,configuration,local_score):
