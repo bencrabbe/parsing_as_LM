@@ -404,13 +404,13 @@ class RNNGparser:
         wordform = sentence[B[0]]
         
         #char embeddings (bi-rnn)
-        sf =  self.fwd_char_rnn.init_state()
+        sf =  self.fwd_char_rnn.initial_state()
         for char in wordform:
             char_idx = self.charset.index(char)  
             cE = dy.parameter(self.char_embedding_matrix)
             sf = sf.add_input(cE[char_idx])
             
-        sb =  self.bwd_char_rnn.init_state()
+        sb =  self.bwd_char_rnn.initial_state()
         for char in reversed(wordform):
             char_idx = self.charset.index(char)  
             cE = dy.parameter(self.char_embedding_matrix)
