@@ -1473,7 +1473,7 @@ if __name__ == '__main__':
             t2 = ConsTree.read_tree('(S (NP Le chat ) (VP voit  (NP le chien) (PP sur (NP le paillasson))))')
             t3 = ConsTree.read_tree('(S (NP La souris (Srel qui (VP dort (PP sur (NP le paillasson))))) (VP sera mangée (PP par (NP le chat ))))')
             train_treebank = [t0,t,t2,t3]
-            TrainingParams.LEARNING_RATE = 0.1
+            TrainingParams.LEARNING_RATE = 0.01
             TrainingParams.DROPOUT = 0.1
         p = RNNGparser(max_vocabulary_size=TrainingParams.LEX_MAX_SIZE,\
                         stack_embedding_size=StructParams.STACK_EMB_SIZE,\
