@@ -18,7 +18,7 @@ make_config(){
     echo "[learning]"                  >> $CNAME
     echo "lex_max_size  = 10000"       >> $CNAME
     echo "num_epochs    = $NUM_EPOCHS" >> $CNAME
-    echo "learning_rate = 0.01"        >> $CNAME
+    echo "learning_rate = 0.1"        >> $CNAME
     echo "dropout       = $5"          >> $CNAME
 }
 
@@ -30,5 +30,6 @@ train_brown(){
    source activate py36
    nohup python rnng.py -m $NAME/$NAME -t ptb_train.mrg -d -ptb_dev.mrg -b ptb-250.brown -c "$NAME/$NAME.prm" > "nohup.$NAME.out" & 
 }
-train_brown 150 200 100 0.3
-train_brown 250 300 200 0.3
+#train_brown 150 200 100 0.3
+#train_brown 250 300 200 0.3
+train_brown  150 250 100 0.3
