@@ -1286,7 +1286,11 @@ class RNNGparser:
         """            
         struct = json.loads(open(model_name+'.json').read())
         print(struct)
-        parser              = RNNGparser(stack_embedding_size = struct['stack_embedding_size'],stack_memory_size=struct['stack_hidden_size'])
+        #TODO : Load and SAVE all the params
+        parser              = RNNGparser(stack_embedding_size = struct['stack_embedding_size'],\
+                                        stack_memory_size     = struct['stack_hidden_size'],\
+                                        word_embedding_size   = StructParams.WORD_EMBEDDING_SIZE,\
+                                        char_embedding_size   = StructParams.CHAR_EMB_SIZE)
         parser.lexicon      = SymbolLexicon.load(model_name+'.lex')
         parser.charset      = SymbolLexicon.load(model_name+'.char')
         parser.nonterminals = SymbolLexicon.load(model_name+'.nt')
@@ -1399,9 +1403,9 @@ if __name__ == '__main__':
     #runs a test on raw text   
     elif model_name and raw_file:
         p = RNNGparser.load_model(model_name)
-        test_istream  = open(raw_file)
+        test_istream = open(raw_file)
         out_name = '.'.join(raw_file.split('.')[:-1]+['mrg'])
-        test_ostream  = open(model_name+'-'+out_name,'w') 
+        test_ostream = open(model_name+'-'+out_name,'w') 
         for line in test_istream:
             result = p.beam_parse(line.split(),all_beam_size=struct_beam,lex_beam_size=lex_beam,kbest=kbest)
             for elt in result:
