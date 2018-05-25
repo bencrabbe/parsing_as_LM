@@ -9,7 +9,7 @@ class StructParams:
 
     STACK_EMB_SIZE      = 150 #INPUT to main RNN = either tree embedding or word+char embedding
     STACK_HIDDEN_SIZE   = 200 #= word embedding + char hidden size
-    WORD_EMBEDDING_SIZE = 100
+    WORD_EMBEDDING_SIZE = 200
     CHAR_EMB_SIZE       = 50
     CHAR_HIDDEN_SIZE    = 50
     
