@@ -1284,6 +1284,7 @@ class RNNGparser:
         Loads the whole shebang and returns a parser.
         """            
         struct = json.loads(open(model_name+'.json').read())
+        print(struct)
         parser              = RNNGparser(stack_embedding_size = struct['stack_embedding_size'],stack_memory_size=struct['stack_hidden_size'])
         parser.lexicon      = SymbolLexicon.load(model_name+'.lex')
         parser.charset      = SymbolLexicon.load(model_name+'.char')
