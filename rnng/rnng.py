@@ -571,7 +571,6 @@ class RNNGparser:
             self.lex_embedding_matrix = self.model.lookup_parameters_from_numpy(E)
 
         #check geometry
-        print( self.stack_embedding_size, self.char_hidden_size,self.word_embedding_size)
         if self.stack_embedding_size != self.char_hidden_size + self.word_embedding_size:
             print('Warning : stack embedding size : %d is not the sum of char_hidden_size and word_embedding_size'%(self.stack_embedding_size))
             print('Resizing it to %d'%(self.char_hidden_size+self.word_embedding_size,))
