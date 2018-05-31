@@ -1183,7 +1183,7 @@ class RNNGparser:
         self.code_nonterminals(train_bank)
         self.code_struct_actions()
 
-        self.make_structure(lex_embeddings_filename)
+        self.make_structure(lex_embeddings_filename,brown_file=cls_filename)
         
         self.print_summary()
         print('---------------------------')
