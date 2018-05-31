@@ -228,9 +228,8 @@ class RNNGparser:
         
         self.dropout              = 0.0
         #Extras (brown lexicon and external embeddings)
-        self.blex = None
         self.ext_embeddings = False
-        #self.tied = False
+        self.cls_filename = None
 
     #oracle, derivation and trees
     def oracle_derivation(self,config,ref_tree,sentence,struct_history,root=True):
@@ -642,7 +641,7 @@ class RNNGparser:
             
             W = dy.parameter(self.lex_out)
             b = dy.parameter(self.lex_bias)
-            self.word_softmax.class_log_distribution(W * self.rnng_dropout(dy.rectify(stack_state.output())) + b)
+            return self.word_softmax.class_log_distribution(W * self.rnng_dropout(dy.rectify(stack_state.output())) + b)
 
         elif lab_state == RNNGparser.NT_LABEL:                             #generates a non terminal labelling
             W = dy.parameter(self.nt_out)
@@ -670,7 +669,7 @@ class RNNGparser:
         @return a list of (action,scores) or a single tuple if max_only is True
         """
         S,B,n,stack_state,lab_state,local_score = configuration
-        logprobs = self.raw_action_distrib(configuration,structural_history)
+        logprobs = self.raw_action_distrib(configuration, structural_history)
         if logprobs == None: #dead end
             if max_only:
                 print('sorry, parser trapped. aborting.')
@@ -678,7 +677,7 @@ class RNNGparser:
             return [] #in a beam context parsing can continue...
         logprobs = logprobs.npvalue()
         if lab_state == RNNGparser.WORD_LABEL:        
-            next_word = self.lexicon.index(sentence[B[0]]) if not self.blex else self.blex.index(sentence[B[0]])
+            next_word = self.lexicon.index(sentence[B[0]])
             score = logprobs[next_word]
             if max_only :
                 return (next_word,score)
@@ -706,7 +705,7 @@ class RNNGparser:
         logprobs = self.raw_action_distrib(configuration,structural_history)
 
         if lab_state == RNNGparser.WORD_LABEL:
-            ref_prediction = self.lexicon.index(ref_action) if not self.blex else self.blex.index(ref_action)
+            ref_prediction = self.lexicon.index(ref_action) 
         elif lab_state == RNNGparser.NT_LABEL:
             ref_prediction = self.nonterminals.index(ref_action)
         else:
@@ -731,7 +730,7 @@ class RNNGparser:
         logprobs = self.raw_action_distrib(configuration,structural_history)
 
         if lab_state == RNNGparser.WORD_LABEL:
-            ref_prediction = self.lexicon.index(ref_action) if not self.blex else self.blex.index(ref_action)        
+            ref_prediction = self.lexicon.index(ref_action) 
         elif lab_state == RNNGparser.NT_LABEL:
             ref_prediction = self.nonterminals.index(ref_action)
         else:
@@ -901,156 +900,6 @@ class RNNGparser:
                 
         return results
         
-    def beam_parse_very_old(self,tokens,all_beam_size,lex_beam_size,kbest=1,ref_tree=None,tracker=None,get_derivation=False):
-        """
-        This parses a sentence with word sync beam search.
-        The beam search assumes the number of structural actions between two words to be bounded 
-        @param tokens: the sentence tokens
-        @param all_beam_size: size of the structural beam
-        @param lex_beam_size: size of the lexical beam
-        @param kbest: max number of parses returned (actual number is bounded by lex_beam_size)
-        @param ref_tree: if provided return an eval against ref_tree rather than a parse tree
-        @param tracker: a tracker object instance, subclass of AbstractTracker.
-        @param get_derivation: returns a derivation or a tree
-        @return a list of either derivation, a ConsTree or some evaluation metrics. 
-        """
-        dy.renew_cg()
-        if tracker is None:
-            tracker = AbstractTracker()
-        tracker.set_known_vocabulary(self.lexicon.i2words)
-        tracker.next_sentence(tokens)
-        
-        start = BeamElement(None,'init',0)
-        start.config = self.init_configuration(len(tokens))
-        start.structural_history = ['init']
-        
-        all_beam  = [ start ]
-        next_lex_beam = [ ]
-
-        fast_track = [ ]
-        fast_track_size = int(all_beam_size / 100)
-        
-        for idx in range(len(tokens) + 1):
-            print('widx',idx)
-            while all_beam:
-            #while len(next_lex_beam) < lex_beam_size and all_beam:
-                print('------------')
-                next_all_beam = []
-                for elt in all_beam:
-                    C = elt.config
-                    _,_,_,_,lab_state,prefix_score = C
-                    preds_distrib = self.predict_action_distrib(C,elt.structural_history,tokens)
-                    #dispatch predicted items on relevant beams
-                    if lab_state == RNNGparser.WORD_LABEL:
-                        action,loc_score = preds_distrib[0]
-                        #print(action,loc_score)
-                        fast_track.append(BeamElement(elt,action,loc_score))
-                        next_all_beam.append(BeamElement(elt,action,loc_score))
-                        #next_lex_beam.append(BeamElement(elt,action,loc_score))
-                    elif lab_state == RNNGparser.NT_LABEL:
-                        for action,loc_score in preds_distrib:
-                            #print(action,loc_score)
-                            next_all_beam.append(BeamElement(elt,action,loc_score))
-                    else:
-                        for action,loc_score in preds_distrib:
-                            #print(action,loc_score,self.pretty_print_configuration(C))
-                            if action == RNNGparser.TERMINATE:
-                                #next_lex_beam.append(BeamElement(elt, action,loc_score))
-                                fast_track.append(BeamElement(elt,action,loc_score))
-                                next_all_beam.append(BeamElement(elt,action,loc_score))
-                            else:
-                                next_all_beam.append(BeamElement(elt,action,loc_score))
-
-                #fast track
-                fast_track.sort(key=lambda x:BeamElement.figure_of_merit(x),reverse=True)
-                fast_track = fast_track[:fast_track_size]
-                next_lex_beam.extend(fast_track)
-                print('FT',len(next_lex_beam))
-                #prune and exec other actions
-                next_all_beam.sort(key=lambda x:BeamElement.figure_of_merit(x),reverse=True)
-                next_all_beam = next_all_beam[:all_beam_size]
-                all_beam = []
-                for elt in next_all_beam:#exec actions
-                    loc_score = elt.local_score
-                    action    = elt.incoming_action
-                    C         = elt.prev_element.config
-                    _,_,_,_,lab_state,prefix_score = C
-                    if lab_state == RNNGparser.WORD_LABEL or lab_state == RNNGparser.TERMINATE:
-                         next_lex_beam.append(elt)
-                    elif lab_state == RNNGparser.NT_LABEL:
-                        elt.config = self.nonterminal_action(C,action,loc_score)
-                        elt.update_history()
-                        all_beam.append(elt)
-                    elif action == RNNGparser.CLOSE:
-                        elt.config = self.close_action(C,loc_score)
-                        elt.update_history(RNNGparser.CLOSE)
-                        all_beam.append(elt)
-                    elif action == RNNGparser.OPEN:
-                        elt.config = self.open_action(C,loc_score)
-                        elt.update_history(RNNGparser.OPEN)
-                        all_beam.append(elt)
-                    elif action == RNNGparser.SHIFT:
-                        elt.config = self.shift_action(C,loc_score)
-                        elt.update_history(RNNGparser.SHIFT)
-                        all_beam.append(elt)
-                    else:
-                        print('bug beam exec struct actions')
-                #all_beam = next_all_beam
-                
-            #Lex beam
-            next_lex_beam.sort(key=lambda x:BeamElement.figure_of_merit(x),reverse=True)
-            next_lex_beam = next_lex_beam[:lex_beam_size]
-            for elt in next_lex_beam:
-                loc_score     = elt.local_score
-                action        = elt.incoming_action
-                C             = elt.prev_element.config
-                _,_,_,_,lab_state,prefix_score = C
-                if lab_state == RNNGparser.WORD_LABEL:
-                    elt.config = self.word_action(C,tokens,loc_score)
-                    elt.update_history()
-                    tracker.log_beam_element(elt)
-                elif action == RNNGparser.TERMINATE:
-                    elt.config = C
-                    elt.update_history( RNNGparser.TERMINATE )
-                else:
-                    print('bug beam exec lex actions')
-            all_beam = next_lex_beam
-            next_lex_beam = [ ]
-            tracker.next_word()
-        #parse failure management
-        if not all_beam:
-            print('abort',file=sys.stderr,flush=True)
-            return None
-
-        #regular case
-        results = []
-        for k in range(min(kbest,len(all_beam))): #K-best results 
-            #backtrace
-            current    = all_beam[k]
-            print(self.pretty_print_configuration(current.config))
-            _,_,_,_,_,prefix_score = current.config
-            best_deriv = [current.incoming_action]
-            best_probs  = [prefix_score]
-            while current.prev_element != None:
-                current = current.prev_element
-                _,_,_,_,_,prefix_score = current.config
-                best_deriv.append(current.incoming_action)
-                best_probs.append(prefix_score)
-            best_deriv.reverse()
-            best_probs.reverse()
-            pred_tree = RNNGparser.derivation2tree(best_deriv,tokens)
-            pred_tree.expand_unaries()
-            if pred_tree.is_leaf():#for single word sentences it is likely to fail -> recovery
-                pred_tree = ConsTree("TOP",[pred_tree])
-            if ref_tree: #returns F-score etc instead of the tree)
-                results.append(ref_tree.compare(pred_tree))
-            elif get_derivation:
-                results.append((best_deriv,best_probs))
-            else:        #returns the tree
-                results.append(pred_tree)
-                
-        return results
-            
     def parse_sentence(self,tokens,get_derivation=False,oracle_tree=None):
         """
         Parses a sentence greedily. if a ref_tree is provided, return Prec,Rec
@@ -1070,7 +919,6 @@ class RNNGparser:
             pred_action,score = self.predict_action_distrib(C,struct_history,tokens,max_only=True)
             deriv.append(pred_action)
             C,struct_history = self.move_state(tokens,C,struct_history,pred_action,score)
-            #print(self.pretty_print_configuration(C))
         if get_derivation:
             return deriv
         return RNNGparser.derivation2tree(deriv,tokens)
@@ -1138,7 +986,6 @@ class RNNGparser:
         monitor.display_NLL_log(reset=True)
         monitor.display_ACC_log(reset=True)
 
-
         #On the fly debug
         print('NT confusion...')
         for idx,line in enumerate(conf_matrix):
@@ -1175,8 +1022,8 @@ class RNNGparser:
             
         if cls_filename:
             print("Using clusters")
-            self.blex = BrownLexicon.read_clusters(cls_filename,freq_thresh=1,UNK_SYMBOL=RNNGparser.UNKNOWN_TOKEN)
-            print(self.blex.display_summary())
+            self.cls_filename = cls_filename+".unk"
+            SymbolLexicon.unkify_brown_file(cls_filename,self.cls_filename,UNK_SYMBOL=RNNGparser.UNKNOWN_TOKEN)
 
         #Coding
         self.code_lexicon(train_bank,self.max_vocab_size)
@@ -1226,8 +1073,7 @@ class RNNGparser:
         """
         Prints a summary of the parser structure
         """
-        lexA =   self.blex.size() if self.blex else self.lexicon.size()
-        print('Num Lexical actions     :',lexA,flush=True)
+        print('Num Lexical actions     :',self.lexicon.size(),flush=True)
         print('Num NT actions          :',self.nonterminals.size(),flush=True)
         print('Num struct actions      :',len(self.actions),flush=True)
         print('Lexicon size            :',self.lexicon.size(),flush=True)
@@ -1284,21 +1130,18 @@ class RNNGparser:
         """            
         struct = json.loads(open(model_name+'.json').read())
         print(struct)
-        #TODO : Load and SAVE all the params
         parser              = RNNGparser(stack_embedding_size = struct['stack_embedding_size'],\
                                         stack_memory_size     = struct['stack_hidden_size'],\
                                         word_embedding_size   = StructParams.WORD_EMBEDDING_SIZE,\
-                                        char_embedding_size   = StructParams.CHAR_EMB_SIZE)
+                                        char_embedding_size   = StructParams.CHAR_EMB_SIZE,\)
+
+        parser.cls_filename = struct['cls_file']
         parser.lexicon      = SymbolLexicon.load(model_name+'.lex')
         parser.charset      = SymbolLexicon.load(model_name+'.char')
         parser.nonterminals = SymbolLexicon.load(model_name+'.nt')
-        try:
-            parser.blex = BrownLexicon.load_clusters(model_name+'.cls')
-        except FileNotFoundError:
-            print('No clusters found',file=sys.stderr)
-            parser.blex = None
+       
         parser.code_struct_actions()
-        parser.make_structure()
+        parser.make_structure(brow)
         parser.model.populate(model_name+".prm")
         return parser
     
@@ -1307,15 +1150,13 @@ class RNNGparser:
         Saves the whole shebang.
         """
         jfile = open(model_name+'.json','w')
-        jfile.write(json.dumps({'stack_embedding_size':self.stack_embedding_size,'stack_hidden_size':self.stack_hidden_size}))
+        jfile.write(json.dumps({'stack_embedding_size':self.stack_embedding_size,'stack_hidden_size':self.stack_hidden_size,'cls_file':self.cls_filename}))
         jfile.close()
         
         self.model.save(model_name+'.prm')
         self.lexicon.save(model_name+'.lex')
         self.charset.save(model_name+'.char')
         self.nonterminals.save(model_name+'.nt')
-        if self.blex:
-            self.blex.save_clusters(model_name+'.cls')
         
   
 if __name__ == '__main__':
