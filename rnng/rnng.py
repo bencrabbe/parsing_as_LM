@@ -1028,7 +1028,6 @@ class RNNGparser:
             SymbolLexicon.unkify_brown_file(cls_filename,self.cls_filename,UNK_SYMBOL=RNNGparser.UNKNOWN_TOKEN)
 
         #Coding
-        print('coding...',flush=True)
         self.code_lexicon(train_bank,self.max_vocab_size)
         self.code_nonterminals(train_bank)
         self.code_struct_actions()

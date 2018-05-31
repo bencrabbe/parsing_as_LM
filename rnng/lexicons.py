@@ -92,7 +92,7 @@ class SymbolLexicon:
     def unkify_brown_file(cls_filename,out_filename,UNK_SYMBOL='<UNK>'):
         istream = open(cls_filename)
         ostream = open(out_filename,'w')
-        s = istream.read() + '\n0\t%s\t%d'%(UNK_SYMBOL,1)
+        s = istream.read() + '0\t%s\t%d'%(UNK_SYMBOL,1)
         ostream.write(s)
         istream.close()
         ostream.close()
