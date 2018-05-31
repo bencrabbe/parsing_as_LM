@@ -31,5 +31,5 @@ train_brown(){
    nohup python rnng.py -m $NAME/$NAME -t ptb_train.mrg -d -ptb_dev.mrg -b ptb-250.brown -c "$NAME/$NAME.prm" > "nohup.$NAME.out" & 
 }
 #train_brown 150 200 100 0.3
-#train_brown 250 300 200 0.3
-train_brown  150 250 100 0.3
+train_brown 250 300 200 0.3
+#train_brown  150 250 100 0.3
