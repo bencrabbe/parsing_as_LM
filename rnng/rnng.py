@@ -1019,6 +1019,8 @@ class RNNGparser:
         for t in dev_bank:
             ConsTree.strip_tags(t)
             #ConsTree.close_unaries(t)
+
+        print('treebank read.',flush=True)
             
         if cls_filename:
             print("Using clusters",flush=True)
