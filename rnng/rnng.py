@@ -1021,7 +1021,7 @@ class RNNGparser:
             #ConsTree.close_unaries(t)
             
         if cls_filename:
-            print("Using clusters")
+            print("Using clusters",flush=True)
             self.cls_filename = cls_filename+".unk"
             SymbolLexicon.unkify_brown_file(cls_filename,self.cls_filename,UNK_SYMBOL=RNNGparser.UNKNOWN_TOKEN)
 
