@@ -88,7 +88,7 @@ class SymbolLexicon:
         ostream.write(json.dumps({'UNK':self.UNK ,'lex':self.i2words}))
         ostream.close()
 
-    @staticmethod():
+    @staticmethod
     def unkify_brown_file(cls_filename,out_filename,UNK_SYMBOL='<UNK>'):
         istream = open(cls_filename)
         ostream = open(out_filename,'w')
