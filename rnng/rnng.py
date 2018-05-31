@@ -1133,7 +1133,7 @@ class RNNGparser:
         parser              = RNNGparser(stack_embedding_size = struct['stack_embedding_size'],\
                                         stack_memory_size     = struct['stack_hidden_size'],\
                                         word_embedding_size   = StructParams.WORD_EMBEDDING_SIZE,\
-                                        char_embedding_size   = StructParams.CHAR_EMB_SIZE,\)
+                                        char_embedding_size   = StructParams.CHAR_EMB_SIZE)
 
         parser.cls_filename = struct['cls_file']
         parser.lexicon      = SymbolLexicon.load(model_name+'.lex')
