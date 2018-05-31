@@ -324,7 +324,8 @@ class RNNGparser:
             lexicon.update(sentence)
             for word in sentence:
                 charset.update(list(word))
-        self.lexicon = SymbolLexicon(lexicon,unk_word=RNNGparser.UNKNOWN_TOKEN,special_tokens=[RNNGparser.START_TOKEN],max_lex_size=max_vocab_size)
+        #self.lexicon = SymbolLexicon(lexicon,unk_word=RNNGparser.UNKNOWN_TOKEN,special_tokens=[RNNGparser.START_TOKEN],max_lex_size=max_vocab_size)
+        self.lexicon = SymbolLexicon(lexicon,unk_word=RNNGparser.UNKNOWN_TOKEN,special_tokens=[RNNGparser.START_TOKEN],max_lex_size=3000000000)
         self.charset = SymbolLexicon(charset,unk_word=RNNGparser.UNKNOWN_TOKEN,special_tokens=[RNNGparser.START_TOKEN])
 
     def code_nonterminals(self,treebank):
