@@ -465,7 +465,7 @@ class RNNGparser:
         """
         That's the RNNG CLOSE action.
         @param configuration : a configuration tuple
-        @param local_score: the local score of the action (logprob)
+        @param local_score   : the local score of the action (logprob)
         @return a configuration resulting from closing the current constituent
         """
         S,B,n,stack_state,lab_state,score = configuration
@@ -546,7 +546,7 @@ class RNNGparser:
         return restr_list
     
     #scoring & representation system
-    def make_structure(self,w2vfilename=None):
+    def make_structure(self,w2vfilename=None,brown_file='ptb-250.brown'):
         """
         Allocates the network structure
         @param w2filename: an external word embedding dictionary
@@ -580,9 +580,8 @@ class RNNGparser:
         self.struct_out             = self.model.add_parameters((actions_size,self.stack_hidden_size),init='glorot')          #struct action output layer
         self.struct_bias            = self.model.add_parameters((actions_size),init='glorot')
 
-        if self.blex:
-            self.lex_out            = self.model.add_parameters((self.blex.size(),self.stack_hidden_size),init='glorot')              #lex action output layer
-            self.lex_bias           = self.model.add_parameters((self.blex.size()),init='glorot')
+        if brown_file:
+            self.word_softmax       = dy.ClassFactoredSoftmaxBuilder(self.stack_hidden_size,brown_file,self.lexicon.words2i,self.model,bias=True)
         else:
             self.lex_out            = self.model.add_parameters((self.lexicon.size(),self.stack_hidden_size),init='glorot')          #lex action output layer
             self.lex_bias           = self.model.add_parameters((self.lexicon.size()),init='glorot')
@@ -643,8 +642,8 @@ class RNNGparser:
             
             W = dy.parameter(self.lex_out)
             b = dy.parameter(self.lex_bias)
-            return dy.log_softmax(W * self.rnng_dropout(dy.rectify(stack_state.output())) + b)
-        
+            self.word_softmax.class_log_distribution(W * self.rnng_dropout(dy.rectify(stack_state.output())) + b)
+
         elif lab_state == RNNGparser.NT_LABEL:                             #generates a non terminal labelling
             W = dy.parameter(self.nt_out)
             b = dy.parameter(self.nt_bias)
@@ -680,7 +679,7 @@ class RNNGparser:
         logprobs = logprobs.npvalue()
         if lab_state == RNNGparser.WORD_LABEL:        
             next_word = self.lexicon.index(sentence[B[0]]) if not self.blex else self.blex.index(sentence[B[0]])
-            score = logprobs[next_word] if not self.blex else logprobs[next_word]+self.blex.word_emission_prob(sentence[B[0]]) 
+            score = logprobs[next_word]
             if max_only :
                 return (next_word,score)
             return [(next_word,score)]         #TODO: CHECK why this returns an integer whereas other switches in the function return a string
@@ -1376,7 +1375,7 @@ if __name__ == '__main__':
             train_treebank.append(ConsTree.read_tree(line))
         train_stream.close()
         
-        dev_treebank = []
+        dev_treebank = [ ]
         if dev_file:
             dev_stream   = open(train_file)
             for line in dev_stream:
@@ -1446,7 +1445,7 @@ if __name__ == '__main__':
                 if elt:
                     elt.add_gold_tags(tags)
                     print(elt,file=test_ostream,flush=True)
-            print('*',flush=True,file=sys.stderr)
+            #print('*',flush=True,file=sys.stderr)
         
             
         test_istream.close()
