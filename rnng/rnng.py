@@ -1034,7 +1034,7 @@ class RNNGparser:
         self.code_struct_actions()
 
         print('structure here',flush=True)
-        self.make_structure(lex_embeddings_filename,brown_file=cls_filename)
+        self.make_structure(lex_embeddings_filename,brown_file=self.cls_filename)
         
         self.print_summary()
         print('---------------------------')
