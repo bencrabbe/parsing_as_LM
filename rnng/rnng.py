@@ -1020,7 +1020,6 @@ class RNNGparser:
             ConsTree.strip_tags(t)
             #ConsTree.close_unaries(t)
 
-        print('treebank read.',flush=True)
             
         #Coding
         self.code_lexicon(train_bank,self.max_vocab_size)

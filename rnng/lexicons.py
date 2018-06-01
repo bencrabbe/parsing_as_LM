@@ -104,7 +104,7 @@ class SymbolLexicon:
         for line in istream:
             clsID,word,freq = line.split()
             if word in lexical_set:
-                print(line,file = ostream)
+                print('\t'.join([clsID,word,freq]),file = ostream)
 
         #THE UNK CLUSTER GETS ID 0
         uclsID = 0
