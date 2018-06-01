@@ -640,7 +640,7 @@ class RNNGparser:
             #W = dy.parameter(self.lex_out)
             #b = dy.parameter(self.lex_bias)
             #return self.word_softmax.class_log_distribution(W * self.rnng_dropout(dy.rectify(stack_state.output())) + b)
-            self.word_softmax.full_log_distribution(self.rnng_dropout(dy.rectify(stack_state.output())))
+            return -self.word_softmax.neg_log_softmax(self.rnng_dropout(dy.rectify(stack_state.output())))
             
 
             
