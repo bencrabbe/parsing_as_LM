@@ -638,11 +638,12 @@ class RNNGparser:
         S,B,n,stack_state,lab_state,local_score = configuration
         
         if lab_state == RNNGparser.WORD_LABEL:                             #generate wordform action
-            
-            W = dy.parameter(self.lex_out)
-            b = dy.parameter(self.lex_bias)
-            return self.word_softmax.class_log_distribution(W * self.rnng_dropout(dy.rectify(stack_state.output())) + b)
+            #W = dy.parameter(self.lex_out)
+            #b = dy.parameter(self.lex_bias)
+            #return self.word_softmax.class_log_distribution(W * self.rnng_dropout(dy.rectify(stack_state.output())) + b)
+            return self.word_softmax.class_log_distribution(self.rnng_dropout(dy.rectify(stack_state.output())))
 
+            
         elif lab_state == RNNGparser.NT_LABEL:                             #generates a non terminal labelling
             W = dy.parameter(self.nt_out)
             b = dy.parameter(self.nt_bias)
