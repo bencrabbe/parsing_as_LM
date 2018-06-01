@@ -604,7 +604,6 @@ class RNNGparser:
         #char embeddings
         self.char_embedding_matrix = self.model.add_lookup_parameters((self.charset.size(),self.char_embedding_size),init='glorot')
         
-        
     def rnng_dropout(self,expr):
         """
         That is a conditional dropout that applies dropout to a dynet expression only at training time
@@ -641,7 +640,8 @@ class RNNGparser:
             #W = dy.parameter(self.lex_out)
             #b = dy.parameter(self.lex_bias)
             #return self.word_softmax.class_log_distribution(W * self.rnng_dropout(dy.rectify(stack_state.output())) + b)
-            return self.word_softmax.class_log_distribution(self.rnng_dropout(dy.rectify(stack_state.output())))
+            self.word_softmax.full_log_distribution(self.rnng_dropout(dy.rectify(stack_state.output())))
+            
 
             
         elif lab_state == RNNGparser.NT_LABEL:                             #generates a non terminal labelling
