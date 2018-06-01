@@ -89,6 +89,32 @@ class SymbolLexicon:
         ostream.close()
 
     @staticmethod
+    def normalize_brown_file(cls_filename,lexical_set,out_filename,UNK_SYMBOL='<UNK>'):
+        """
+        This intersects the content of cls_filename with lexical_set
+        and prints it in out_filename.
+        It additionnaly adds an UNK word and an UNK cluster code
+        @param cls_filename : a Brown cluster file
+        @param lexical_set  : a set of strings
+        @param outfilename  : the new Brown cluster file
+        @param UNK_SYMBOL.  : the UNK word symbol 
+        """
+        istream = open(cls_filename)
+        ostream = open(out_filename,'w')
+        for line in istream:
+            clsID,word,freq = line.split()
+            if word in lexical_set:
+                print(line,file = ostream)
+
+        #THE UNK CLUSTER GETS ID 0
+        uclsID = 0
+        s = istream.read() + '%d\t%s\t%d'%(uclsID,UNK_SYMBOL,1)
+        ostream.write(s)
+        istream.close()
+        ostream.close()
+
+        
+    @staticmethod
     def unkify_brown_file(cls_filename,out_filename,UNK_SYMBOL='<UNK>'):
         istream = open(cls_filename)
         ostream = open(out_filename,'w')

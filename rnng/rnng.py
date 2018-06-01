@@ -324,8 +324,7 @@ class RNNGparser:
             lexicon.update(sentence)
             for word in sentence:
                 charset.update(list(word))
-        #self.lexicon = SymbolLexicon(lexicon,unk_word=RNNGparser.UNKNOWN_TOKEN,special_tokens=[RNNGparser.START_TOKEN],max_lex_size=max_vocab_size)
-        self.lexicon = SymbolLexicon(lexicon,unk_word=RNNGparser.UNKNOWN_TOKEN,special_tokens=[RNNGparser.START_TOKEN],max_lex_size=3000000000)
+        self.lexicon = SymbolLexicon(lexicon,unk_word=RNNGparser.UNKNOWN_TOKEN,special_tokens=[RNNGparser.START_TOKEN],max_lex_size=100000000)
         self.charset = SymbolLexicon(charset,unk_word=RNNGparser.UNKNOWN_TOKEN,special_tokens=[RNNGparser.START_TOKEN])
 
     def code_nonterminals(self,treebank):
@@ -1023,17 +1022,19 @@ class RNNGparser:
 
         print('treebank read.',flush=True)
             
-        if cls_filename:
-            print("Using clusters",flush=True)
-            self.cls_filename = cls_filename+".unk"
-            SymbolLexicon.unkify_brown_file(cls_filename,self.cls_filename,UNK_SYMBOL=RNNGparser.UNKNOWN_TOKEN)
-
         #Coding
         self.code_lexicon(train_bank,self.max_vocab_size)
         self.code_nonterminals(train_bank)
         self.code_struct_actions()
 
-        print('structure here',flush=True)
+        if cls_filename:
+            print("Using clusters",flush=True)
+            self.cls_filename = cls_filename+".unk"
+            SymbolLexicon.normalize_brown_file(cls_filename,\
+                                               set(self.lexicon.words2i.keys()),\
+                                               self.cls_filename,\
+                                               UNK_SYMBOL=RNNGparser.UNKNOWN_TOKEN)
+                                               
         self.make_structure(lex_embeddings_filename,brown_file=self.cls_filename)
         
         self.print_summary()
