@@ -682,7 +682,7 @@ class RNNGparser:
             
         logprobs = logprobs.npvalue()
        
-        elif lab_state == RNNGparser.NT_LABEL: #label NT action
+        if lab_state == RNNGparser.NT_LABEL: #label NT action
             if max_only:
                 idx = np.argmax(logprobs)
                 return (self.nonterminals.wordform(idx),logprobs[idx])
