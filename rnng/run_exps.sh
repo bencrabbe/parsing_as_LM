@@ -1,6 +1,6 @@
 #!/bin/sh
 
-MKL_NUM_THREADS=30
+MKL_NUM_THREADS=10
 NUM_EPOCHS=20
 
 make_config(){
@@ -30,6 +30,6 @@ train_brown(){
    source activate py36
    nohup python rnng.py -m $NAME/$NAME -t ptb_train.mrg -d -ptb_dev.mrg -b ptb-250.brown -c "$NAME/$NAME.prm" > "nohup.$NAME.out" & 
 }
-#train_brown 150 200 100 0.3
+train_brown 150 200 100 0.3
 train_brown 250 300 200 0.3
-#train_brown  150 250 100 0.3
+train_brown  150 250 100 0.3
