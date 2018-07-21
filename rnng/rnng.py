@@ -704,7 +704,7 @@ class RNNGparser:
         S,B,n,stack_state,lab_state,local_score = configuration
 
         if lab_state == RNNGparser.WORD_LABEL:
-            next_word = self.lexicon.index(sentence[B[0]])
+            next_word = self.lexicon.index(ref_action)
             loss = -self.word_softmax.neg_log_softmax(self.rnng_dropout(dy.rectify(stack_state.output())),next_word)
             loss_val   = loss.value()
             loss.backward()
