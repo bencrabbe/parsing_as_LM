@@ -545,15 +545,16 @@ class RNNGparser:
         return restr_list
     
     #scoring & representation system
-    def make_structure(self,w2vfilename=None,brown_file='ptb-250.brown'):
+    def make_structure(self,brown_file,w2vfilename=None):
         """
         Allocates the network structure
+        @param brown_file: a brown clustering file
         @param w2filename: an external word embedding dictionary
         """
         actions_size = len(self.actions)
         
         #Model structure
-        self.model                 = dy.ParameterCollection()
+        self.model                 = dy.ParameterCollection( )
         #symbols & word embeddings (some setups may affect the structure of the network)
         self.nt_embedding_matrix   = self.model.add_lookup_parameters((self.nonterminals.size(),self.stack_embedding_size),init='glorot') #symbols embeddings
 
@@ -627,28 +628,22 @@ class RNNGparser:
        else:
            return expr
             
-    def raw_action_distrib(self,configuration,structural_history): #max_prediction=False,ref_action=None,backprop=True):
+    def raw_action_distrib(self,configuration,structural_history):
         """
-        This predicts the next action distribution and constrains it given the configuration context.
+        This predicts the next action distribution (NT labelling or structural) and constrains it given the configuration context.
         @param configuration: the current configuration
         @param structural_history  : the sequence of structural actions performed so far by the parser
         @return a dynet expression
         """        
         S,B,n,stack_state,lab_state,local_score = configuration
-        
-        if lab_state == RNNGparser.WORD_LABEL:                             #generate wordform action
-            #W = dy.parameter(self.lex_out)
-            #b = dy.parameter(self.lex_bias)
-            #return self.word_softmax.class_log_distribution(W * self.rnng_dropout(dy.rectify(stack_state.output())) + b)
-            return -self.word_softmax.neg_log_softmax(self.rnng_dropout(dy.rectify(stack_state.output())))
-            
 
+        if lab_state == RNNGparser.WORD_LABEL:
+            print('error in raw action distrib')
             
-        elif lab_state == RNNGparser.NT_LABEL:                             #generates a non terminal labelling
+        if lab_state == RNNGparser.NT_LABEL:                             #generates a non terminal labelling
             W = dy.parameter(self.nt_out)
             b = dy.parameter(self.nt_bias)
             return dy.log_softmax(W * self.rnng_dropout(dy.rectify(stack_state.output())) + b)
-            
         else:                                                               #lab_state == RNNGparser.NO_LABEL perform a structural action
             W = dy.parameter(self.struct_out)
             b = dy.parameter(self.struct_bias)
@@ -670,19 +665,23 @@ class RNNGparser:
         @return a list of (action,scores) or a single tuple if max_only is True
         """
         S,B,n,stack_state,lab_state,local_score = configuration
+
+        if lab_state == RNNGparser.WORD_LABEL:        
+            next_word = self.lexicon.index(sentence[B[0]])
+            score = -self.word_softmax.neg_log_softmax(self.rnng_dropout(dy.rectify(stack_state.output())),next_word).value()
+            if max_only :
+                return (next_word,score)
+            return [(next_word,score)]     
+        
         logprobs = self.raw_action_distrib(configuration, structural_history)
         if logprobs == None: #dead end
             if max_only:
                 print('sorry, parser trapped. aborting.')
                 exit(1)
             return [] #in a beam context parsing can continue...
+            
         logprobs = logprobs.npvalue()
-        if lab_state == RNNGparser.WORD_LABEL:        
-            next_word = self.lexicon.index(sentence[B[0]])
-            score = logprobs[next_word]
-            if max_only :
-                return (next_word,score)
-            return [(next_word,score)]         #TODO: CHECK why this returns an integer whereas other switches in the function return a string
+       
         elif lab_state == RNNGparser.NT_LABEL: #label NT action
             if max_only:
                 idx = np.argmax(logprobs)
@@ -703,15 +702,17 @@ class RNNGparser:
         @return : the loss (NLL) for this action
         """
         S,B,n,stack_state,lab_state,local_score = configuration
-        logprobs = self.raw_action_distrib(configuration,structural_history)
 
         if lab_state == RNNGparser.WORD_LABEL:
-            ref_prediction = self.lexicon.index(ref_action) 
-        elif lab_state == RNNGparser.NT_LABEL:
-            ref_prediction = self.nonterminals.index(ref_action)
-        else:
-            ref_prediction = self.action_codes[ref_action]
-            
+            next_word = self.lexicon.index(sentence[B[0]])
+            loss = -self.word_softmax.neg_log_softmax(self.rnng_dropout(dy.rectify(stack_state.output())),next_word)
+            loss_val   = loss.value()
+            loss.backward()
+            self.trainer.update()
+            return loss_val
+
+        logprobs = self.raw_action_distrib(configuration,structural_history)
+        ref_prediction = self.nonterminals.index(ref_action) if lab_state == RNNGparser.NT_LABEL else self.action_codes[ref_action]
         loss       = -dy.pick(logprobs,ref_prediction)
         loss_val   = loss.value()
         loss.backward()
@@ -728,15 +729,15 @@ class RNNGparser:
         @return : (NLL,correct) where NLL for the ref action and correct is true if the argmax of the distrib = ref_action
         """
         S,B,n,stack_state,lab_state,local_score = configuration
-        logprobs = self.raw_action_distrib(configuration,structural_history)
 
         if lab_state == RNNGparser.WORD_LABEL:
-            ref_prediction = self.lexicon.index(ref_action) 
-        elif lab_state == RNNGparser.NT_LABEL:
-            ref_prediction = self.nonterminals.index(ref_action)
-        else:
-            ref_prediction = self.action_codes[ref_action]
-            
+            next_word = self.lexicon.index(sentence[B[0]])
+            loss = -self.word_softmax.neg_log_softmax(self.rnng_dropout(dy.rectify(stack_state.output())),next_word)
+            loss_val   = loss.value()
+            return loss_val,(True)
+
+        logprobs = self.raw_action_distrib(configuration,structural_history)
+        ref_prediction = self.nonterminals.index(ref_action)  if lab_state == RNNGparser.NT_LABEL else self.action_codes[ref_action]
         loss       = -dy.pick(logprobs,ref_prediction)
         loss_val   = loss.value()
         best_pred  = np.argmax(logprobs.npvalue())
@@ -1021,7 +1022,6 @@ class RNNGparser:
             ConsTree.strip_tags(t)
             #ConsTree.close_unaries(t)
 
-            
         #Coding
         self.code_lexicon(train_bank,self.max_vocab_size)
         self.code_nonterminals(train_bank)
@@ -1034,8 +1034,10 @@ class RNNGparser:
                                                set(self.lexicon.words2i.keys()),\
                                                self.cls_filename,\
                                                UNK_SYMBOL=RNNGparser.UNKNOWN_TOKEN)
-                                               
-        self.make_structure(lex_embeddings_filename,brown_file=self.cls_filename)
+        if lex_embeddings_filename:
+            self.embeddings_file = lex_embeddings_filename
+            
+        self.make_structure(cls_filename,lex_embeddings_filename)
         
         self.print_summary()
         print('---------------------------')
@@ -1146,7 +1148,7 @@ class RNNGparser:
         parser.nonterminals = SymbolLexicon.load(model_name+'.nt')
        
         parser.code_struct_actions()
-        parser.make_structure(brow)
+        parser.make_structure(struct['cls_file'])
         parser.model.populate(model_name+".prm")
         return parser
     
