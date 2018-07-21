@@ -1239,8 +1239,8 @@ if __name__ == '__main__':
 
         p.train_generative_model(model_name,\
                                  TrainingParams.NUM_EPOCHS,\
-                                 train_treebank,\
-                                 dev_treebank,\
+                                 train_treebank[:10],\
+                                 dev_treebank[:10],\
                                  learning_rate=TrainingParams.LEARNING_RATE,\
                                  dropout=TrainingParams.DROPOUT,\
                                  cls_filename=brown_file,\
