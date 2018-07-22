@@ -90,11 +90,9 @@ class RNNGlm:
         min_nll = np.inf
 
         ntrain_sentences = len(train_sentences)
-        ndev_sentences   = len(validation_sentences)
 
         self.print_summary(ntrain_sentences,ndev_sentences,lr,dropout)
 
-                
         for e in range(max_epochs):
 
             NLL = 0
@@ -125,38 +123,50 @@ class RNNGlm:
                     
             print('[Training]   Epoch %d, NLL = %f, PPL = %f'%(e,NLL,np.exp(NLL/N)),flush=True)
 
-            NLL = 0
-            N = 0
-            
-            batches_processed = 0
-            bbegin = 0
-            
-            while bbegin < ndev_sentences:
-                dy.renew_cg()
-                outputs = []                
-                bend = min(ndev_sentences,bbegin + batch_size)
-                for sent in validation_sentences[bbegin:bend]:
-                    X          = [self.lexicon.index(word) for word  in [RNNGlm.START_TOKEN] + sent[:-1] ]
-                    Y          = [self.lexicon.index(word) for word in sent]
-                    state      = self.rnn.initial_state()
-                    xinputs    = [self.E[x] for x in X]
-                    state_list = state.add_inputs(xinputs)
-                    outputs.extend([self.O.neg_log_softmax(S.output(),y) for (S,y) in zip(state_list,Y) ])
-                    N         += len(Y)
-                loc_nll    = dy.esum(outputs)
-                NLL       += loc_nll.value()
-                batches_processed += 1
-                bbegin = batches_processed * batch_size
-
+            NLL,N = self.eval_model(validation_sentences,batch_size)
+                
             if NLL < min_nll:
                 self.save_model(modelname)
                 min_nll = NLL
                 
             print('[Validation] Epoch %d, NLL = %f, PPL = %f\n'%(e,NLL,np.exp(NLL/N)),flush=True)
 
+            
+    def eval_model(self,test_sentences,batch_size)
+        """
+        Tests a model on a validation set and returns the NLL and the Number of words in the dataset.
+        @param test_sentences : a list of list of strings.
+        @return (NLL,N)
+        """
+        
+        NLL = 0
+        N = 0
+        
+        ntest_sentences   = len(test_sentences)
+
+        batches_processed = 0
+        bbegin = 0
     
-            
-            
+        while bbegin < ndev_sentences:
+            dy.renew_cg()
+            outputs = []                
+            bend = min(ntest_sentences,bbegin + batch_size)
+            for sent in test_sentences[bbegin:bend]:
+                X          = [self.lexicon.index(word) for word  in [RNNGlm.START_TOKEN] + sent[:-1] ]
+                Y          = [self.lexicon.index(word) for word in sent]
+                state      = self.rnn.initial_state()
+                xinputs    = [self.E[x] for x in X]
+                state_list = state.add_inputs(xinputs)
+                outputs.extend([self.O.neg_log_softmax(S.output(),y) for (S,y) in zip(state_list,Y) ])
+                N         += len(Y)
+            loc_nll    = dy.esum(outputs)
+            NLL       += loc_nll.value()
+            batches_processed += 1
+            bbegin = batches_processed * batch_size
+
+        return (NLL,N)
+
+    
     def print_summary(self,ntrain,ndev,lr,dropout):
         """
         Prints a summary of the model structure.
