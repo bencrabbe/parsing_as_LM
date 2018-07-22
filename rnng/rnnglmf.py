@@ -183,7 +183,7 @@ class RNNGlm:
 
     @staticmethod
     def load_model(self,model_name):
-         """
+        """
         Loads the whole shebang and returns an LM.
         """
         struct     = json.loads(open(model_name+'.json').read())
@@ -204,7 +204,7 @@ if __name__ == '__main__':
     istream.close()
     
     rnnlm = RNNGlm('ptb-250.brown',embedding_size=50,memory_size=50)
-    rnnlm.train_rnn_lm('testlm',train_treebank,dev_treebank,lr=0.1,dropout=0.3,max_epochs=20,batch_size=32)    
+    rnnlm.train_rnn_lm('testlm',train_treebank,dev_treebank,lr=0.1,dropout=0.3,max_epochs=30,batch_size=32)    
 
 
 
