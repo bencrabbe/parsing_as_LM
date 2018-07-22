@@ -49,6 +49,7 @@ class RNNGlm:
         for sentence in raw_treebank:
             lexicon.update(sentence)
         self.lexicon = SymbolLexicon(lexicon,unk_word=RNNGlm.UNKNOWN_TOKEN,special_tokens=[RNNGlm.START_TOKEN]+blex,max_lex_size=self.max_vocab_size)
+
         
     def make_structure(self):
         """
@@ -61,6 +62,7 @@ class RNNGlm:
         self.E    = self.model.add_lookup_parameters((self.lexicon.size(),self.embedding_size))
         #Lex output
         print('here')
+        print(self.lexicon.words2i)
         self.O    = dy.ClassFactoredSoftmaxBuilder(self.hidden_size,self.brown_file,self.lexicon.words2i,self.model,bias=True)
         print('there')
         #RNN
