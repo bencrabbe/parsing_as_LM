@@ -96,7 +96,7 @@ class RNNGlm:
                 loc_nll.backward()
                 trainer.update()
                 
-            print('[Training] Epoch %e, NLL = %f, PPL = %f'%(e,NLL,np.exp(NLL/N)))
+            print('[Training] Epoch %d, NLL = %f, PPL = %f'%(e,NLL,np.exp(NLL/N)))
 
             NLL = 0
             N = 0
@@ -112,7 +112,7 @@ class RNNGlm:
                 NLL       += loc_nll.value()
                 N         += len(Y)
                 
-            print('[Validation] Epoch %e, NLL = %f, PPL = %f'%(e,NLL,np.exp(NLL/N)))
+            print('[Validation] Epoch %d, NLL = %f, PPL = %f\n'%(e,NLL,np.exp(NLL/N)))
 
 
             
