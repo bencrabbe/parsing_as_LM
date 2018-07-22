@@ -81,6 +81,7 @@ class RNNGlm:
             N = 0
             for sent in train_sentences:
                 dy.renew_cg()
+                print(X)
                 X          = [self.lexicon.index(word) for word  in [RNNGlm.START_TOKEN] + sent[:-1] ]
                 Y          = [self.lexicon.index(word) for word in sent]
                 state      = self.rnn.initial_state()
