@@ -4,6 +4,7 @@ import numpy as np
 import dynet as dy
 import getopt
 import json
+import sys
 
 from random import shuffle
 from lexicons import *
