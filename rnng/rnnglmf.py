@@ -214,7 +214,7 @@ def read_config(filename=None):
     config.read(filename)
 
     params = {}
-    params['embedding_size'] = int(config['structure']['embedding_size']) if 'embeddings_size' in config['structure'] else 100
+    params['embedding_size'] = int(config['structure']['embedding_size']) if 'embedding_size' in config['structure'] else 100
     params['memory_size']    = int(config['structure']['memory_size'])    if 'memory_size' in config['structure'] else 100
     params['dropout']         = float(config['learning']['dropout'])      if 'dropout' in config['learning'] else 0.1
     params['learning_rate']   = float(config['learning']['learning_rate'])if 'learning_rate' in config['learning'] else 0.1
