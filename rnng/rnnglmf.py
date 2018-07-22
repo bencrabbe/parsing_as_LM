@@ -216,9 +216,9 @@ def read_config(filename=None):
     params = {}
     params['embedding_size'] = int(config['structure']['embedding_size']) if 'embeddings' in config['structure'] else 100
     params['memory_size']    = int(config['structure']['memory_size'])    if 'memory_size' in config['structure'] else 100
-    params['dropout']         = float(config['structure']['dropout'])      if 'dropout' in config['learning'] else 0.1
-    params['learning_rate']   = float(config['structure']['learning_rate'])if 'learning_rate' in config['learning'] else 0.1
-    params['num_epochs']      = int(config['structure']['num_epochs'])     if 'num_epochs' in config['learning'] else 20
+    params['dropout']         = float(config['learning']['dropout'])      if 'dropout' in config['learning'] else 0.1
+    params['learning_rate']   = float(config['learning']['learning_rate'])if 'learning_rate' in config['learning'] else 0.1
+    params['num_epochs']      = int(config['learning']['num_epochs'])     if 'num_epochs' in config['learning'] else 20
     return params
 
 
