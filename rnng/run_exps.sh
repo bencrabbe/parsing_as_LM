@@ -24,7 +24,7 @@ make_config(){
 
 make_lmconfig(){
     # $1 NAME $2 = embedding size , $3 = lstm memory size $4 = dropout
-    CNAME = $1
+    CNAME=$1
     echo > $CNAME
     echo "[structure]"         >> $CNAME
     echo "embedding_size = $2" >> $CNAME
