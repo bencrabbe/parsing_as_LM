@@ -209,6 +209,7 @@ def read_config(filename=None):
     """
     Return an hyperparam dictionary
     """
+    print("***",filename)
     import configparser
     config = configparser.ConfigParser()
     config.read(filename)
