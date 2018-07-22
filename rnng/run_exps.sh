@@ -53,7 +53,7 @@ train_rnnlm(){
     source activate py36
     nohup python rnnglmf.py -m $NAME/$NAME -t ptb_train.raw -d -ptb_dev.raw -b ptb-250.brown -c "$NAME/$NAME.prm" > "nohup.$NAME.out" &   
 } 
-
+train_rnnlm 300 250 0.5
 
 #train_rnng 150 200 100 0.3
 #train_rnng 250 300 200 0.3
