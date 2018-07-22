@@ -132,7 +132,7 @@ class RNNGlm:
             print('[Validation] Epoch %d, NLL = %f, PPL = %f\n'%(e,NLL,np.exp(NLL/N)),flush=True)
 
             
-    def eval_model(self,test_sentences,batch_size)
+    def eval_model(self,test_sentences,batch_size):
         """
         Tests a model on a validation set and returns the NLL and the Number of words in the dataset.
         @param test_sentences : a list of list of strings.
