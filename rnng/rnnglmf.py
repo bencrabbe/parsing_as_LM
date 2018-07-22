@@ -31,6 +31,12 @@ class RNNGlm:
         self.embedding_size = embedding_size
         self.hidden_size    = memory_size
         self.dropout        = 0.0
+        self.brown_file     = brown_clusters
+        
+        #Extras (brown lexicon and external embeddings)
+        self.ext_embeddings = False
+
+    def code_lexicon(self,raw_treebank):
         
         lexicon = Counter()
         for sentence in raw_treebank:
@@ -38,12 +44,9 @@ class RNNGlm:
         known_vocabulary = set([word for word, counts in lexicon.most_common(max_vocabulary_size)])
         known_vocabulary.append(RNNGlm.START_TOKEN)
         
-        self.brown_file  = normalize_brown_file(brown_clusters,known_vocabulary,brown_clusters+'.unk',UNK_SYMBOL=RNNGlm.UNKNOWN_TOKEN)
+        self.brown_file  = normalize_brown_file(self.brown_file,known_vocabulary,brown_clusters+'.unk',UNK_SYMBOL=RNNGlm.UNKNOWN_TOKEN)
         self.lexicon     = SymbolLexicon(lexicon,unk_word=RNNGlm.UNKNOWN_TOKEN)
-     
-        #Extras (brown lexicon and external embeddings)
-        self.ext_embeddings = False
-        
+   
     def make_structure(self):
         """
         Creates and allocates the network structure
