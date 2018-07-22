@@ -136,7 +136,7 @@ if __name__ == '__main__':
     istream.close()
     
     rnnlm = RNNGlm('ptb-250.brown')
-    rnnlm.train_rnn_lm('testlm',train_treebank[:20],dev_treebank[:20],lr=0.1,dropout=0.1,max_epochs=20)    
+    rnnlm.train_rnn_lm('testlm',train_treebank[:2000],dev_treebank[:2000],lr=0.1,dropout=0.1,max_epochs=20)    
 
 
 
