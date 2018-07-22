@@ -86,7 +86,6 @@ class RNNGlm:
                 dy.renew_cg()
                 X          = [self.lexicon.index(word) for word  in [RNNGlm.START_TOKEN] + sent[:-1] ]
                 Y          = [self.lexicon.index(word) for word in sent]
-                print(sent,Y)
                 state      = self.rnn.initial_state()
                 xinputs    = [self.E[x] for x in X]
                 state_list = state.add_inputs(xinputs)
@@ -108,9 +107,9 @@ class RNNGlm:
                 state      = self.rnn.initial_state()
                 xinputs    = [self.E[x] for x in X]
                 state_list = state.add_inputs(xinputs)
-                outputs    = [self.word_softmax.neg_log_softmax(s.output(),y) for (s,y) in zip(S,Y) in state_list]
-                loc_nll    = dy.esum(outputs).value()
-                NLL       += loc_nll
+                outputs    = [self.O.neg_log_softmax(S.output(),y) for (S,y) in zip(state_list,Y) ]
+                loc_nll    = dy.esum(outputs)
+                NLL       += loc_nll.value()
                 N         += len(Y)
                 
             print('[Validation] Epoch %e, NLL = %f, PPL = %f'%(e,NLL,np.exp(NLL/N)))
