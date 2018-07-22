@@ -203,16 +203,35 @@ class RNNGlm:
         lm.model.populate(model_name+".prm")
         return lm
 
+def read_config(filename=None):
+
+    """
+    Return an hyperparam dictionary
+    """
+    import configparser
+
+    config = configparser.ConfigParser()
+    config.read(filename)
+    config['structure']['embedding_size'] = int(config['structure']['embedding_size']) if 'embeddings' in config['structure'] else 100
+    config['structure']['memory_size']    = int(config['structure']['memory_size'])    if 'memory_size' in config['structure'] else 100
+    config['learning']['dropout']         = float(config['structure']['dropout'])      if 'dropout' in config['learning'] else 0.1
+    config['learning']['learning_rate']   = float(config['structure']['learning_rate'])if 'learning_rate' in config['learning'] else 0.1
+    config['learning']['num_epochs']      = int(config['structure']['num_epochs'])     if 'num_epochs' in config['learning'] else 20
+    return config
+
+
+    
 if __name__ == '__main__':
     
-    train_file = ''
-    dev_file   = ''
-    test_file  = ''
-    brown_file = ''
-    model_name = ''
-
+    train_file  = ''
+    dev_file    = ''
+    test_file   = ''
+    brown_file  = ''
+    model_name  = ''
+    config_file = ''
+    
     try:
-        opts, args = getopt.getopt(sys.argv[1:],"ht:d:p:m:b:")
+        opts, args = getopt.getopt(sys.argv[1:],"ht:d:p:m:b:c:")
     except getopt.GetoptError:
         print('Ooops, wrong command line arguments')
         print('for training...')
@@ -232,6 +251,8 @@ if __name__ == '__main__':
             model_name = arg
         elif opt in  ['-b','--brown']:
             brown_file = arg
+        elif opt in ['-c','--config']:
+            config_file = arg
         else:
             print('unknown option %s, ignored'%(arg))
             
@@ -245,8 +266,14 @@ if __name__ == '__main__':
         dev_treebank = [line.split() for line in istream]
         istream.close()
 
-        rnnlm = RNNGlm(brown_file,embedding_size=150,memory_size=150)
-        rnnlm.train_rnn_lm(model_name,train_treebank,dev_treebank,lr=0.1,dropout=0.5,max_epochs=40,batch_size=32)    
+        if config_file:
+            config = read_config(filename=config_file)
+            rnnlm = RNNGlm(brown_file,embedding_size=config["structure"]['embedding_size'] ,memory_size=config["structure"]['memory_size'])
+            rnnlm.train_rnn_lm(model_name,train_treebank,dev_treebank,lr=config['learning']['learning_rate'],dropout=config['learning']['dropout'],max_epochs=config['learning']['num_epochs'],batch_size=32)
+        else:
+            rnnlm = RNNGlm(brown_file,embedding_size=100 ,memory_size=100)
+            rnnlm.train_rnn_lm(model_name,train_treebank,dev_treebank,lr=0.1,dropout=0.5,max_epochs=40,batch_size=32)
+
         print('training done.')
         
     if model_name and test_file:
