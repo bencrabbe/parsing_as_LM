@@ -122,6 +122,7 @@ class SymbolLexicon:
         ostream.write(s)
         istream.close()
         ostream.close()
+        return out_filename
         
     @staticmethod
     def load(modelname):
