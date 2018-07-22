@@ -146,7 +146,7 @@ if __name__ == '__main__':
     dev_treebank = [line.split() for line in istream]
     istream.close()
     
-    rnnlm = RNNGlm('ptb-250.brown',embedding_size=150,memory_size=200)
+    rnnlm = RNNGlm('ptb-250.brown',embedding_size=50,memory_size=100)
     rnnlm.train_rnn_lm('testlm',train_treebank,dev_treebank,lr=0.1,dropout=0.1,max_epochs=20)    
 
 
