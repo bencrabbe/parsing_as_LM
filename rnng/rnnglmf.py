@@ -48,7 +48,7 @@ class RNNGlm:
         lexicon = Counter()
         for sentence in raw_treebank:
             lexicon.update(sentence)
-        self.lexicon = SymbolLexicon(lexicon,unk_word=RNNGlm.UNKNOWN_TOKEN,special_tokens=[RNNGlm.START_TOKEN],max_lex_size=self.max_vocab_size)
+        self.lexicon = SymbolLexicon(lexicon,unk_word=RNNGlm.UNKNOWN_TOKEN,special_tokens=[RNNGlm.START_TOKEN]+blex,max_lex_size=self.max_vocab_size)
         
     def make_structure(self):
         """
