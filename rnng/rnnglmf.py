@@ -40,13 +40,12 @@ class RNNGlm:
         
         lexicon = Counter()
         for sentence in raw_treebank:
-            print(sentence)
             lexicon.update(sentence)
         known_vocabulary = set([word for word, counts in lexicon.most_common(self.max_vocab_size)])
         known_vocabulary.add(RNNGlm.START_TOKEN)
         
         self.brown_file  = normalize_brown_file(self.brown_file,known_vocabulary,self.brown_file+'.unk',UNK_SYMBOL=RNNGlm.UNKNOWN_TOKEN)
-        self.lexicon     = SymbolLexicon(lexicon,unk_word=RNNGlm.UNKNOWN_TOKEN)
+        self.lexicon     = SymbolLexicon( known_vocabulary,unk_word=RNNGlm.UNKNOWN_TOKEN)
    
     def make_structure(self):
         """
