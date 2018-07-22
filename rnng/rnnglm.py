@@ -20,8 +20,8 @@ Allows comparisons and sharing of parameters.
 It is designed to run on a GPU.
 """
 
-class RNNGlm:
 
+class RNNGlm:
     #special tokens
     UNKNOWN_TOKEN = '<UNK>'
     START_TOKEN   = '<START>'    
@@ -327,12 +327,9 @@ if __name__ == '__main__':
     dev_treebank = [line.split() for line in istream]
     istream.close()
 
-    rnnlm = RNNGlm(embedding_size=100,memory_size=300)
-
-    #Good cluster model PPL 130 on devel
-    #rnnlm.train_rnn_lm('testlm',train_treebank,dev_treebank,lr=0.0001,dropout=0.3,batch_size=32,max_epochs=100,cls_filename='ptb-1000.brown',w2v_file='word_embeddings/w2v-ptb.txt')
-
-    rnnlm.train_rnn_lm('testlm',train_treebank,dev_treebank,lr=0.001,dropout=0.4,batch_size=32,max_epochs=200,cls_filename='ptb-250.brown')    
+    rnnlm = RNNGlm(embedding_size=100,memory_size=100)
+    
+    rnnlm.train_rnn_lm('testlm',train_treebank,dev_treebank,lr=0.1,dropout=0.3,batch_size=32,max_epochs=200,cls_filename='ptb-250.brown')    
 
     #Good word model : PPL on devel
     #rnnlm.train_rnn_lm('testlm',train_treebank,dev_treebank,lr=0.001,dropout=0.3,batch_size=32,max_epochs=50,w2v_file='word_embeddings/w2v-ptb.txt')    
