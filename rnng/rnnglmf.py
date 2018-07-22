@@ -107,6 +107,7 @@ class RNNGlm:
                 outputs = []
                 bbegin = batches_processed * batch_size
                 bend = min(ntrain_sentences,bbegin + batch_size)
+                print(bbegin,bend)
                 for sent in train_sentences[bbegin:bend]:
                     X          = [self.lexicon.index(word) for word  in [RNNGlm.START_TOKEN] + sent[:-1] ]
                     Y          = [self.lexicon.index(word) for word in sent]
