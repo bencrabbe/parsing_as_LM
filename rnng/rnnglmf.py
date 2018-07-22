@@ -86,14 +86,16 @@ class RNNGlm:
 
         self.code_lexicon(train_sentences)
         self.make_structure()
-        self.print_summary()
 
         trainer = dy.SimpleSGDTrainer(self.model,learning_rate=lr)
         min_nll = np.inf
 
         ntrain_sentences = len(train_sentences)
         ndev_sentences   = len(train_sentences)
-        
+
+        self.print_summary(ntrain_sentences,ndev_sentences)
+
+                
         for e in range(max_epochs):
 
             NLL = 0
@@ -134,6 +136,7 @@ class RNNGlm:
                 dy.renew_cg()
                 outputs = []                
                 bend = min(ndev_sentences,bbegin + batch_size)
+                print(bbegin,bend)
                 for sent in validation_sentences[bbegin:bend]:
                     X          = [self.lexicon.index(word) for word  in [RNNGlm.START_TOKEN] + sent[:-1] ]
                     Y          = [self.lexicon.index(word) for word in sent]
@@ -151,7 +154,7 @@ class RNNGlm:
 
 
             
-    def print_summary(self):
+    def print_summary(self,ntrain,ndev):
         """
         Prints a summary of the model structure
         """
