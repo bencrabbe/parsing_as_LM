@@ -90,7 +90,7 @@ class RNNGlm:
                 state      = self.rnn.initial_state()
                 xinputs    = [self.E[x] for x in X]
                 state_list = state.add_inputs(xinputs)
-                outputs    = [self.word_softmax.neg_log_softmax(S.output(),y) for (S,y) in zip(state_list,Y) ]
+                outputs    = [self.O.neg_log_softmax(S.output(),y) for (S,y) in zip(state_list,Y) ]
                 loc_nll    = dy.esum(outputs).value()
                 NLL       += loc_nll
                 N         += len(Y)
