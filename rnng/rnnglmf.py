@@ -69,7 +69,7 @@ class RNNGlm:
         @param max_epochs : number of epochs to run
         """
 
-        self.code_lexicon(train_sentences,self.max_vocab_size)
+        self.code_lexicon(train_sentences)
         self.make_structure()
         self.print_summary()
 
