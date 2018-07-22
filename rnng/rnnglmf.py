@@ -214,7 +214,7 @@ def read_config(filename=None):
     
     config = configparser.ConfigParser()
     config.read(filename)
-    print(filename,config)
+    print('*',filename,"*",config)
     config['structure']['embedding_size'] = int(config['structure']['embedding_size']) if 'embeddings' in config['structure'] else 100
     config['structure']['memory_size']    = int(config['structure']['memory_size'])    if 'memory_size' in config['structure'] else 100
     config['learning']['dropout']         = float(config['structure']['dropout'])      if 'dropout' in config['learning'] else 0.1
