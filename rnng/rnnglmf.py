@@ -210,9 +210,8 @@ def read_config(filename=None):
     Return an hyperparam dictionary
     """
     import configparser
-
-    
     config = configparser.ConfigParser()
+    print('*',filename,"*")
     config.read(filename)
     print('*',filename,"*",config)
     config['structure']['embedding_size'] = int(config['structure']['embedding_size']) if 'embeddings' in config['structure'] else 100
