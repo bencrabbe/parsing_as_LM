@@ -45,7 +45,7 @@ class RNNGlm:
         known_vocabulary.add(RNNGlm.START_TOKEN)
         
         self.brown_file  = normalize_brown_file(self.brown_file,known_vocabulary,self.brown_file+'.unk',UNK_SYMBOL=RNNGlm.UNKNOWN_TOKEN)
-        self.lexicon     = SymbolLexicon( known_vocabulary,unk_word=RNNGlm.UNKNOWN_TOKEN)
+        self.lexicon     = SymbolLexicon( list(known_vocabulary),unk_word=RNNGlm.UNKNOWN_TOKEN)
    
     def make_structure(self):
         """
