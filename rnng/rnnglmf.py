@@ -35,7 +35,7 @@ class RNNGlm:
         lexicon = Counter()
         for sentence in raw_treebank:
             lexicon.update(sentence)
-        known_vocabulary = set([for word, counts in lexicon.most_common(max_vocabulary_size)])
+        known_vocabulary = set([word for word, counts in lexicon.most_common(max_vocabulary_size)])
         known_vocabulary.append(RNNGlm.START_TOKEN)
         
         self.brown_file  = normalize_brown_file(brown_clusters,known_vocabulary,brown_clusters+'.unk',UNK_SYMBOL=RNNGlm.UNKNOWN_TOKEN)
