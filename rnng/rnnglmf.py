@@ -19,7 +19,7 @@ class RNNGlm:
     #special tokens
     UNKNOWN_TOKEN = '<UNK>'
     START_TOKEN   = '<START>'
-
+    
     def __init__(self,brown_clusters,max_vocabulary_size=10000,embedding_size=50,memory_size=50):
         """
         @param brown_clusters          : a filename where to find brown clusters
@@ -71,7 +71,6 @@ class RNNGlm:
             return expr
         else:
             return dy.dropout(expr,self.dropout)
-
         
     def train_rnn_lm(self,modelname,train_sentences,validation_sentences,lr=0.1,dropout=0.3,max_epochs=10,batch_size=1):
         """
@@ -148,14 +147,19 @@ class RNNGlm:
                 NLL       += loc_nll.value()
                 batches_processed += 1
                 bbegin = batches_processed * batch_size
- 
+
+            if NLL < min_nll:
+                self.save_model(modelname)
+                min_nll = NLL
+                
             print('[Validation] Epoch %d, NLL = %f, PPL = %f\n'%(e,NLL,np.exp(NLL/N)),flush=True)
 
-
+    
+            
             
     def print_summary(self,ntrain,ndev,lr,dropout):
         """
-        Prints a summary of the model structure
+        Prints a summary of the model structure.
         """
         print('#Training sentences     :',ntrain)
         print('#Validation sentences   :',ndev)
@@ -164,7 +168,30 @@ class RNNGlm:
         print('hidden size             :',self.hidden_size,flush=True)
         print('Learning rate           :',lr,flush=True)
         print('Dropout                 :',dropout,flush=True)
-        
+
+    def save_model(self,model_name):
+        """
+        Saves the whole shebang.
+        """
+        jfile = open(model_name+'.json','w')        
+        jfile.write(json.dumps({'vocab_size'    :self.max_vocab_size,\
+                                'embedding_size':self.embedding_size,\
+                                'brown_file':self.brown_file,\
+                                'hidden_size':self.hidden_size}))
+        self.model.save(model_name+'.prm')
+        self.lexicon.save(model_name+'.lex')
+
+    @staticmethod
+    def load_model(self,model_name):
+         """
+        Loads the whole shebang and returns an LM.
+        """
+        struct     = json.loads(open(model_name+'.json').read())
+        lm         = RNNGlm(struct['brown_file'],max_vocabulary_size=struct['vocab_size'],embedding_size=struct['embedding_size'],memory_size=struct['hidden_size'])
+        lm.lexicon = SymbolLexicon.load(modelname+'.lex')
+        lm.make_structure()
+        lm.model.populate(model_name+".prm")
+        return lm
 
 if __name__ == '__main__':
     
