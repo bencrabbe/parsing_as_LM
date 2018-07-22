@@ -105,9 +105,7 @@ class RNNGlm:
             while bbegin < ntrain_sentences:
                 dy.renew_cg()
                 outputs = []
-                bbegin = batches_processed * batch_size
                 bend = min(ntrain_sentences,bbegin + batch_size)
-                print(bbegin,bend)
                 for sent in train_sentences[bbegin:bend]:
                     X          = [self.lexicon.index(word) for word  in [RNNGlm.START_TOKEN] + sent[:-1] ]
                     Y          = [self.lexicon.index(word) for word in sent]
@@ -122,6 +120,7 @@ class RNNGlm:
                 loc_nll.backward()
                 trainer.update()
                 batches_processed += 1
+                bbegin = batches_processed * batch_size
                     
             print('[Training]   Epoch %d, NLL = %f, PPL = %f'%(e,NLL,np.exp(NLL/N)),flush=True)
 
@@ -130,10 +129,10 @@ class RNNGlm:
             
             batches_processed = 0
             bbegin = 0
+            
             while bbegin < ntrain_sentences:
                 dy.renew_cg()
                 outputs = []                
-                bbegin = batches_processed * batch_size
                 bend = min(ntrain_sentences,bbegin + batch_size)
                 for sent in validation_sentences[bbegin:bend]:
                     X          = [self.lexicon.index(word) for word  in [RNNGlm.START_TOKEN] + sent[:-1] ]
@@ -146,6 +145,7 @@ class RNNGlm:
                 loc_nll    = dy.esum(outputs)
                 NLL       += loc_nll.value()
                 batches_processed += 1
+                bbegin = batches_processed * batch_size
  
             print('[Validation] Epoch %d, NLL = %f, PPL = %f\n'%(e,NLL,np.exp(NLL/N)),flush=True)
 
