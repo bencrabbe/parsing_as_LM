@@ -133,7 +133,7 @@ class RNNGlm:
             while bbegin < ntrain_sentences:
                 dy.renew_cg()
                 outputs = []                
-                bend = min(ntrain_sentences,bbegin + batch_size)
+                bend = min(ndev_sentences,bbegin + batch_size)
                 for sent in validation_sentences[bbegin:bend]:
                     X          = [self.lexicon.index(word) for word  in [RNNGlm.START_TOKEN] + sent[:-1] ]
                     Y          = [self.lexicon.index(word) for word in sent]
