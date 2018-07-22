@@ -130,7 +130,7 @@ class RNNGlm:
             batches_processed = 0
             bbegin = 0
             
-            while bbegin < ntrain_sentences:
+            while bbegin < ndev_sentences:
                 dy.renew_cg()
                 outputs = []                
                 bend = min(ndev_sentences,bbegin + batch_size)
