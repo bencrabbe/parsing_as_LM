@@ -93,7 +93,7 @@ class RNNGlm:
         ntrain_sentences = len(train_sentences)
         ndev_sentences   = len(validation_sentences)
 
-        self.print_summary(ntrain_sentences,ndev_sentences)
+        self.print_summary(ntrain_sentences,ndev_sentences,lr,dropout)
 
                 
         for e in range(max_epochs):
@@ -153,7 +153,7 @@ class RNNGlm:
 
 
             
-    def print_summary(self,ntrain,ndev):
+    def print_summary(self,ntrain,ndev,lr,dropout):
         """
         Prints a summary of the model structure
         """
@@ -162,7 +162,9 @@ class RNNGlm:
         print('Lexicon size            :',self.lexicon.size(),flush=True)
         print('embedding size          :',self.embedding_size,flush=True)
         print('hidden size             :',self.hidden_size,flush=True)
-
+        print('Learning rate           :',lr,flush=True)
+        print('Dropout                 :',dropout,flush=True)
+        
 
 if __name__ == '__main__':
     
