@@ -9,8 +9,8 @@ from random import shuffle
 from lexicons import *
 
 """
-That's a simple RNNLM designed to be interoperable with the rnng parser.
-Allows comparisons and sharing of parameters.
+That's a simple class factored RNNLM designed to be interoperable with the rnng parser.
+Allows comparisons.
 ** It is designed to run mainly on a CPU **
 """
 
@@ -205,17 +205,57 @@ class RNNGlm:
 
 if __name__ == '__main__':
     
-    istream  = open('ptb_train.raw')
-    train_treebank = [line.split() for line in istream]
-    istream.close()
+    train_file = ''
+    dev_file   = ''
+    test_file  = ''
+    brown_file = ''
+    model_name = ''
 
-    istream  = open('ptb_dev.raw')
-    dev_treebank = [line.split() for line in istream]
-    istream.close()
-    
-    rnnlm = RNNGlm('ptb-250.brown',embedding_size=150,memory_size=150)
-    rnnlm.train_rnn_lm('testlm',train_treebank,dev_treebank,lr=0.1,dropout=0.5,max_epochs=40,batch_size=32)    
+    try:
+        opts, args = getopt.getopt(sys.argv[1:],"ht:d:p:m:b:")
+    except getopt.GetoptError:
+        print('Ooops, wrong command line arguments')
+        print('for training...')
+        print ('rnnglm.py -t <inputfile> -d <inputfile> -m <model_file> -b <brown_file>')
+        print('for testing...')
+        print ('rnnglm.py -m <model_file> -p <test_file>')
+        sys.exit(0)
+        
+    for opt, arg in opts:
+        if opt in ['-t','--train']:
+            train_file = arg
+        elif opt in ['-d','--dev']:
+            dev_file   = arg
+        elif  opt in ['-p','--pred']:
+            test_file = arg
+        elif opt in  ['-m','--model']:
+            model_name = arg
+        elif opt in  ['-b','--brown']:
+            brown_file = arg
+        else:
+            print('unknown option %s, ignored'%(arg))
+            
+    if train_file and dev_file and brown_file and model_name:
+        
+        istream  = open(train_file)
+        train_treebank = [line.split() for line in istream]
+        istream.close()
 
+        istream  = open(dev_file)
+        dev_treebank = [line.split() for line in istream]
+        istream.close()
 
+        rnnlm = RNNGlm(brown_file,embedding_size=150,memory_size=150)
+        rnnlm.train_rnn_lm(model_name,train_treebank,dev_treebank,lr=0.1,dropout=0.5,max_epochs=40,batch_size=32)    
+        print('training done.')
+        
+    if model_name and test_file:
 
+        rnnlm = RNNGlm.load_model(model_name)
+
+        istream       = open(test_file)
+        test_treebank = [line.split() for line in istream]
+        istream.close()
+        
+        print('Test PPL',rnnlm.eval_model(test_treebank,batch_size=32))
         
