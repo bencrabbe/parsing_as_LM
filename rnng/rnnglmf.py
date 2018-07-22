@@ -268,6 +268,7 @@ if __name__ == '__main__':
         istream  = open(dev_file)
         dev_treebank = [line.split() for line in istream]
         istream.close()
+        print(config_file,"$****")
 
         if config_file:
             print(config_file)
