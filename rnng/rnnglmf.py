@@ -211,10 +211,7 @@ def read_config(filename=None):
     """
     import configparser
     config = configparser.ConfigParser()
-    print('*',filename,"*")
-    exit(0)
     config.read(filename)
-    print('*',filename,"*",config)
     config['structure']['embedding_size'] = int(config['structure']['embedding_size']) if 'embeddings' in config['structure'] else 100
     config['structure']['memory_size']    = int(config['structure']['memory_size'])    if 'memory_size' in config['structure'] else 100
     config['learning']['dropout']         = float(config['structure']['dropout'])      if 'dropout' in config['learning'] else 0.1
@@ -269,10 +266,8 @@ if __name__ == '__main__':
         dev_treebank = [line.split() for line in istream]
         istream.close()
         
-        print(config_file,"$****")
 
         if config_file:
-            print(config_file)
             config = read_config(config_file)
             rnnlm = RNNGlm(brown_file,embedding_size=config["structure"]['embedding_size'] ,memory_size=config["structure"]['memory_size'])
             rnnlm.train_rnn_lm(model_name,train_treebank,dev_treebank,lr=config['learning']['learning_rate'],dropout=config['learning']['dropout'],max_epochs=config['learning']['num_epochs'],batch_size=32)
