@@ -51,7 +51,7 @@ train_rnnlm(){
     mkdir -p $NAME
     make_lmconfig "$NAME/$NAME" $1 $2 $3 
     source activate py36
-    python rnnglmf.py -m $NAME/$NAME -t ptb_train.raw -d ptb_dev.raw -b ptb-250.brown -c "$NAME/$NAME.prm" > "nohup.$NAME.out"    
+    nohup python rnnglmf.py -m $NAME/$NAME -t ptb_train.raw -d ptb_dev.raw -b ptb-250.brown -c "$NAME/$NAME.prm" > "nohup.$NAME.out"    
 } 
 train_rnnlm 300 250 0.5
 
