@@ -131,7 +131,7 @@ def normalize_brown_file(brown_filename,lexical_set,out_filename,UNK_SYMBOL='<UN
     @param outfilename  : the new Brown cluster file
     @param UNK_SYMBOL.  : the UNK word symbol 
     """
-    istream = open(cls_filename)
+    istream = open(brown_filename)
     ostream = open(out_filename,'w')
     for line in istream:
         clsID,word,freq = line.split()
