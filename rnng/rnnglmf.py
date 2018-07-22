@@ -40,6 +40,7 @@ class RNNGlm:
         
         lexicon = Counter()
         for sentence in raw_treebank:
+            print(sentence)
             lexicon.update(sentence)
         known_vocabulary = set([word for word, counts in lexicon.most_common(self.max_vocab_size)])
         known_vocabulary.add(RNNGlm.START_TOKEN)
