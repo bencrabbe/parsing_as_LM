@@ -61,6 +61,17 @@ class RNNGlm:
         #RNN
         self.rnn = dy.LSTMBuilder(1,self.embedding_size,self.hidden_size,self.model)  
 
+    def rnn_dropout(self,expr):
+        """
+        That is a conditional dropout that applies dropout to a dynet expression only at training time
+        @param expr: a dynet expression
+        @return a dynet expression
+        """
+        if self.dropout == 0:
+            return expr
+        else:
+            return dy.dropout(expr,self.dropout)
+
         
     def train_rnn_lm(self,modelname,train_sentences,validation_sentences,lr=0.1,dropout=0.3,max_epochs=10):
         """
@@ -87,9 +98,9 @@ class RNNGlm:
                 X          = [self.lexicon.index(word) for word  in [RNNGlm.START_TOKEN] + sent[:-1] ]
                 Y          = [self.lexicon.index(word) for word in sent]
                 state      = self.rnn.initial_state()
-                xinputs    = [self.E[x] for x in X]
+                xinputs    = [dy.dropout(self.E[x],self.dropout) for x in X]
                 state_list = state.add_inputs(xinputs)
-                outputs    = [self.O.neg_log_softmax(S.output(),y) for (S,y) in zip(state_list,Y) ]
+                outputs    = [self.O.neg_log_softmax(dy.dropout(S.output(),self.dropout),y) for (S,y) in zip(state_list,Y) ]
                 loc_nll    = dy.esum(outputs)
                 NLL       += loc_nll.value()
                 N         += len(Y)
@@ -136,7 +147,7 @@ if __name__ == '__main__':
     istream.close()
     
     rnnlm = RNNGlm('ptb-250.brown')
-    rnnlm.train_rnn_lm('testlm',train_treebank,dev_treebank,lr=0.1,dropout=0.1,max_epochs=20)    
+    rnnlm.train_rnn_lm('testlm',train_treebank,dev_treebank,lr=0.1,dropout=0.1,max_epochs=20,embedding_size=300,memory_size=200)    
 
 
 
