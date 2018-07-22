@@ -31,25 +31,18 @@ class RNNGlm:
         self.embedding_size = embedding_size
         self.hidden_size    = memory_size
         self.dropout        = 0.0
-        self.brown_file     = SymbolLexicon.unkify_brown_file(brown_clusters,brown_clusters+'.unk',UNK_SYMBOL=RNNGlm.UNKNOWN_TOKEN)
         
-        #Extras (brown lexicon and external embeddings)
-        self.ext_embeddings = False
-
-    def code_lexicon(self,raw_treebank):
-
-        #brown lexicon (all words of the brown file must be part of the lexicon)
-        istream = open(self.brown_file)
-        blex = [line.split()[1] for line in istream]
-        blex.pop() #pops the unk word inserted as last line
-        istream.close()
-        
-        #normal lexicon
         lexicon = Counter()
         for sentence in raw_treebank:
             lexicon.update(sentence)
-        self.lexicon = SymbolLexicon(lexicon,unk_word=RNNGlm.UNKNOWN_TOKEN,special_tokens=[RNNGlm.START_TOKEN]+blex,max_lex_size=self.max_vocab_size)
-
+        known_vocabulary = set([for word, counts in lexicon.most_common(max_vocabulary_size)])
+        known_vocabulary.append(RNNGlm.START_TOKEN)
+        
+        self.brown_file  = normalize_brown_file(brown_clusters,known_vocabulary,brown_clusters+'.unk',UNK_SYMBOL=RNNGlm.UNKNOWN_TOKEN)
+        self.lexicon     = SymbolLexicon(lexicon,unk_word=RNNGlm.UNKNOWN_TOKEN)
+     
+        #Extras (brown lexicon and external embeddings)
+        self.ext_embeddings = False
         
     def make_structure(self):
         """

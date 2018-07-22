@@ -20,7 +20,6 @@ Allows comparisons and sharing of parameters.
 It is designed to run on a GPU.
 """
 
-
 class RNNGlm:
     #special tokens
     UNKNOWN_TOKEN = '<UNK>'
