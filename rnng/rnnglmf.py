@@ -31,7 +31,7 @@ class RNNGlm:
         self.embedding_size = embedding_size
         self.hidden_size    = memory_size
         self.dropout        = 0.0
-        self.brown_file     = SymbolLexicon.unkify_brown_file(brown_clusters,brown_clusters+'.unk',UNK_SYMBOL=UNKNOWN_TOKEN)
+        self.brown_file     = SymbolLexicon.unkify_brown_file(brown_clusters,brown_clusters+'.unk',UNK_SYMBOL=RNNGlm.UNKNOWN_TOKEN)
         
         #Extras (brown lexicon and external embeddings)
         self.ext_embeddings = False
