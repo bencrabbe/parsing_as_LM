@@ -57,10 +57,7 @@ class RNNGlm:
         #Lex input
         self.E    = self.model.add_lookup_parameters((self.lexicon.size(),self.embedding_size))
         #Lex output
-        print('here')
-        print(self.lexicon.words2i)
         self.O    = dy.ClassFactoredSoftmaxBuilder(self.hidden_size,self.brown_file,self.lexicon.words2i,self.model,bias=True)
-        print('there')
         #RNN
         self.rnn = dy.LSTMBuilder(1,self.embedding_size,self.hidden_size,self.model)  
 
@@ -87,9 +84,9 @@ class RNNGlm:
             N = 0
             for sent in train_sentences:
                 dy.renew_cg()
-                print(X)
                 X          = [self.lexicon.index(word) for word  in [RNNGlm.START_TOKEN] + sent[:-1] ]
                 Y          = [self.lexicon.index(word) for word in sent]
+                print(sent,Y)
                 state      = self.rnn.initial_state()
                 xinputs    = [self.E[x] for x in X]
                 state_list = state.add_inputs(xinputs)
