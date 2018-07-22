@@ -270,7 +270,8 @@ if __name__ == '__main__':
         istream.close()
 
         if config_file:
-            config = read_config(filename=config_file)
+            print(config_file)
+            config = read_config(config_file)
             rnnlm = RNNGlm(brown_file,embedding_size=config["structure"]['embedding_size'] ,memory_size=config["structure"]['memory_size'])
             rnnlm.train_rnn_lm(model_name,train_treebank,dev_treebank,lr=config['learning']['learning_rate'],dropout=config['learning']['dropout'],max_epochs=config['learning']['num_epochs'],batch_size=32)
         else:
