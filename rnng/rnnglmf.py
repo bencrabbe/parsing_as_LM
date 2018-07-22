@@ -36,7 +36,13 @@ class RNNGlm:
         #Extras (brown lexicon and external embeddings)
         self.ext_embeddings = False
 
-    def code_lexicon(self,raw_treebank):
+    def code_lexicon(self,raw_treebank,brown_file):
+
+        #brown lexicon (all words of the brown file must be part of the lexicon)
+        istream = open(brown_file)
+        blex = [line.split()[1] for line in istream]
+        blex.pop() #pops the unk word inserted as last line
+        istream.close()
         
         #normal lexicon
         lexicon = Counter()
