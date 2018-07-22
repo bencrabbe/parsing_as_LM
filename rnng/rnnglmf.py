@@ -92,7 +92,7 @@ class RNNGlm:
 
         ntrain_sentences = len(train_sentences)
 
-        self.print_summary(ntrain_sentences,ndev_sentences,lr,dropout)
+        self.print_summary(ntrain_sentences,len(validation_sentences,lr,dropout)
 
         for e in range(max_epochs):
 
