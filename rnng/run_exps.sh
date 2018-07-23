@@ -57,8 +57,8 @@ train_rnnlm(){
 #train_rnnlm 300 200 0.5
 #train_rnnlm 300 300 0.5
 #train_rnnlm 200 300 0.5
-train_rnnlm 300 250 0.5
-train_rnnlm 100 250 0.5
+train_rnnlm 100 150 0.3
+train_rnnlm 100 250 0.3
 
 #train_rnng 150 200 100 0.3
 #train_rnng 250 300 200 0.3
