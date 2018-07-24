@@ -254,6 +254,7 @@ class RNNGparser:
         fwd_state = fwd_state.add_input(self.nonterminals_embeddings[self.nonterminals.index(newS[-1].symbol)])
         for SYM in reversed(closed_symbols):
             fwd_state = fwd_state.add_input(SYM.embedding)
+            
         bwd_state = self.tree_bwd.initial_state()  
         bwd_state = bwd_state.add_input(self.nonterminals_embeddings[self.nonterminals.index(newS[-1].symbol)])
         for SYM in closed_symbols:
