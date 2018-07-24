@@ -429,7 +429,8 @@ class RNNGparser:
             nll = dy.pickneglogsoftmax(self.nonterminals_W  * dy.rectify(stack_state.output())  + self.nonterminals_b,ref_idx)
         elif lab_state == RNNGparser.NO_LABEL :
             ref_idx = self.actions.index(ref_action)
-            print('struct',ref_idx,flush=True)
+            print('struct',ref_action,ref_idx,flush=True)
+            print(stack_state.output().npvalue(),flush=True)
             nll = dy.pickneglogsoftmax(self.structural_W  * dy.rectify(stack_state.output())  + self.structural_b,ref_idx)
         else:
             print('error in evaluation')
