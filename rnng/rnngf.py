@@ -526,7 +526,6 @@ class RNNGparser:
         self.trainer = dy.SimpleSGDTrainer(self.model,learning_rate=lr)
         min_nll      = np.inf
 
-        print('starting...')
         for e in range(epochs):
             
             NLL,lex_NLL,N,lexN = 0,0,0,0
@@ -536,9 +535,9 @@ class RNNGparser:
                 lex_NLL += loc_lex_NLL
                 N       += n
                 lexN    += lex_n
-                #print(idx)
+                print('\rTree #%d'%(idx))
                 
-            print('[Training]   Epoch %d, NLL = %f, lex-NLL = %f, PPL = %f, lex-PPL = %f'%(e,NLL,lex_NLL, np.exp(NLL/N),np.exp(lex_NLL/lexN)),flush=True)
+            print('\n[Training]   Epoch %d, NLL = %f, lex-NLL = %f, PPL = %f, lex-PPL = %f'%(e,NLL,lex_NLL, np.exp(NLL/N),np.exp(lex_NLL/lexN)),flush=True)
                 
             NLL,lex_NLL,N,lexN = 0,0,0,0
             for idx,tree in enumerate(dev_treebank):
@@ -547,9 +546,9 @@ class RNNGparser:
                 lex_NLL += loc_lex_NLL
                 N       += n
                 lexN    += lex_n
-                #print(idx)
+                print('\rTree #%d'%(idx))
                 
-            print('[Validation] Epoch %d, NLL = %f, lex-NLL = %f, PPL = %f, lex-PPL = %f'%(e,NLL,lex_NLL, np.exp(NLL/N),np.exp(lex_NLL/lexN)),flush=True)
+            print('\n[Validation] Epoch %d, NLL = %f, lex-NLL = %f, PPL = %f, lex-PPL = %f'%(e,NLL,lex_NLL, np.exp(NLL/N),np.exp(lex_NLL/lexN)),flush=True)
             print()
             if NLL < min_nll:
                 pass #save model
