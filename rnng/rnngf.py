@@ -461,6 +461,8 @@ class RNNGparser:
 
         for ref_action in derivation:
 
+            S,B,n,stack_state,lab_state = configuration
+
             nll =  self.eval_action_distrib(configuration,sentence,ref_action)
             all_NLL.append( nll )
 
