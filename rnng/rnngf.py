@@ -258,6 +258,7 @@ class RNNGparser:
             bwd_state = bwd_state.add_input(SYM.embedding)
 
         tree_h         = dy.concatenate([fwd_state.output(),bwd_state.output()])
+        print('there')
         tree_embedding = dy.rectify(self.tree_W * tree_h + self.tree_b)
 
         return (newS,B,n-1,stack_state.add_input(tree_embedding),RNNGparser.NO_LABEL)
@@ -386,7 +387,7 @@ class RNNGparser:
             a list of couples (action, log probability) or None if the parser is trapped.
         """
         S,B,n,stack_state,lab_state = configuration
-        
+
         if lab_state == RNNGparser.WORD_LABEL:
             next_word     = (sentence[B[0]])
             next_word_idx = self.lexicon.index(next_word)
@@ -417,6 +418,7 @@ class RNNGparser:
         """
         S,B,n,stack_state,lab_state = configuration
 
+        print('here')
         if lab_state == RNNGparser.WORD_LABEL:
             ref_idx  = self.lexicon.index(ref_action)
             nll =  self.word_softmax.neg_log_softmax(dy.rectify(stack_state.output()),ref_idx)
