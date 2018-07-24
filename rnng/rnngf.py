@@ -487,7 +487,7 @@ class RNNGparser:
             NLL.backward()
             self.trainer.update()
             
-        return (float(NLL),float(lex_NLL),dN,N)
+        return (NLL,lex_NLL,dN,N)
 
 
     def train_model(self,train_treebank,dev_treebank,modelname,lr=0.1,epochs=20):
