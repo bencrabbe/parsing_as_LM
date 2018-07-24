@@ -172,7 +172,8 @@ class RNNGparser:
            tuple. an initial configuration
         """
         stack_state = self.rnn.initial_state()
-        stack_state = stack_state.add_input(self.lexicon.index(RNNGparser.START_TOKEN))
+        e = self.word_embeddings[self.lexicon.index(RNNGparser.START_TOKEN)]
+        stack_state = stack_state.add_input(e)
         return ([],tuple(range(N)),0,stack_state,RNNGparser.NO_LABEL)
     
     def shift_action(self,configuration):
