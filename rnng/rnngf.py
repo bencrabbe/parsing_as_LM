@@ -172,7 +172,7 @@ class RNNGparser:
            tuple. an initial configuration
         """
         stack_state = self.rnn.initial_state()
-        stack_state = s.add_input(self.lexicon.index(RNNGparser.START_TOKEN))
+        stack_state = stack_state.add_input(self.lexicon.index(RNNGparser.START_TOKEN))
         return ([],tuple(range(N)),0,stack_state,RNNGparser.NO_LABEL)
     
     def shift_action(self,configuration):
