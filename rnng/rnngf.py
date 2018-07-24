@@ -509,8 +509,8 @@ class RNNGparser:
             ConsTree.close_unaries(t)
 
         #Coding & model structure
-        self.code_lexicon(dev_treebank)
-        self.code_nonterminals(dev_treebank)
+        self.code_lexicon(train_treebank)
+        self.code_nonterminals(train_treebank,dev_treebank)
         self.code_struct_actions()
         self.allocate_structure()
 
