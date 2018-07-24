@@ -171,7 +171,9 @@ class RNNGparser:
         Returns:
            tuple. an initial configuration
         """
-        return ([],tuple(range(N)),0,self.rnn.initial_state(),RNNGparser.NO_LABEL)
+        stack_state = self.rnn.initial_state()
+        stack_state = s.add_input(self.lexicon.index(RNNGparser.START_TOKEN))
+        return ([],tuple(range(N)),0,stack_state,RNNGparser.NO_LABEL)
     
     def shift_action(self,configuration):
         """
@@ -258,7 +260,6 @@ class RNNGparser:
             bwd_state = bwd_state.add_input(SYM.embedding)
 
         tree_h         = dy.concatenate([fwd_state.output(),bwd_state.output()])
-        print('there')
         tree_embedding = dy.rectify(self.tree_W * tree_h + self.tree_b)
 
         return (newS,B,n-1,stack_state.add_input(tree_embedding),RNNGparser.NO_LABEL)
@@ -418,19 +419,14 @@ class RNNGparser:
         """
         S,B,n,stack_state,lab_state = configuration
 
-        print('here',ref_action)
         if lab_state == RNNGparser.WORD_LABEL:
-            print('word',flush=True)
             ref_idx  = self.lexicon.index(ref_action)
             nll =  self.word_softmax.neg_log_softmax(dy.rectify(stack_state.output()),ref_idx)
         elif lab_state == RNNGparser.NT_LABEL :
-            print('NT',flush=True)
             ref_idx  = self.nonterminals.index(ref_action)
             nll = dy.pickneglogsoftmax(self.nonterminals_W  * dy.rectify(stack_state.output())  + self.nonterminals_b,ref_idx)
         elif lab_state == RNNGparser.NO_LABEL :
             ref_idx = self.actions.index(ref_action)
-            print('struct',ref_action,ref_idx,flush=True)
-            print(stack_state.output().npvalue(),flush=True)
             nll = dy.pickneglogsoftmax(self.structural_W  * dy.rectify(stack_state.output())  + self.structural_b,ref_idx)
         else:
             print('error in evaluation')
