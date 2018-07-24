@@ -224,7 +224,6 @@ class RNNGparser:
         S,B,n,stack_state,lab_state = configuration
         
         stack_top = S[-1]
-        print(Xlabel)
         e = self.nonterminals_embeddings[self.nonterminals.index(Xlabel)]
         return (S[:-1] + [StackSymbol(Xlabel,StackSymbol.PREDICTED,e),stack_top],B,n+1,stack_state.add_input(e),RNNGparser.NO_LABEL)
 
@@ -458,7 +457,7 @@ class RNNGparser:
 
         for ref_action in derivation:
 
-            nll =  eval_action_distrib(configuration,sentence,ref_action)
+            nll =  self.eval_action_distrib(configuration,sentence,ref_action)
             all_NLL.append( nll )
 
             if lab_state == RNNGparser.WORD_LABEL:
