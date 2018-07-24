@@ -418,7 +418,7 @@ class RNNGparser:
         """
         S,B,n,stack_state,lab_state = configuration
 
-        print('here')
+        print('here',ref_action)
         if lab_state == RNNGparser.WORD_LABEL:
             print('word',flush=True)
             ref_idx  = self.lexicon.index(ref_action)
