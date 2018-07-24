@@ -550,7 +550,7 @@ class RNNGparser:
                 #print(idx)
                 
             print('[Validation] Epoch %d, NLL = %f, lex-NLL = %f, PPL = %f, lex-PPL = %f'%(e,NLL,lex_NLL, np.exp(NLL/N),np.exp(lex_NLL/lexN)),flush=True)
-
+            print()
             if NLL < min_nll:
                 pass #save model
 
