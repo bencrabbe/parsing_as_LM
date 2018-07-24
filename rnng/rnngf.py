@@ -420,15 +420,15 @@ class RNNGparser:
 
         print('here')
         if lab_state == RNNGparser.WORD_LABEL:
-            print('word')
+            print('word',flush=True)
             ref_idx  = self.lexicon.index(ref_action)
             nll =  self.word_softmax.neg_log_softmax(dy.rectify(stack_state.output()),ref_idx)
         elif lab_state == RNNGparser.NT_LABEL :
-            print('NT')
+            print('NT',flush=True)
             ref_idx  = self.nonterminals.index(ref_action)
             nll = dy.pickneglogsoftmax(self.nonterminals_W  * dy.rectify(stack_state.output())  + self.nonterminals_b,ref_idx)
         elif lab_state == RNNGparser.NO_LABEL :
-            print('struct')
+            print('struct',flush=True)
             ref_idx = self.actions.index(ref_action)
             nll = dy.pickneglogsoftmax(self.structural_W  * dy.rectify(stack_state.output())  + self.structural_b,ref_idx)
         else:
