@@ -464,7 +464,6 @@ class RNNGparser:
             S,B,n,stack_state,lab_state = configuration
 
             nll =  self.eval_action_distrib(configuration,sentence,ref_action)
-            print(type(nll))
             all_NLL.append( nll )
 
             if lab_state == RNNGparser.WORD_LABEL:
@@ -481,11 +480,14 @@ class RNNGparser:
             elif ref_action == RNNGparser.TERMINATE:
                 pass
         
-        NLL     = dy.esum(all_NLL).value()
-        lex_NLL = dy.esum(lexical_NLL).value()
+        loss     = dy.esum(all_NLL)
+        lex_loss = dy.esum(lexical_NLL)
 
+        NLL     = loss.value()
+        lex_NLL = lex_loss.value()
+        
         if backprop:
-            NLL.backward()
+            loc_nll.backward()
             self.trainer.update()
             
         return (NLL,lex_NLL,dN,N)
