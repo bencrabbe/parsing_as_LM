@@ -1,6 +1,7 @@
 """
 This class implements an RNNG parser with class factored word emissions.
 """
+import sys
 import dynet as dy
 import numpy as np
 import numpy.random as npr
@@ -535,7 +536,7 @@ class RNNGparser:
                 lex_NLL += loc_lex_NLL
                 N       += n
                 lexN    += lex_n
-                print('\rTree #%d'%(idx))
+                sys.stdout.write('\rTree #%d\n'%(idx))
                 
             print('\n[Training]   Epoch %d, NLL = %f, lex-NLL = %f, PPL = %f, lex-PPL = %f'%(e,NLL,lex_NLL, np.exp(NLL/N),np.exp(lex_NLL/lexN)),flush=True)
                 
@@ -546,7 +547,7 @@ class RNNGparser:
                 lex_NLL += loc_lex_NLL
                 N       += n
                 lexN    += lex_n
-                print('\rTree #%d'%(idx))
+                 sys.stdout.write('\rTree #%d\n'%(idx))
                 
             print('\n[Validation] Epoch %d, NLL = %f, lex-NLL = %f, PPL = %f, lex-PPL = %f'%(e,NLL,lex_NLL, np.exp(NLL/N),np.exp(lex_NLL/lexN)),flush=True)
             print()
@@ -575,4 +576,4 @@ if __name__ == '__main__':
     dev_stream.close()
      
     parser = RNNGparser('ptb-250.brown')
-    parser.train_model(train_treebank[:500],dev_treebank[:500],'kkprout')
+    parser.train_model(train_treebank,dev_treebank,'kkprout')
