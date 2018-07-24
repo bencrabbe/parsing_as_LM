@@ -109,17 +109,21 @@ class RNNGparser:
         self.lexicon     = SymbolLexicon( list(known_vocabulary),unk_word=RNNGparser.UNKNOWN_TOKEN)
         return self.lexicon
         
-    def code_nonterminals(self,treebank):
+    def code_nonterminals(self,train_treebank,dev_treebank):
         """
         Extracts the nonterminals from a treebank and codes them on integers as a lexicon object.
         
         Args:
-           treebank   (list) : a list of trees  where to extract the non terminals from
+           train_treebank   (list) : a list of trees  where to extract the non terminals from
+           dev_treebank   (list) : a list of trees  where to extract the non terminals from
+
         Returns:
            SymbolLexicon. The bijective encoding
         """
         nonterminals = set([])
-        for tree in treebank:
+        for tree in train_treebank:
+            nonterminals.update(tree.collect_nonterminals())
+        for tree in dev_treebank:
             nonterminals.update(tree.collect_nonterminals())
         self.nonterminals = SymbolLexicon(list(nonterminals))
         return self.nonterminals
@@ -564,4 +568,4 @@ if __name__ == '__main__':
     dev_stream.close()
      
     parser = RNNGparser('ptb-250.brown')
-    parser.train_model(train_treebank[:10],dev_treebank[:10],'kkprout')
+    parser.train_model(train_treebank[:10],train_treebank[:10],'kkprout')
