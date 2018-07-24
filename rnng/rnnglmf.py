@@ -172,8 +172,8 @@ class RNNGlm:
         """
         Prints a summary of the model structure.
         """
-        print('#Training sentences     :',ntrain)
-        print('#Validation sentences   :',ndev)
+        print('# Training sentences    :',ntrain)
+        print('# Validation sentences  :',ndev)
         print('Lexicon size            :',self.lexicon.size(),flush=True)
         print('embedding size          :',self.embedding_size,flush=True)
         print('hidden size             :',self.hidden_size,flush=True)

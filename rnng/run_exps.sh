@@ -45,6 +45,7 @@ train_rnng(){
    nohup python rnng.py -m $NAME/$NAME -t ptb_train.mrg -d -ptb_dev.mrg -b ptb-250.brown -c "$NAME/$NAME.prm" > "nohup.$NAME.out" & 
 }
 
+
 train_rnnlm(){
     # $1 = embedding size , $2 = lstm memory size $3 = dropout
     NAME="rnnlm-$1-$2-250"  #250 stands for the number of clusters

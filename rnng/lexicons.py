@@ -26,6 +26,8 @@ class SymbolLexicon:
         self.i2words  = wordlist
         self.unk_word = unk_word
 
+
+        
     @staticmethod
     def make_lexicon_from_list(wordlist,unk_word=None,special_tokens=[ ],count_threshold=-1,max_lex_size=100000000):
         """
