@@ -487,7 +487,7 @@ class RNNGparser:
         lex_NLL = lex_loss.value()
         
         if backprop:
-            loc_nll.backward()
+            loss.backward()
             self.trainer.update()
             
         return (NLL,lex_NLL,dN,N)
