@@ -220,6 +220,7 @@ class RNNGparser:
         S,B,n,stack_state,lab_state = configuration
         
         stack_top = S[-1]
+        print(Xlabel)
         e = self.nonterminals_embeddings[self.nonterminals.index(Xlabel)]
         return (S[:-1] + [StackSymbol(Xlabel,StackSymbol.PREDICTED,e),stack_top],B,n+1,stack_state.add_input(e),RNNGparser.NO_LABEL)
 
@@ -254,11 +255,6 @@ class RNNGparser:
             bwd_state = bwd_state.add_input(SYM.embedding)
 
         tree_h         = dy.concatenate([fwd_state.output(),bwd_state.output()])
-
-        print(self.tree_W.npvalue())
-        print(tree_h.npvalue())
-        print(self.tree_b.npvalue())
-
         tree_embedding = dy.rectify(self.tree_W * tree_h + self.tree_b)
 
         return (newS,B,n-1,stack_state.add_input(tree_embedding),RNNGparser.NO_LABEL)
