@@ -533,7 +533,7 @@ class RNNGparser:
                 
             NLL,lex_NLL,N,lexN = 0,0,0,0
             for idx,tree in enumerate(dev_treebank):
-                loc_NLL,loc_lex_NLL,n,lex_n = self.eval_sentence(tree,backprop=True)
+                loc_NLL,loc_lex_NLL,n,lex_n = self.eval_sentence(tree,backprop=False)
                 NLL     += loc_NLL
                 lex_NLL += loc_lex_NLL
                 N       += n
@@ -567,4 +567,4 @@ if __name__ == '__main__':
     dev_stream.close()
      
     parser = RNNGparser('ptb-250.brown')
-    parser.train_model(train_treebank[:10],train_treebank[:10],'kkprout')
+    parser.train_model(train_treebank[:100],train_treebank[:10],'kkprout')
