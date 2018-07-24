@@ -464,6 +464,7 @@ class RNNGparser:
             S,B,n,stack_state,lab_state = configuration
 
             nll =  self.eval_action_distrib(configuration,sentence,ref_action)
+            print(type(nll))
             all_NLL.append( nll )
 
             if lab_state == RNNGparser.WORD_LABEL:
