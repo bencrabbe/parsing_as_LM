@@ -246,7 +246,7 @@ class RNNGparser:
            tuple. a configuration after word generation
         """
         S,B,n,stack_state,lab_state = configuration
-        e = self.word_embeddings[self.lexicon.index(sentence[B[0]])]
+        e = dy.rectify(self.word_embeddings[self.lexicon.index(sentence[B[0]])])
         return (S + [StackSymbol(B[0],StackSymbol.COMPLETED,e)],B[1:],n,stack_state.add_input(e),RNNGparser.NO_LABEL)
 
     def open_action(self,configuration):
@@ -273,7 +273,7 @@ class RNNGparser:
         S,B,n,stack_state,lab_state = configuration
         
         stack_top = S[-1]
-        e = self.nonterminals_embeddings[self.nonterminals.index(Xlabel)]
+        e = dy.rectify(self.nonterminals_embeddings[self.nonterminals.index(Xlabel)])
         return (S[:-1] + [StackSymbol(Xlabel,StackSymbol.PREDICTED,e),stack_top],B,n+1,stack_state.add_input(e),RNNGparser.NO_LABEL)
 
     def close_action(self,configuration):
@@ -293,7 +293,6 @@ class RNNGparser:
         while newS[-1].status != StackSymbol.PREDICTED:
             closed_symbols.append(newS.pop())
             stack_state = stack_state.prev()
-        newS[-1] = newS[-1].complete()
         stack_state = stack_state.prev()         #pops the NT embedding too
        
         #tree rnn
@@ -310,6 +309,9 @@ class RNNGparser:
         tree_h         = dy.concatenate([fwd_state.output(),bwd_state.output()])
         tree_embedding = dy.rectify(self.tree_W * tree_h + self.tree_b)
 
+        newS[-1] = newS[-1].complete()
+        newS[-1].embedding = tree_embedding
+        
         return (newS,B,n-1,stack_state.add_input(tree_embedding),RNNGparser.NO_LABEL)
 
     
