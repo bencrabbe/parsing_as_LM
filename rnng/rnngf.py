@@ -66,7 +66,7 @@ class RNNGparser:
     def __init__(self,brown_clusters,
                       max_vocabulary_size=10000,\
                       stack_embedding_size=100,
-                      stack_memory_size=100,
+                      stack_memory_size=150,
                       word_embedding_size=100):
         """
         Args:
@@ -379,7 +379,7 @@ class RNNGparser:
             MASK *= self.terminate_mask
         if not B or (S and n == 0):
             MASK *= self.shift_mask
-        if not S or n < 1: 
+        if not S or n < 1 or S[-1].status == StackSymbol.PREDICTED: 
             MASK *= self.close_mask
 
         allowed_idxes = [idx for idx, mask_val in enumerate(MASK) if mask_val]
@@ -433,7 +433,7 @@ class RNNGparser:
           sentence         (list): a list of string, the tokens
 
         Returns:
-            a list of couples (action, log probability) or None if the parser is trapped.
+            a list of couples (action, log probability). The list is empty if the parser is trapped (aka no action is possible).
         """
         S,B,n,stack_state,lab_state = configuration
 
@@ -449,8 +449,9 @@ class RNNGparser:
             if restr:
                 logprobs =  dy.log_softmax(self.structural_W  * dy.rectify(stack_state.output())  + self.structural_b,restr).value()
                 return list(zip(self.actions.i2words,logprobs))
-        print('prediction error, parser trapped')
-        return None
+
+        #parser trapped...
+        return []
 
 
     def eval_action_distrib(self,configuration,sentence,ref_action):
@@ -593,7 +594,7 @@ class RNNGparser:
                 N       += n
                 lexN    += lex_n
                 
-            print('\n[Validation] Epoch %d, NLL = %f, lex-NLL = %f, PPL = %f, lex-PPL = %f'%(e,NLL,lex_NLL, np.exp(NLL/N),np.exp(lex_NLL/lexN)),flush=True)
+            print('[Validation] Epoch %d, NLL = %f, lex-NLL = %f, PPL = %f, lex-PPL = %f'%(e,NLL,lex_NLL, np.exp(NLL/N),np.exp(lex_NLL/lexN)),flush=True)
             print()
             if NLL < min_nll:
                 self.save_model(modelname)
@@ -620,4 +621,4 @@ if __name__ == '__main__':
     dev_stream.close()
      
     parser = RNNGparser('ptb-250.brown')
-    parser.train_model(train_treebank,dev_treebank,'test_rnngf/test_rnngf',epochs=1)
+    parser.train_model(train_treebank,dev_treebank,'test_rnngf/test_rnngf',epochs=20)
