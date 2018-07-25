@@ -46,7 +46,7 @@ class RuntimeStats:
         """
         Sets the key value on top (overloads [] syntax)
         """
-        assert(key in self.stats):
+        assert(key in self.stats)
         self.stats[key][-1] = value
             
     def __add__(self,other):
@@ -72,5 +72,5 @@ class RuntimeStats:
 
 if __name__ == '__main__':
 
-    
+    s = RuntimeStats({'LL':0,})
     
