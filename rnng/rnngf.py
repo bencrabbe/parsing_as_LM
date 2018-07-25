@@ -67,9 +67,7 @@ class RNNGparser:
                       max_vocabulary_size=10000,\
                       stack_embedding_size=100,
                       stack_memory_size=100,
-                      word_embedding_size=100,
-                      char_memory_size=50,
-                      char_embedding_size=25):
+                      word_embedding_size=100):
         """
         Args:
            brown_clusters       (str)  : a filename where to find brown clusters     
@@ -78,8 +76,6 @@ class RNNGparser:
            stack_embedding_size (int)  : size of stack lstm input 
            stack_memory_size    (int)  : size of the stack and tree lstm hidden layers
            word_embedding_size  (int)  : size of word embeddings
-           char_embedding_size  (int)  : size of char lstm input 
-           char_memory_size     (int)  : size of the char lstm hidden layer
         """
         
         self.brown_file           = brown_clusters
@@ -87,10 +83,8 @@ class RNNGparser:
         self.stack_embedding_size = stack_embedding_size
         self.stack_hidden_size    = stack_memory_size
         self.word_embedding_size  = word_embedding_size
-        self.char_memory_size     = char_memory_size
-        self.char_embedding_size  = char_embedding_size
         self.dropout              = 0.0
-        
+
     def code_lexicon(self,treebank):
         """
         Codes a lexicon on integers indexes and generates a lexicon object.
@@ -151,6 +145,58 @@ class RNNGparser:
 
         return self.actions
 
+    @staticmethod
+    def load_model(self,model_name):
+        """
+        Loads an RNNG parser from params at prefix model_name
+
+        Args:
+            model_name   (string): the prefix path for param files
+
+        Returns:
+            RNNGparser. An instance of RNNG ready to use.
+        """
+        hyperparams = json.loads(open(model_name+'.json').read())
+        parser = RNNGparser(brown_clusters,
+                            max_vocabulary_size=hyperparams['brown_file'],\
+                            stack_embedding_size=hyperparams['stack_embedding_size'],\
+                            stack_memory_size=hyperparams['stack_hidden_size'],\
+                            word_embedding_size=hyperparams['word_embedding_size'])
+
+        parser.lexicon      = SymbolLexicon.load(model_name+'.lex')
+        parser.nonterminals = SymbolLexicon.load(model_name+'.nt')
+        parser.code_struct_actions()
+        parser.allocate_structure()
+        parser.model.populate(model_name+".weights")
+
+        return parser
+
+    
+      def save_model(self,model_name):
+        """
+        Saves the model params using the prefix model_name.
+
+        Args:
+            model_name   (string): the prefix path for param files
+        """
+
+        prefix_name = '/'.joinr['dirname','dirname']
+        
+        hyperparams = { 'brown_file':brown_file,\
+                        'max_vocabulary_size':max_vocabulary_size,\
+                        'stack_embedding_size':stack_embedding_size,\
+                        'stack_hidden_size':stack_hidden_size,\
+                        'word_embedding_size':word_embedding_size}
+  
+        jfile = open(model_name+'.json','w')
+        jfile.dumps(hyperparams)
+        jfile.close()
+
+        self.model.save(model_name+'.weights')
+        self.lexicon.save(model_name+'.lex')
+        self.nonterminals.save(model_name+'.lex')
+        
+    
     #TRANSITION SYSTEM AND ORACLE
     
     def init_configuration(self,N):
@@ -422,7 +468,7 @@ class RNNGparser:
         """
         S,B,n,stack_state,lab_state = configuration
 
-        if lab_state == RNNGparser.WORD_LABEL:
+        if lab_state == RNNGparser.WORD_LABEL :
             ref_idx  = self.lexicon.index(ref_action)
             nll =  self.word_softmax.neg_log_softmax(dy.rectify(stack_state.output()),ref_idx)
         elif lab_state == RNNGparser.NT_LABEL :
@@ -493,7 +539,7 @@ class RNNGparser:
             
         return (NLL,lex_NLL,dN,N)
 
-
+    
     def train_model(self,train_treebank,dev_treebank,modelname,lr=0.1,epochs=20):
         """
         Trains a full model for e epochs.
@@ -547,7 +593,6 @@ class RNNGparser:
                 lex_NLL += loc_lex_NLL
                 N       += n
                 lexN    += lex_n
-                sys.stdout.write('\rTree #%d'%(idx))
                 
             print('\n[Validation] Epoch %d, NLL = %f, lex-NLL = %f, PPL = %f, lex-PPL = %f'%(e,NLL,lex_NLL, np.exp(NLL/N),np.exp(lex_NLL/lexN)),flush=True)
             print()

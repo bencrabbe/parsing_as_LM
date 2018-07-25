@@ -21,7 +21,7 @@ class SymbolLexicon:
         if unk_word:
             wordlist.append(unk_word)
 
-        wordlist = list(set(wordlist))
+        #wordlist = list(set(wordlist))
         self.words2i  = dict([ (w,idx) for idx,w in enumerate(wordlist)])
         self.i2words  = wordlist
         self.unk_word = unk_word
