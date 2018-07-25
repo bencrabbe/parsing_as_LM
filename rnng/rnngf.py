@@ -518,7 +518,7 @@ class RNNGparser:
             runstats['lexN']  += len(sentence)
             runstats['N']  += len(derivation)
     
-            configuration = self.init_configuration(N)
+            configuration = self.init_configuration(len(sentence))
             for ref_action in derivation:
 
                 S,B,n,stack_state,lab_state = configuration
