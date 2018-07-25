@@ -603,9 +603,8 @@ class RNNGparser:
                 bbegin = bend
 
             NLL,lex_NLL,N,lexN = train_stats.peek()            
-            print('\n[Training]   Epoch %d, NLL = %f, lex-NLL = %f, PPL = %f, lex-PPL = %f'%(e,NLL,lexNLL,np.exp(NLL/N),np.exp(lex_NLL/lexN)),flush=True)
+            print('\n[Training]   Epoch %d, NLL = %f, lex-NLL = %f, PPL = %f, lex-PPL = %f'%(e,NLL,lex_NLL,np.exp(NLL/N),np.exp(lex_NLL/lexN)),flush=True)
 
-            
             valid_stats.push_row()
             bbegin = 0
             while bbegin < ndev_sentences:
@@ -618,7 +617,7 @@ class RNNGparser:
             print()
             if NLL < min_nll:
                 self.save_model(modelname)
-
+                
                 
 if __name__ == '__main__':
 
