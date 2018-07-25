@@ -638,7 +638,8 @@ class RNNGparser:
         Returns:
             string. The summary
         """
-        return '\n'.join(['Vocabulary   size   : %d'%(self.lexicon.size()),\
+        return '\n'.join(['----------------------------',\
+                          'Vocabulary   size   : %d'%(self.lexicon.size()),\
                           '# Nonterminals      : %d'%(self.nonterminals.size()),\
                           'Word embedding size : %d'%(self.word_embedding_size),\
                           'Stack embedding size: %d'%(self.stack_embedding_size),\
@@ -649,7 +650,8 @@ class RNNGparser:
                           '# epochs            : %d'%(epochs),\
                           'Learning rate       : %f'%(learning_rate),\
                           'Batch size          : %d'%(batch_size),\
-                          'Dropout             : %f'%(self.dropout)]) 
+                          'Dropout             : %f'%(self.dropout),\
+                          '----------------------------']) 
                      
                 
 if __name__ == '__main__':
