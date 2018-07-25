@@ -171,7 +171,6 @@ class RNNGparser:
 
         return parser
 
-    
     def save_model(self,model_name):
         """
         Saves the model params using the prefix model_name.
@@ -180,7 +179,7 @@ class RNNGparser:
             model_name   (string): the prefix path for param files
         """
 
-        prefix_name = '/'.join['dirname','dirname']
+        prefix_name = '/'.join(['dirname','dirname'])
         
         hyperparams = { 'brown_file':brown_file,\
                         'max_vocabulary_size':max_vocabulary_size,\
