@@ -610,9 +610,9 @@ class RNNGparser:
             NLL,lex_NLL,N,lexN = 0,0,0,0
             bbegin = 0
             while bbegin < ndev_sentences:
-                bend = min(ntrain_sentences,bbegin+batch_size)
+                bend = min(ndev_sentences,bbegin+batch_size)
 
-                loc_NLL,loc_lex_NLL,n,lex_n = self.eval_sentences(train_treebank[bbegin:bend],backprop=False)
+                loc_NLL,loc_lex_NLL,n,lex_n = self.eval_sentences(dev_treebank[bbegin:bend],backprop=False)
                 NLL     += loc_NLL
                 lex_NLL += loc_lex_NLL
                 N       += n
