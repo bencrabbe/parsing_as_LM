@@ -29,4 +29,5 @@ class RuntimeStats:
         #returns the full data frame as pandas or csv
         pass
 
-    def last_data
+    def last_data(self):
+        pass
