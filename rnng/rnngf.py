@@ -181,11 +181,11 @@ class RNNGparser:
 
         prefix_name = '/'.join(['dirname','dirname'])
         
-        hyperparams = { 'brown_file':brown_file,\
-                        'max_vocabulary_size':max_vocabulary_size,\
-                        'stack_embedding_size':stack_embedding_size,\
-                        'stack_hidden_size':stack_hidden_size,\
-                        'word_embedding_size':word_embedding_size}
+        hyperparams = { 'brown_file':self.brown_file,\
+                        'max_vocabulary_size':self.max_vocabulary_size,\
+                        'stack_embedding_size':self.stack_embedding_size,\
+                        'stack_hidden_size':self.stack_hidden_size,\
+                        'word_embedding_size':self.word_embedding_size}
   
         jfile = open(model_name+'.json','w')
         jfile.dumps(hyperparams)
