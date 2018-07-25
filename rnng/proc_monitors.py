@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 
 import pandas as pd
-from collections import OrderedDict
 
 class RuntimeStats:
     """
@@ -9,33 +8,52 @@ class RuntimeStats:
     the parser. It emulates some dictionary behaviour with limited aggregate computations on the last time step
     """
     
-    def __init__(self,init_dict):
-        
-        self.stats    = OrderedDict(init_dict)
-        self.push()
+    def __init__(self,*args):
+
+        self.stats    = {}
+        self.okeys    = tuple([])
+        if args:
+            self.okeys = args
+            for key in args:
+                self.stats[key] = []
 
     def copy(self):
         
-        return RuntimeStats(self.stats)
+        r = RuntimeStats()
+        r.stats = dict([(k,v[:]) for k,v in self.stats.items()])
+        r.okeys = self.okeys[:]
+        return r
 
+    
     #FUNCTIONS CONTROLLING THE TIME STEP
-    def push(self):
-        for key in self.stats:
-            self.stats[key].append(0)
+    def push_row(self,**kwargs):
+        """
+        Adds/pushes a new row on top of the table.
+        Defaults to adding a row of 0.0 but one may specify values as kwargs 
+        """
+        if kwargs:
+            assert( len(set(self.okeys) - set(kwargs.keys())) == 0)
+            for key,value in kwargs.items():
+                self.stats[key].append(value)
+        else:
+            for key in self.stats:
+                self.stats[key].append(0)
         
     def peek(self):
-        
-        K = self.stats.keys()
-        V = [self.stats[k][-1] for k in K]
-        return list(zip(K,V))
+        """
+        Returns the values from the last (top) row, key ordering is guaranteed
+        """
+        #guarantees an ordering on keys
+        V = [self.stats[k][-1] for k in self.okeys]
+        return list(zip(self.okeys,V))
     
 
     def get_dataframe(self):
         #returns the full pandas data frame 
         return pd.DataFrame.from_dict(self.stats)
-            
-    #FUNCTIONS OPERATING ON AGGREGATIONS OF THE LAST TIME STEP
+
     
+    #FUNCTIONS OPERATING ON AGGREGATIONS OF THE LAST TIME STEP
     def __getitem__(self,key):
         """
         Returns the key value on top (overloads [] syntax)
@@ -48,7 +66,11 @@ class RuntimeStats:
         """
         assert(key in self.stats)
         self.stats[key][-1] = value
-            
+
+
+    def __radd__(self,other):
+        return other.__add__(self)
+    
     def __add__(self,other):
         """
         Returns a copy of this object added with another other
@@ -59,8 +81,9 @@ class RuntimeStats:
         
         result = self.copy()                
         for key in other.stats.keys():
-            result.stats[key] += other[key] 
-        
+            result.stats[key][-1] += other.stats[key][-1] 
+        return result
+    
     def __iadd__(self,other):
         """
         In-place addition with other object (operates on top)
@@ -68,9 +91,19 @@ class RuntimeStats:
         assert(len(set(self.stats.keys()) - set(other.stats.keys())) == 0)
 
         for key in other.stats.keys():
-            self.stats[key] += other[key] 
+            self.stats[key][-1] += other.stats[key][-1] 
+        return self
 
+    
 if __name__ == '__main__':
 
-    s = RuntimeStats({'LL':0,})
-    
+    s = RuntimeStats('LL','acc')
+    t = RuntimeStats('LL','acc')
+    s.push_row(LL=0,acc=1)
+    t.push_row(LL=1,acc=1)
+    print(t['acc'],s['LL'])
+    y = t+s
+    print(t.peek())
+    print(s.peek(),y.peek())
+    #s += (y+RuntimeStats(LL=1,acc=1))
+    #print(s.peek())

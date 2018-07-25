@@ -497,17 +497,17 @@ class RNNGparser:
           ref_tree_list    (ConsTree) or (list): a list of reference tree or a single tree.
           backprop                       (bool): a flag telling if we perform backprop
         Returns:
-           (float,float,int,int) : the model NLL, the word only NLL, the size of the derivations, the number of predicted words on this batch
+          RuntimeStats. the model NLL, the word only NLL, the size of the derivations, the number of predicted words on this batch
         """
         
         ref_trees = [ref_tree_list] if type(ref_tree_list) != list else ref_tree_list
     
-        N           = 0  #collects the number of words in the batch
-        dN          = 0  #collects the number of predictions in the batch
         all_NLL     = [] #collects the local losses in the batch
         lexical_NLL = [] #collects the local losses in the batch (for word prediction only)
     
-
+        runstats = RuntimeStats('NLL','lexNLL','N','lexN')
+        runstats.push_row()
+        
         dy.renew_cg()
         
         for ref_tree in ref_trees:
@@ -515,8 +515,8 @@ class RNNGparser:
             sentence = ref_tree.tokens()
             derivation,last_config = self.static_inorder_oracle(ref_tree,sentence)
 
-            N  += len(sentence)
-            dN += len(derivation)
+            runstats['lexN']  += len(sentence)
+            runstats['N']  += len(derivation)
     
             configuration = self.init_configuration(N)
             for ref_action in derivation:
@@ -543,14 +543,14 @@ class RNNGparser:
         loss     = dy.esum(all_NLL)
         lex_loss = dy.esum(lexical_NLL)
 
-        NLL     = loss.value()
-        lex_NLL = lex_loss.value()
+        runstats['NLL']  += loss.value()
+        runstats['lexNLL'] = lex_loss.value()
         
         if backprop:
             loss.backward()
             self.trainer.update()
             
-        return (NLL,lex_NLL,dN,N)
+        return runstats
 
     
     def train_model(self,train_treebank,dev_treebank,modelname,lr=0.1,epochs=20,batch_size=1):
@@ -588,37 +588,32 @@ class RNNGparser:
 
         ntrain_sentences = len(train_treebank)
         ndev_sentences   = len(dev_treebank)
+
+        train_stats = RuntimeStats('NLL','lexNLL','N','lexN')
+        valid_stats = RuntimeStats('NLL','lexNLL','N','lexN')
         
         for e in range(epochs):
 
-            
-            NLL,lex_NLL,N,lexN = 0,0,0,0
+            train_stats.push_row()
             bbegin = 0
             while bbegin < ntrain_sentences:
                 bend = min(ntrain_sentences,bbegin+batch_size)
-                loc_NLL,loc_lex_NLL,n,lex_n = self.eval_sentences(train_treebank[bbegin:bend],backprop=True)
-                NLL     += loc_NLL
-                lex_NLL += loc_lex_NLL
-                N       += n
-                lexN    += lex_n
+                train_stats += self.eval_sentences(train_treebank[bbegin:bend],backprop=True)
                 sys.stdout.write('\rprocessed %d trees'%(bend))
                 bbegin = bend
-                
-            print('\n[Training]   Epoch %d, NLL = %f, lex-NLL = %f, PPL = %f, lex-PPL = %f'%(e,NLL,lex_NLL, np.exp(NLL/N),np.exp(lex_NLL/lexN)),flush=True)
+
+            NLL,lex_NLL,N,lexN = train_stats.peek()            
+            print('\n[Training]   Epoch %d, NLL = %f, lex-NLL = %f, PPL = %f, lex-PPL = %f'%(e,NLL,lexNLL,np.exp(NLL/N),np.exp(lex_NLL/lexN)),flush=True)
 
             
-            NLL,lex_NLL,N,lexN = 0,0,0,0
+            valid_stats.push_row()
             bbegin = 0
             while bbegin < ndev_sentences:
                 bend = min(ndev_sentences,bbegin+batch_size)
-
-                loc_NLL,loc_lex_NLL,n,lex_n = self.eval_sentences(dev_treebank[bbegin:bend],backprop=False)
-                NLL     += loc_NLL
-                lex_NLL += loc_lex_NLL
-                N       += n
-                lexN    += lex_n
+                valid_stats += self.eval_sentences(dev_treebank[bbegin:bend],backprop=False)
                 bbegin = bend
-                
+
+            NLL,lex_NLL,N,lexN = valid_stats.peek()    
             print('[Validation] Epoch %d, NLL = %f, lex-NLL = %f, PPL = %f, lex-PPL = %f'%(e,NLL,lex_NLL, np.exp(NLL/N),np.exp(lex_NLL/lexN)),flush=True)
             print()
             if NLL < min_nll:
