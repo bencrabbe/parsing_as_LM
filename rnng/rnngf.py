@@ -188,7 +188,7 @@ class RNNGparser:
                         'word_embedding_size':self.word_embedding_size}
   
         jfile = open(model_name+'.json','w')
-        jfile.dumps(hyperparams)
+        jfile.write(json.dumps(hyperparams))
         jfile.close()
 
         self.model.save(model_name+'.weights')
