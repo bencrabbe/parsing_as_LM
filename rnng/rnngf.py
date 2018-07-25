@@ -172,7 +172,7 @@ class RNNGparser:
         return parser
 
     
-      def save_model(self,model_name):
+    def save_model(self,model_name):
         """
         Saves the model params using the prefix model_name.
 
