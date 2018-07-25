@@ -29,7 +29,7 @@ class RuntimeStats:
         """
         Sets the key value (overloads [] syntax)
         """
-        return self.stats[key] = value
+        self.stats[key] = value
 
     def __add__(self,other):
         """
