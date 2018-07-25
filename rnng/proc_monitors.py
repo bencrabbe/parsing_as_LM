@@ -41,11 +41,11 @@ class RuntimeStats:
         
     def peek(self):
         """
-        Returns the values from the last (top) row, key ordering is guaranteed
+        Returns a tuple of values from the last (top) row, key ordering is guaranteed
         """
-        #guarantees an ordering on keys
+        #guarantees values are ordered according to the kzys
         V = [self.stats[k][-1] for k in self.okeys]
-        return list(zip(self.okeys,V))
+        return tuple(V)
     
 
     def get_dataframe(self):
@@ -66,7 +66,6 @@ class RuntimeStats:
         """
         assert(key in self.stats)
         self.stats[key][-1] = value
-
 
     def __radd__(self,other):
         return other.__add__(self)
