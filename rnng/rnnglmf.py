@@ -99,7 +99,6 @@ class RNNGlm:
             NLL = 0
             N = 0
             
-            batches_processed = 0
             bbegin = 0
             
             while bbegin < ntrain_sentences:
@@ -119,8 +118,7 @@ class RNNGlm:
                 NLL       += loc_nll.value()
                 loc_nll.backward()
                 trainer.update()
-                batches_processed += 1
-                bbegin = batches_processed * batch_size
+                bbegin = bend
                     
             print('[Training]   Epoch %d, NLL = %f, PPL = %f'%(e,NLL,np.exp(NLL/N)),flush=True)
 

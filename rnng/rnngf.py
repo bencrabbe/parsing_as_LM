@@ -44,6 +44,7 @@ class StackSymbol:
         s =  '*%s'%(self.symbol,) if self.status == StackSymbol.PREDICTED else '%s*'%(self.symbol,)
         return s
 
+    
 class RNNGparser:
     """
     This is an RNNG parser with in-order tree traversal
@@ -485,49 +486,59 @@ class RNNGparser:
         return nll
 
     
-    def eval_sentence(self,ref_tree,backprop=True):
+    def eval_sentences(self,ref_tree_list,backprop=True):
         """
         Evaluates the model predictions against the reference data.
         and optionally performs backpropagation. 
 
+        The function either takes a single tree or a batch of trees (as list) for evaluation.
+        
         Args:
-          ref_tree     (ConsTree): the reference tree.
-          backprop         (bool): a flag telling if we perform backprop
+          ref_tree_list    (ConsTree) or (list): a list of reference tree or a single tree.
+          backprop                       (bool): a flag telling if we perform backprop
         Returns:
-           (float,float,int,int) : the model NLL, the word only NLL, the size of the derivation, the number of predicted words 
+           (float,float,int,int) : the model NLL, the word only NLL, the size of the derivations, the number of predicted words on this batch
         """
-        sentence = ref_tree.tokens()
-        derivation,last_config = self.static_inorder_oracle(ref_tree,sentence)
-
-        N  = len(sentence)
-        dN = len(derivation)
-
-        all_NLL     = []
-        lexical_NLL = []
+        
+        ref_trees = [ref_tree_list] if type(ref_tree_list) != list else ref_tree_list
     
+        N           = 0  #collects the number of words in the batch
+        dN          = 0  #collects the number of predictions in the batch
+        all_NLL     = [] #collects the local losses in the batch
+        lexical_NLL = [] #collects the local losses in the batch (for word prediction only)
+    
+
         dy.renew_cg()
-        configuration = self.init_configuration(N)
+        
+        for ref_tree in ref_trees:
+            
+            sentence = ref_tree.tokens()
+            derivation,last_config = self.static_inorder_oracle(ref_tree,sentence)
 
-        for ref_action in derivation:
+            N  += len(sentence)
+            dN += len(derivation)
+    
+            configuration = self.init_configuration(N)
+            for ref_action in derivation:
 
-            S,B,n,stack_state,lab_state = configuration
+                S,B,n,stack_state,lab_state = configuration
 
-            nll =  self.eval_action_distrib(configuration,sentence,ref_action)
-            all_NLL.append( nll )
+                nll =  self.eval_action_distrib(configuration,sentence,ref_action)
+                all_NLL.append( nll )
 
-            if lab_state == RNNGparser.WORD_LABEL:
-                configuration = self.generate_word(configuration,sentence)
-                lexical_NLL.append(nll)
-            elif lab_state == RNNGparser.NT_LABEL:
-                configuration = self.label_nonterminal(configuration,ref_action)
-            elif ref_action == RNNGparser.CLOSE:
-                configuration = self.close_action(configuration)
-            elif ref_action == RNNGparser.OPEN:
-                configuration = self.open_action(configuration)
-            elif ref_action == RNNGparser.SHIFT:
-                configuration = self.shift_action(configuration)
-            elif ref_action == RNNGparser.TERMINATE:
-                pass
+                if lab_state == RNNGparser.WORD_LABEL:
+                    configuration = self.generate_word(configuration,sentence)
+                    lexical_NLL.append(nll)
+                elif lab_state == RNNGparser.NT_LABEL:
+                    configuration = self.label_nonterminal(configuration,ref_action)
+                elif ref_action == RNNGparser.CLOSE:
+                    configuration = self.close_action(configuration)
+                elif ref_action == RNNGparser.OPEN:
+                    configuration = self.open_action(configuration)
+                elif ref_action == RNNGparser.SHIFT:
+                    configuration = self.shift_action(configuration)
+                elif ref_action == RNNGparser.TERMINATE:
+                    pass
         
         loss     = dy.esum(all_NLL)
         lex_loss = dy.esum(lexical_NLL)
@@ -542,7 +553,7 @@ class RNNGparser:
         return (NLL,lex_NLL,dN,N)
 
     
-    def train_model(self,train_treebank,dev_treebank,modelname,lr=0.1,epochs=20):
+    def train_model(self,train_treebank,dev_treebank,modelname,lr=0.1,epochs=20,batch_size=1):
         """
         Trains a full model for e epochs.
         It minimizes the NLL on the development set with SGD.
@@ -575,26 +586,38 @@ class RNNGparser:
         self.trainer = dy.SimpleSGDTrainer(self.model,learning_rate=lr)
         min_nll      = np.inf
 
+        ntrain_sentences = len(train_treebank)
+        ndev_sentences   = len(dev_treebank)
+        
         for e in range(epochs):
+
             
             NLL,lex_NLL,N,lexN = 0,0,0,0
-            for idx,tree in enumerate(train_treebank):
-                loc_NLL,loc_lex_NLL,n,lex_n = self.eval_sentence(tree,backprop=True)
+            bbegin = 0
+            while bbegin < ntrain_sentences:
+                bend = min(ntrain_sentences,bbegin+batch_size)
+                loc_NLL,loc_lex_NLL,n,lex_n = self.eval_sentences(train_treebank[bbegin:bend],backprop=True)
                 NLL     += loc_NLL
                 lex_NLL += loc_lex_NLL
                 N       += n
                 lexN    += lex_n
                 sys.stdout.write('\rTree #%d'%(idx))
+                bbegin = bend
                 
             print('\n[Training]   Epoch %d, NLL = %f, lex-NLL = %f, PPL = %f, lex-PPL = %f'%(e,NLL,lex_NLL, np.exp(NLL/N),np.exp(lex_NLL/lexN)),flush=True)
-                
+
+            
             NLL,lex_NLL,N,lexN = 0,0,0,0
-            for idx,tree in enumerate(dev_treebank):
-                loc_NLL,loc_lex_NLL,n,lex_n = self.eval_sentence(tree,backprop=False)
+            bbegin = 0
+            while bbegin < ndev_sentences:
+                bend = min(ntrain_sentences,bbegin+batch_size)
+
+                loc_NLL,loc_lex_NLL,n,lex_n = self.eval_sentences(train_treebank[bbegin:bend],backprop=False)
                 NLL     += loc_NLL
                 lex_NLL += loc_lex_NLL
                 N       += n
                 lexN    += lex_n
+                bbegin = bend
                 
             print('[Validation] Epoch %d, NLL = %f, lex-NLL = %f, PPL = %f, lex-PPL = %f'%(e,NLL,lex_NLL, np.exp(NLL/N),np.exp(lex_NLL/lexN)),flush=True)
             print()
