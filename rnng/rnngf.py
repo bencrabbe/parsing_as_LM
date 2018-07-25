@@ -44,6 +44,11 @@ class StackSymbol:
         s =  '*%s'%(self.symbol,) if self.status == StackSymbol.PREDICTED else '%s*'%(self.symbol,)
         return s
 
+class BeamElement:
+
+    def __init__(self,prev_element):
+        pass
+
     
 class RNNGparser:
     """
@@ -591,15 +596,16 @@ class RNNGparser:
 
         train_stats = RuntimeStats('NLL','lexNLL','N','lexN')
         valid_stats = RuntimeStats('NLL','lexNLL','N','lexN')
-        
-        for e in range(epochs):
 
+        print(self.summary(ntrain_sentences,ndev_sentences,lr,batch_size,epochs))
+        for e in range(epochs):
+            
             train_stats.push_row()
             bbegin = 0
             while bbegin < ntrain_sentences:
                 bend = min(ntrain_sentences,bbegin+batch_size)
                 train_stats += self.eval_sentences(train_treebank[bbegin:bend],backprop=True)
-                sys.stdout.write('\rprocessed %d trees'%(bend))
+                sys.stdout.write('\r===> processed %d training trees'%(bend))
                 bbegin = bend
 
             NLL,lex_NLL,N,lexN = train_stats.peek()            
@@ -617,7 +623,34 @@ class RNNGparser:
             print()
             if NLL < min_nll:
                 self.save_model(modelname)
+
                 
+    def summary(self,train_bank_size,dev_bank_size,learning_rate,batch_size,epochs):
+        """
+        A summary to display before training. Provides model structure and main learning hyperparams
+
+        Args:
+            train_bank_size  (int): num training trees
+            dev_bank_size    (int): num dev trees
+            learning_rate  (float): the learning rate
+            batch_size       (int): size of minibatch
+            epochs           (int): num epochs
+        Returns:
+            string. The summary
+        """
+        return '\n'.join(['Vocabulary   size   : %d'%(self.lexicon.size()),\
+                          '# Nonterminals      : %d'%(self.nonterminals.size()),\
+                          'Word embedding size : %d'%(self.word_embedding_size),\
+                          'Stack embedding size: %d'%(self.stack_embedding_size),\
+                          'Stack memory size   : %d'%(self.stack_hidden_size),\
+                          '',\
+                          '# training trees    : %d'%(train_bank_size),\
+                          '# validation trees  : %d'%(dev_bank_size),\
+                          '# epochs            : %d'%(epochs),\
+                          'Learning rate       : %f'%(learning_rate),\
+                          'Batch size          : %d'%(batch_size),\
+                          'Dropout             : %f'%(self.dropout)]) 
+                     
                 
 if __name__ == '__main__':
 
