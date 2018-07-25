@@ -601,7 +601,7 @@ class RNNGparser:
                 lex_NLL += loc_lex_NLL
                 N       += n
                 lexN    += lex_n
-                sys.stdout.write('\rTree #%d'%(idx))
+                sys.stdout.write('\rprocessed %d trees'%(bend))
                 bbegin = bend
                 
             print('\n[Training]   Epoch %d, NLL = %f, lex-NLL = %f, PPL = %f, lex-PPL = %f'%(e,NLL,lex_NLL, np.exp(NLL/N),np.exp(lex_NLL/lexN)),flush=True)
