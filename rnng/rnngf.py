@@ -648,9 +648,9 @@ class RNNGparser:
                           '# training trees    : %d'%(train_bank_size),\
                           '# validation trees  : %d'%(dev_bank_size),\
                           '# epochs            : %d'%(epochs),\
-                          'Learning rate       : %f'%(learning_rate),\
+                          'Learning rate       : %.3f'%(learning_rate),\
                           'Batch size          : %d'%(batch_size),\
-                          'Dropout             : %f'%(self.dropout),\
+                          'Dropout             : %.3f'%(self.dropout),\
                           '----------------------------']) 
                      
                 
