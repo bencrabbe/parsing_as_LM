@@ -812,4 +812,4 @@ if __name__ == '__main__':
     dev_stream.close()
      
     parser = RNNGparser('ptb-250.brown')
-    parser.train_model(train_treebank,dev_treebank,'test_rnngf/test_rnngf_gpu',epochs=20,batch_size=1)
+    parser.train_model(train_treebank,dev_treebank,'test_rnngf/test_rnngf_gpu',epochs=20,lr=0.3,batch_size=32)
