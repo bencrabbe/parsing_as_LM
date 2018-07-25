@@ -67,7 +67,7 @@ class RNNGparser:
     def __init__(self,brown_clusters,
                       max_vocabulary_size=10000,\
                       stack_embedding_size=100,
-                      stack_memory_size=150,
+                      stack_memory_size=100,
                       word_embedding_size=100):
         """
         Args:
