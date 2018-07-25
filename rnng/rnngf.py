@@ -646,4 +646,4 @@ if __name__ == '__main__':
     dev_stream.close()
      
     parser = RNNGparser('ptb-250.brown')
-    parser.train_model(train_treebank,dev_treebank,'test_rnngf/test_rnngf',epochs=20,batch=32)
+    parser.train_model(train_treebank,dev_treebank,'test_rnngf/test_rnngf',epochs=20,batch_size=32)
