@@ -180,7 +180,7 @@ class RNNGparser:
             model_name   (string): the prefix path for param files
         """
 
-        prefix_name = '/'.joinr['dirname','dirname']
+        prefix_name = '/'.join['dirname','dirname']
         
         hyperparams = { 'brown_file':brown_file,\
                         'max_vocabulary_size':max_vocabulary_size,\
