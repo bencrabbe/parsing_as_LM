@@ -426,7 +426,7 @@ class RNNGparser:
             MASK *= self.open_mask
         if B or n != 0 or len(S) > 1:
             MASK *= self.terminate_mask
-        if not B or (S and n == 0):
+        if not B or  n == 0:
             MASK *= self.shift_mask
         if not S or n < 1 or S[-1].status == StackSymbol.PREDICTED: 
             MASK *= self.close_mask
