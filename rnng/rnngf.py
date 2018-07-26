@@ -809,8 +809,8 @@ class RNNGparser:
                         for c in reversed(children):
                             node.add_child(c)
                         stack.append((node,True))
+                        print("not back to 1st")
                         break
-                print("back to 1st")
             prev_action = action
 
         try:    
