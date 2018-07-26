@@ -499,9 +499,7 @@ class RNNGparser:
             restr = self.allowed_structural_actions(configuration)
             if restr:
                 logprobs =  dy.log_softmax(self.structural_W  * dy.rectify(stack_state.output())  + self.structural_b,restr).value()
-                R =  [ (self.actions.wordform(action_idx),logprob) for action_idx,logprob in zip(range(self.actions.size()),logprobs) if action_idx in restr]
-                print(R)
-                return R
+                return [ (self.actions.wordform(action_idx),logprob) for action_idx,logprob in zip(range(self.actions.size()),logprobs) if action_idx in restr]
         #parser trapped...
         return []
 
