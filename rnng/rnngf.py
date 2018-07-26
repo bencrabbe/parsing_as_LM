@@ -111,7 +111,7 @@ class RNNGparser:
     START_TOKEN   = '<START>'
 
     def __init__(self,brown_clusters,
-                      max_vocabulary_size=10000,\
+                      vocab_thresh=1,\
                       stack_embedding_size=100,
                       stack_memory_size=100,
                       word_embedding_size=100):
@@ -119,14 +119,14 @@ class RNNGparser:
         Args:
            brown_clusters       (str)  : a filename where to find brown clusters     
         Kwargs:
-           max_vocabulary_size  (int)  : max number of words in the lexical vocab
+           vocab_thresh         (int)  : max number of words in the lexical vocab
            stack_embedding_size (int)  : size of stack lstm input 
            stack_memory_size    (int)  : size of the stack and tree lstm hidden layers
            word_embedding_size  (int)  : size of word embeddings
         """
         
         self.brown_file           = brown_clusters
-        self.max_vocabulary_size  = max_vocabulary_size
+        self.vocab_thresh         = vocab_thresh
         self.stack_embedding_size = stack_embedding_size
         self.stack_hidden_size    = stack_memory_size
         self.word_embedding_size  = word_embedding_size
@@ -138,14 +138,14 @@ class RNNGparser:
         
         Args:
              treebank       (list) : a list of trees where to extract the words from
-             max_vocab_size (int)  : the upper bound on the size of the 'real' vocabulary
+             vocab_thresh   (int)  : the count threshold above which vocabulary is known to the parser
         Returns:
              SymbolLexicon. The bijective encoding
         """
         lexicon = Counter()
         for tree in treebank:
             lexicon.update(tree.tokens())
-        known_vocabulary = set([word for word, counts in lexicon.most_common(self.max_vocabulary_size)])
+        known_vocabulary = set([word for word, counts in lexicon.items() if counts > self.vocab_thresh])
         known_vocabulary.add(RNNGparser.START_TOKEN)
         self.brown_file  = normalize_brown_file(self.brown_file,known_vocabulary,self.brown_file+'.unk',UNK_SYMBOL=RNNGparser.UNKNOWN_TOKEN)
         self.lexicon     = SymbolLexicon( list(known_vocabulary),unk_word=RNNGparser.UNKNOWN_TOKEN)
@@ -205,7 +205,7 @@ class RNNGparser:
         """
         hyperparams = json.loads(open(model_name+'.json').read())
         parser = RNNGparser(hyperparams['brown_file'],
-                            max_vocabulary_size=hyperparams['max_vocabulary_size'],\
+                            vocab_thresh=hyperparams['vocab_thresh'],\
                             stack_embedding_size=hyperparams['stack_embedding_size'],\
                             stack_memory_size=hyperparams['stack_hidden_size'],\
                             word_embedding_size=hyperparams['word_embedding_size'])
@@ -229,7 +229,7 @@ class RNNGparser:
         prefix_name = '/'.join(['dirname','dirname'])
         
         hyperparams = { 'brown_file':self.brown_file,\
-                        'max_vocabulary_size':self.max_vocabulary_size,\
+                        'vocab_thresh':self.vocab_thresh,\
                         'stack_embedding_size':self.stack_embedding_size,\
                         'stack_hidden_size':self.stack_hidden_size,\
                         'word_embedding_size':self.word_embedding_size}
@@ -438,16 +438,6 @@ class RNNGparser:
     def allocate_structure(self):
         """
         Allocates memory for the model parameters.
-
-        Args:
-           brown_clusters       (str)  : a filename where to find brown clusters     
-        Kwargs:
-           max_vocabulary_size  (int)  : max number of words in the lexical vocab
-           stack_embedding_size (int)  : size of stack lstm input 
-           stack_memory_size    (int)  : size of the stack and tree lstm hidden layers
-           word_embedding_size  (int)  : size of word embeddings
-           char_embedding_size  (int)  : size of char lstm input 
-           char_memory_size     (int)  : size of the char lstm hidden layer
         """
         self.model                     = dy.ParameterCollection()
 
@@ -874,6 +864,7 @@ class RNNGparser:
            evalb_mode    (bool): take an ptb bracketed .mrg file as input and reinserts the pos tags as a post processing step. evalb requires pos tags
         """
         for line in istream:
+            
             if evalb_mode:
                 tree               = ConsTree.read_tree(line)
                 wordsXtags         = tree.pos_tags()
@@ -909,7 +900,7 @@ if __name__ == '__main__':
     # dev_stream   = open('ptb_dev.mrg')
     # for line in dev_stream:
     #     t = ConsTree.read_tree(line)
-    #     ConsTree.strip_tags(t)
+    #     ConsTree.strip_tags(t) 
     #     ConsTree.close_unaries(t)
     #     dev_treebank.append(t)
     # dev_stream.close()

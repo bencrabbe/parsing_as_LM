@@ -21,14 +21,14 @@ class RNNGlm:
     UNKNOWN_TOKEN = '<UNK>'
     START_TOKEN   = '<START>'
     
-    def __init__(self,brown_clusters,max_vocabulary_size=10000,embedding_size=50,memory_size=50):
+    def __init__(self,brown_clusters,vocab_thresh=1,embedding_size=50,memory_size=50):
         """
         @param brown_clusters          : a filename where to find brown clusters
-        @param max_vocabulary_size     : max number of words in the vocab
+        @param vocab_thresh            : number of counts above which a word is known to the vocab
         @param stack_embedding_size    : size of stack lstm input 
         @param stack_memory_size       : size of the stack and tree lstm hidden layers
         """
-        self.max_vocab_size = max_vocabulary_size
+        self.vocab_thresh   = vocab_thresh
         self.embedding_size = embedding_size
         self.hidden_size    = memory_size
         self.dropout        = 0.0
@@ -42,7 +42,7 @@ class RNNGlm:
         lexicon = Counter()
         for sentence in raw_treebank:
             lexicon.update(sentence)
-        known_vocabulary = set([word for word, counts in lexicon.most_common(self.max_vocab_size)])
+        known_vocabulary = set([word for word, counts in lexicon.items() if counts > self.vocab_thresh])
         known_vocabulary.add(RNNGlm.START_TOKEN)
         
         self.brown_file  = normalize_brown_file(self.brown_file,known_vocabulary,self.brown_file+'.unk',UNK_SYMBOL=RNNGlm.UNKNOWN_TOKEN)
@@ -183,7 +183,7 @@ class RNNGlm:
         Saves the whole shebang.
         """
         jfile = open(model_name+'.json','w')        
-        jfile.write(json.dumps({'vocab_size'    :self.max_vocab_size,\
+        jfile.write(json.dumps({'vocab_thresh'    :self.vocab_thresh,\
                                 'embedding_size':self.embedding_size,\
                                 'brown_file':self.brown_file,\
                                 'hidden_size':self.hidden_size}))
@@ -196,7 +196,7 @@ class RNNGlm:
         Loads the whole shebang and returns an LM.
         """
         struct     = json.loads(open(model_name+'.json').read())
-        lm         = RNNGlm(struct['brown_file'],max_vocabulary_size=struct['vocab_size'],embedding_size=struct['embedding_size'],memory_size=struct['hidden_size'])
+        lm         = RNNGlm(struct['brown_file'],vocab_thresh=struct['vocab_thresh'],embedding_size=struct['embedding_size'],memory_size=struct['hidden_size'])
         lm.lexicon = SymbolLexicon.load(modelname+'.lex')
         lm.make_structure()
         lm.model.populate(model_name+".prm")
