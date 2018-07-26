@@ -422,7 +422,7 @@ class RNNGparser:
         S,B,n,stack_state,lab_state = configuration 
         MASK = np.array([True] * self.actions.size())
         
-        if not S or not B or (len(S) >= 2 and S[-2].status == StackSymbol.PREDICTED and B):
+        if not S or (len(S) >= 2 and S[-2].status == StackSymbol.PREDICTED and B):
             #last condition prevents unaries and takes into account the reordering of open
             MASK *= self.open_mask
         if B or n != 0 or len(S) > 1:
