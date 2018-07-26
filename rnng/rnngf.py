@@ -709,13 +709,13 @@ class RNNGparser:
                 beam_elt.configuration = self.generate_word(configuration,sentence)
             elif lab_state == RNNGparser.NT_LABEL:
                 beam_elt.configuration = self.label_nonterminal(configuration,beam_elt.prev_action)
-            elif self.prev_action == RNNGparser.CLOSE:
+            elif beam_elt.prev_action == RNNGparser.CLOSE:
                 beam_elt.configuration = self.close_action(configuration)
-            elif self.prev_action == RNNGparser.OPEN:
+            elif beam_elt.prev_action == RNNGparser.OPEN:
                 beam_elt.configuration = self.open_action(configuration)
-            elif self.prev_action == RNNGparser.SHIFT:
+            elif beam_elt.prev_action == RNNGparser.SHIFT:
                 beam_elt.configuration = self.shift_action(configuration)
-            elif self.prev_action == RNNGparser.TERMINATE:
+            elif beam_elt.prev_action == RNNGparser.TERMINATE:
                 beam_elt.configuration = configuration
             else:
                 print('oops')
