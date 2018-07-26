@@ -73,9 +73,7 @@ class BeamElement:
         Returns:
            BeamElement to be used at init
         """
-        b = BeamElement(None,None,0,0)
-        b.configuration = configuration
-        return b
+        return BeamElement(None,None,0,0)
         
     def is_initial_element(self):
         """
@@ -700,25 +698,27 @@ class RNNGparser:
              beam_elt  (BeamElement): a BeamElement missing its configuration
              sentence         (list): a list of strings, the tokens.
         """
-        configuration = beam_elt.prev_element.configuration
-        S,B,n,stack_state,lab_state = configuration
         
-        if lab_state == RNNGparser.WORD_LABEL:
-            beam_elt.configuration = self.generate_word(configuration,sentence)
-        elif lab_state == RNNGparser.NT_LABEL:
-            beam_elt.configuration = self.label_nonterminal(configuration,beam_elt.prev_action)
-        elif self.prev_action == RNNGparser.CLOSE:
-            beam_elt.configuration = self.close_action(configuration)
-        elif self.prev_action == RNNGparser.OPEN:
-            beam_elt.configuration = self.open_action(configuration)
-        elif self.prev_action == RNNGparser.SHIFT:
-            beam_elt.configuration = self.shift_action(configuration)
-        elif self.prev_action == RNNGparser.TERMINATE:
-            beam_elt.configuration = configuration
-        elif self.prev_action is None: #init config case
-            pass
+        if  beam_elt.is_initial_element():
+            beam_elt.configuration = self.init_configuration(len(sentence))
         else:
-            print('oops')
+            configuration = beam_elt.prev_element.configuration
+            S,B,n,stack_state,lab_state = configuration
+        
+            if lab_state == RNNGparser.WORD_LABEL:
+                beam_elt.configuration = self.generate_word(configuration,sentence)
+            elif lab_state == RNNGparser.NT_LABEL:
+                beam_elt.configuration = self.label_nonterminal(configuration,beam_elt.prev_action)
+            elif self.prev_action == RNNGparser.CLOSE:
+                beam_elt.configuration = self.close_action(configuration)
+            elif self.prev_action == RNNGparser.OPEN:
+                beam_elt.configuration = self.open_action(configuration)
+            elif self.prev_action == RNNGparser.SHIFT:
+                beam_elt.configuration = self.shift_action(configuration)
+            elif self.prev_action == RNNGparser.TERMINATE:
+                beam_elt.configuration = configuration
+            else:
+                print('oops')
 
     @staticmethod
     def sample_dprob(beam,K):
