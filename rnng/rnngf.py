@@ -186,7 +186,7 @@ class RNNGparser:
         return self.actions
 
     @staticmethod
-    def load_model(self,model_name):
+    def load_model(model_name):
         """
         Loads an RNNG parser from params at prefix model_name
 
@@ -534,6 +534,7 @@ class RNNGparser:
         
         Args:
           ref_tree_list    (ConsTree) or (list): a list of reference tree or a single tree.
+        Kwargs:
           backprop                       (bool): a flag telling if we perform backprop
         Returns:
           RuntimeStats. the model NLL, the word only NLL, the size of the derivations, the number of predicted words on this batch
@@ -593,7 +594,6 @@ class RNNGparser:
                 print('\nGradient exploded, batch update aborted...')
                 
         return runstats
-
     
     def train_model(self,train_treebank,dev_treebank,modelname,lr=0.1,epochs=20,batch_size=1):
         """
@@ -607,6 +607,7 @@ class RNNGparser:
         Kwargs:
           lr            (float): the learning rate for SGD
           epochs          (int): the number of epochs to run
+          batch_size      (int): the size of the minibatch
         """
         
         #Trees preprocessing
@@ -690,7 +691,7 @@ class RNNGparser:
                           'Dropout             : %.3f'%(self.dropout),\
                           '----------------------------']) 
 
-    ###  BEAM SEARCH  #############################################################################
+    ###  PARSING & SEARCH  #################################################
     def exec_beam_action(self,beam_elt,sentence):
         """
         Generates the element's configuration and assigns it internally.
@@ -718,8 +719,8 @@ class RNNGparser:
             pass
         else:
             print('oops')
-            
 
+    @staticmethod
     def sample_dprob(self,beam,K):
         """
         Samples without replacement K elements in the beam proportional to their *discriminative* probability
@@ -730,14 +731,15 @@ class RNNGparser:
         Returns:
              The beam object
         """
-        probs = np.exp(np.array([elt.prefix_dprob  for elt in beam[-1]]))
+        probs      = np.exp(np.array([elt.prefix_dprob  for elt in beam[-1]]))
         samp_idxes = npr.choice(list(range(len(beam[-1]))),size=min(len(beam[-1]),K),p=probs,replace=False)
-        beam[-1] = [ beam[-1][idx] for idx in samp_idxes]
+        beam[-1]   = [ beam[-1][idx] for idx in samp_idxes]
         return beam
-        
-    def prune_dprob(self,beam,K):
+
+    @staticmethod
+    def prune_dprob(beam,K):
         """
-        Prunes the beam to the top K elements using the *discriminative* probability.
+        Prunes the beam to the top K elements using the *discriminative* probability (performs a K-Argmax).
         Inplace destructive operation on the beam.
         Args:
              beam  (list) : a beam data structure
@@ -749,28 +751,82 @@ class RNNGparser:
         beam[-1] = beam[-1][:K]
         return beam
 
-    def predict_beam(self,sentence,K):
+    @staticmethod
+    def weighted_derivation(success_elt):
         """
-        Performs generative parsing and returns a beam.
-        Args: 
-              sentence  (list): list of strings (tokens)
-              K          (int): beam width        
+        Generates a weighted derivation as a list (Action,logprob)_0 ... (Action,logprob)_m. from a successful beam element
+        Args:
+            success_elt (BeamElement): a terminated beam element
         Returns:
-             RNNGbeam. Object with parse details.
+            list. A derivation is a list of couples (string,float)
+        """
+        D = []
+        current = success_elt
+        while not current.is_initial_element():
+            D.append((current.prev_action,current.prefix_gprob))
+            current = current.prev_element
+        D.reverse()
+        return D
+
+    @staticmethod
+    def deriv2tree(weighted_derivation):
+        """
+        Generates a ConsTree from a parse derivation
+        Args:
+           weighted_derivation (list): a list [ (Action,logprob)_0 ... (Action,logprob)_m ].
+        Returns:
+           The ConsTree root.
+        """
+        stack = []  #contains (ConsTree,flag) where flag tells if the constituent is predicted or completed
+
+        prev_action = None:
+        for action,p in weighted_derivation:
+            if prev_action == RNNGparser.SHIFT:
+                stack.append( (ConsTree(action),True) )
+            elif prev_action == RNNGparser.OPEN:
+                lc_child,flag = stack.pop()
+                stack.append( (ConsTree(action,children=[lc_child]),False))
+            elif action ==  RNNGparser.CLOSE:
+                children = []
+                while stack:
+                    node,completed = stack.pop()
+                    if completed:
+                        children.append(node)
+                    else:
+                        for c in reversed(children):
+                            node.add_child(c)
+                        stack.append((node,True))
+                        break
+            prev_action = action
+            
+        root,flag = stack.pop()
+        assert(not stack and flag)
+        return root
+        
+    def predict_beam(self,sentence,K,sample_search=True):
+        """
+        Performs generative parsing and returns an ordered list of successful beam elements.
+        The default search strategy amounts to sample the search space with discriminative probs and to rank the succesful states with generative probs.
+        The alternative search strategy amounts to explore the search space with a conventional K-argmax pruning method (on disc probs) and to rank the results with generative probs.
+        Args: 
+              sentence      (list): list of strings (tokens)
+              K              (int): beam width  
+        Kwargs:
+              sample_search (bool): if true samples the search space for pruning, else uses a conventional K-argmax
+        Returns:
+             list. List of BeamElements.
         """
         dy.renew_cg()
         init = BeamElement.init_element(self.init_configuration(len(sentence)))
         beam,successes  = [[init]],[]
         
         while beam[-1]:
-            
-            beam = sample_dprob(beam,K)                  #pruning
+            beam = sample_dprob(beam,K) if RNNGparser.sample_search else RNNGparser.prune_dprob(beam,K) #pruning
             for elt in beam[-1]:
                 self.exec_beam_action(self,elt,sentence) #lazily builds configs
                 
             next_preds = []
             for elt in beam[-1]:
-                
                 configuration               = elt.configuration
                 S,B,n,stack_state,lab_state = configuration
                 if lab_state == RNNGParser.WORD_LABEL:
@@ -782,16 +838,34 @@ class RNNGparser:
                 else:
                     for (action, logprob) in self.predict_action_distrib(configuration,sentence):
                         if action == RNNGparser.TERMINATE:
-                            beam.push_success(BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob))
+                            successes.append(BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)) #really add these terminate probs to the prefix ?
                         else:
                             next_preds.append(BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob))
-            
             beam.append(next_preds)
-        return beam
+        if successes:
+            successes.sort(key=lambda x:x.prefix_gprob,reverse=True)
+            successes = successes[:K]
+        return successes
 
-    
+    def parse_corpus(self,istream,ostream,K=10,sample_search=True):
+        """
+        Parses a corpus and prints out the trees in a file.
+        Args:
+           istream  (stream): the stream where to read the data from
+           ostream  (stream): the stream where to write the data to
+        Kwargs:
+           K              (int): the size of the beam
+           sample_search (bool): uses sampling based search (or K-argmax beam pruning if false)
+        """
+        for line in istream:
+            tokens             = line.split()
+            results            = self.predict_beam(tokens,K,sample_search)
+            argmax_derivation  = RNNGparser.weighted_derivation(results[0])
+            argmax_tree        = RNNGparser.deriv2tree(argmax_derivation)
+            argmax_tree.expand_unaries() 
+            print(argmax_tree,file=ostream)
 
-    
+            
 if __name__ == '__main__':
 
     train_treebank = [ ]
@@ -814,3 +888,10 @@ if __name__ == '__main__':
      
     parser = RNNGparser('ptb-250.brown')
     parser.train_model(train_treebank,dev_treebank,'test_rnngf/test_rnngf_gpu',epochs=20,lr=0.5,batch_size=32)
+
+    parser = RNNGparser.load_model('test_rnngf/test_rnngf_gpu')
+    test_stream   = open('ptb_dev.raw')
+    parser.parse_corpus(test_stream,sys.stderr)
+    test_stream.close()
+
+    
