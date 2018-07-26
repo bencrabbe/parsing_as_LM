@@ -862,7 +862,7 @@ class RNNGparser:
         return successes
 
     
-    def parse_corpus(self,istream,ostream,K=10,sample_search=True):
+    def parse_corpus(self,istream,ostream,K=10,sample_search=True,evalb_mode=False):
         """
         Parses a corpus and prints out the trees in a file.
         Args:
@@ -885,6 +885,7 @@ class RNNGparser:
                 argmax_tree.expand_unaries()
                 argmax_tree.add_gold_tags(tags)
                 print(argmax_tree,file=ostream,flush=True)
+                
             else: #normal case
                 tokens             = line.split()
                 results            = self.predict_beam(tokens,K,sample_search)
@@ -917,8 +918,8 @@ if __name__ == '__main__':
     # parser.train_model(train_treebank,dev_treebank,'test_rnngf/test_rnngf_gpu',epochs=20,lr=0.5,batch_size=32)
 
     parser = RNNGparser.load_model('test_rnngf/test_rnngf_gpu')
-    test_stream   = open('ptb_test.raw')
-    parser.parse_corpus(test_stream,sys.stderr,K=100)
+    test_stream   = open('ptb_test.mrg')
+    parser.parse_corpus(test_stream,sys.stderr,K=100,evalb_mode=True)
     test_stream.close()
 
     
