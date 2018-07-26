@@ -45,6 +45,7 @@ class StackSymbol:
         s =  '*%s'%(self.symbol,) if self.status == StackSymbol.PREDICTED else '%s*'%(self.symbol,)
         return s
 
+    
 class BeamElement:
 
     """
@@ -197,8 +198,8 @@ class RNNGparser:
             RNNGparser. An instance of RNNG ready to use.
         """
         hyperparams = json.loads(open(model_name+'.json').read())
-        parser = RNNGparser(brown_clusters,
-                            max_vocabulary_size=hyperparams['brown_file'],\
+        parser = RNNGparser(hyperparams['brown_file'],
+                            max_vocabulary_size=hyperparams['max_vocabulary_size'],\
                             stack_embedding_size=hyperparams['stack_embedding_size'],\
                             stack_memory_size=hyperparams['stack_hidden_size'],\
                             word_embedding_size=hyperparams['word_embedding_size'])
