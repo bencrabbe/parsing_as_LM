@@ -722,7 +722,7 @@ class RNNGparser:
             print('oops')
 
     @staticmethod
-    def sample_dprob(self,beam,K):
+    def sample_dprob(beam,K):
         """
         Samples without replacement K elements in the beam proportional to their *discriminative* probability
         Inplace destructive operation on the beam.
