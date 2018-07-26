@@ -832,6 +832,7 @@ class RNNGparser:
             for elt in beam[-1]: 
                 configuration               = elt.configuration
                 S,B,n,stack_state,lab_state = configuration
+                print(configuration)
                 if lab_state == RNNGparser.WORD_LABEL:
                     print('==> next word')
                     for (action, logprob) in self.predict_action_distrib(configuration,sentence):                    
