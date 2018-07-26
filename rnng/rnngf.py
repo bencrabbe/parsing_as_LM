@@ -795,11 +795,14 @@ class RNNGparser:
         for action,p in weighted_derivation:
             print (','.join(["(%s,%s)"%(t.label,f) for t,f in stack]))
             if prev_action == RNNGparser.SHIFT:
+                print('shift')
                 stack.append( (ConsTree(action),True) )
             elif prev_action == RNNGparser.OPEN:
+                print('open')
                 lc_child,flag = stack.pop()
                 stack.append( (ConsTree(action,children=[lc_child]),False))
             elif action ==  RNNGparser.CLOSE:
+                print('close')
                 children = []
                 while stack:
                     node,completed = stack.pop()
