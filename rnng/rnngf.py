@@ -713,7 +713,9 @@ class RNNGparser:
         else:
             configuration = beam_elt.prev_element.configuration
             S,B,n,stack_state,lab_state = configuration
-        
+            
+            print('exec (', beam_elt.prev_action,')')
+            
             if lab_state == RNNGparser.WORD_LABEL:
                 beam_elt.configuration = self.generate_word(configuration,sentence)
             elif lab_state == RNNGparser.NT_LABEL:
