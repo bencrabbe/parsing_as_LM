@@ -810,11 +810,13 @@ class RNNGparser:
                         stack.append((node,True))
                         break
             prev_action = action
-            
-        root,flag = stack.pop()
-        assert(not stack and flag)
-        return root
 
+        try:    
+            root,flag = stack.pop()
+            assert(not stack and flag)
+            return root
+        except:
+            print('pop from empty list',root)
     
     def predict_beam(self,sentence,K,sample_search=True):
         """
