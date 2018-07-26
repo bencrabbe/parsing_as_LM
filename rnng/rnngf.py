@@ -234,7 +234,7 @@ class RNNGparser:
 
         self.model.save(model_name+'.weights')
         self.lexicon.save(model_name+'.lex')
-        self.nonterminals.save(model_name+'.lex')
+        self.nonterminals.save(model_name+'.nt')
         
     
     #TRANSITION SYSTEM AND ORACLE
