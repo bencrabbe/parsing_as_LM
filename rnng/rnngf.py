@@ -424,7 +424,7 @@ class RNNGparser:
         
         if not S or S[-1].status != StackSymbol.COMPLETED or not B: 
             MASK *= self.open_mask
-        if B or n > 0 or len(S) > 1:
+        if B or n != 0 or len(S) > 1:
             MASK *= self.terminate_mask
         if not B or (S and n == 0):
             MASK *= self.shift_mask
