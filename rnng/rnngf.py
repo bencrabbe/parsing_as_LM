@@ -47,7 +47,6 @@ class StackSymbol:
 
     
 class BeamElement:
-
     """
     This class is a place holder for elements in the beam.
     """
@@ -76,7 +75,7 @@ class BeamElement:
         """
         b = BeamElement(None,None,0,0)
         b.configuration = configuration
-
+        return b
         
     def is_initial_element(self):
         """
