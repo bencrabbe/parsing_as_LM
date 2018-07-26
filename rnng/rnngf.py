@@ -422,7 +422,7 @@ class RNNGparser:
         S,B,n,stack_state,lab_state = configuration 
         MASK = np.array([True] * self.actions.size())
         
-        if not S or S[-1].status != StackSymbol.COMPLETED or not B: 
+        if not S or S[-2].status == StackSymbol.PREDICTED or not B: 
             MASK *= self.open_mask
         if B or n != 0 or len(S) > 1:
             MASK *= self.terminate_mask
@@ -890,9 +890,6 @@ class RNNGparser:
             argmax_tree        = RNNGparser.deriv2tree(argmax_derivation)
             argmax_tree.expand_unaries() 
             print(argmax_tree,file=ostream,flush=True)
-            print()
-            print()
-            print()
 
             
 if __name__ == '__main__':
