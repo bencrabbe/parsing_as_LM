@@ -809,6 +809,7 @@ class RNNGparser:
                             node.add_child(c)
                         stack.append((node,True))
                         break
+                print("back to 1st")
             prev_action = action
 
         try:    
@@ -816,7 +817,7 @@ class RNNGparser:
             assert(not stack and flag)
             return root
         except:
-            print('pop from empty list',root)
+            print('pop from empty list')
     
     def predict_beam(self,sentence,K,sample_search=True):
         """
