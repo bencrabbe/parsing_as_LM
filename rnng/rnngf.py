@@ -779,7 +779,7 @@ class RNNGparser:
         """
         stack = []  #contains (ConsTree,flag) where flag tells if the constituent is predicted or completed
 
-        prev_action = None:
+        prev_action = None
         for action,p in weighted_derivation:
             if prev_action == RNNGparser.SHIFT:
                 stack.append( (ConsTree(action),True) )
