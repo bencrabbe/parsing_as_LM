@@ -847,6 +847,7 @@ class RNNGparser:
             for elt in beam[-1]: 
                 configuration               = elt.configuration
                 S,B,n,stack_state,lab_state = configuration
+                print(config2str(configuration))
                 if lab_state == RNNGparser.WORD_LABEL:
                     for (action, logprob) in self.predict_action_distrib(configuration,sentence):                    
                         next_preds.append(BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob)) #does not update dprob (!)
