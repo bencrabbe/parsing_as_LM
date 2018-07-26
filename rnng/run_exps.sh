@@ -55,9 +55,7 @@ train_rnnlm(){
     nohup python rnnglmf.py -m $NAME/$NAME -t ptb_train.raw -d ptb_dev.raw -b ptb-250.brown -c "$NAME/$NAME.prm" > "nohup.$NAME.out" &   
 } 
 
-#train_rnnlm 300 200 0.5
-#train_rnnlm 300 300 0.5
-#train_rnnlm 200 300 0.5
+train_rnnlm 300 200 0.5
 train_rnnlm 100 150 0.3
 train_rnnlm 100 250 0.3
 
