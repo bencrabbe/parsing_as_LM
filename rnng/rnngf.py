@@ -834,7 +834,10 @@ class RNNGparser:
         init = BeamElement.init_element(self.init_configuration(len(sentence)))
         beam,successes  = [[init]],[]
 
+        idx = 0
         while beam[-1]:
+            idx+=1
+            print(idx)
             beam = RNNGparser.sample_dprob(beam,K) if sample_search else RNNGparser.prune_dprob(beam,K) #pruning
             for elt in beam[-1]:
                 self.exec_beam_action(elt,sentence) #lazily builds configs
