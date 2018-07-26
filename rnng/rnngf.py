@@ -842,7 +842,6 @@ class RNNGparser:
         beam,successes  = [[init]],[]
 
         while beam[-1]:
-            print('<step>')
             beam = RNNGparser.sample_dprob(beam,K) if sample_search else RNNGparser.prune_dprob(beam,K) #pruning
             for elt in beam[-1]:
                 self.exec_beam_action(elt,sentence) #lazily builds configs
@@ -851,9 +850,7 @@ class RNNGparser:
             for elt in beam[-1]: 
                 configuration               = elt.configuration
                 S,B,n,stack_state,lab_state = configuration
-                print(config2str(configuration))
                 if lab_state == RNNGparser.WORD_LABEL:
-                    print('==> next word')
                     for (action, logprob) in self.predict_action_distrib(configuration,sentence):                    
                         next_preds.append(BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob)) #does not update dprob (!)
                 elif lab_state == RNNGparser.NT_LABEL:
@@ -861,7 +858,6 @@ class RNNGparser:
                         next_preds.append(BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob))
                 else:
                     for (action, logprob) in self.predict_action_distrib(configuration,sentence):
-                        print(action)
                         if action == RNNGparser.TERMINATE:
                             successes.append(BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)) #really add these terminate probs to the prefix ?
                         else:
@@ -887,7 +883,6 @@ class RNNGparser:
             tokens             = line.split()
             results            = self.predict_beam(tokens,K,sample_search)
             argmax_derivation  = RNNGparser.weighted_derivation(results[0])
-            print(argmax_derivation)
             argmax_tree        = RNNGparser.deriv2tree(argmax_derivation)
             argmax_tree.expand_unaries() 
             print(argmax_tree,file=ostream,flush=True)
