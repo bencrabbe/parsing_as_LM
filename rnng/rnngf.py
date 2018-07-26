@@ -422,7 +422,7 @@ class RNNGparser:
         S,B,n,stack_state,lab_state = configuration 
         MASK = np.array([True] * self.actions.size())
         
-        if not S or S[-1].status != StackSymbol.COMPLETED: 
+        if not S or S[-1].status != StackSymbol.COMPLETED or not B: 
             MASK *= self.open_mask
         if B or n > 0 or len(S) > 1:
             MASK *= self.terminate_mask
