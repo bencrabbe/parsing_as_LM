@@ -906,7 +906,7 @@ if __name__ == '__main__':
 
     parser = RNNGparser.load_model('test_rnngf/test_rnngf_gpu')
     test_stream   = open('ptb_test.raw')
-    parser.parse_corpus(test_stream,sys.stderr,K=100)
+    parser.parse_corpus(test_stream,sys.stderr,K=10)
     test_stream.close()
 
     
