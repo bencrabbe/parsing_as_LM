@@ -879,6 +879,7 @@ class RNNGparser:
             tokens             = line.split()
             results            = self.predict_beam(tokens,K,sample_search)
             argmax_derivation  = RNNGparser.weighted_derivation(results[0])
+            print(argmax_derivation)
             argmax_tree        = RNNGparser.deriv2tree(argmax_derivation)
             argmax_tree.expand_unaries() 
             print(argmax_tree,file=ostream,flush=True)
