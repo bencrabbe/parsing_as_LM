@@ -824,7 +824,7 @@ class RNNGparser:
         while beam[-1]:
             beam = RNNGparser.sample_dprob(beam,K) if sample_search else RNNGparser.prune_dprob(beam,K) #pruning
             for elt in beam[-1]:
-                self.exec_beam_action(self,elt,sentence) #lazily builds configs
+                self.exec_beam_action(elt,sentence) #lazily builds configs
                 
             next_preds = []
             for elt in beam[-1]:
