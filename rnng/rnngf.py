@@ -15,7 +15,6 @@ from constree      import *
 from lexicons      import *
 from proc_monitors import *
 from rnng_params   import *
-from rnng_beam     import *
 
 
 class StackSymbol:
@@ -46,7 +45,45 @@ class StackSymbol:
         s =  '*%s'%(self.symbol,) if self.status == StackSymbol.PREDICTED else '%s*'%(self.symbol,)
         return s
 
+class BeamElement:
 
+    """
+    This class is a place holder for elements in the beam.
+    """
+    def __init__(self,prev_element,prev_action,prefix_gprob,prefix_dprob):
+        """
+        Args:
+             prev_element (BeamElement) : the previous element or None
+             prev_action       (string) : the action generating this element or None
+             prefix_gprob       (float) : prefix generative probability
+             prefix_dprob       (float) : prefix discriminative probability
+        """
+        self.prev_element = prev_element
+        self.prev_action  = prev_action
+        self.prefix_gprob = prefix_gprob
+        self.prefix_dprob = prefix_dprob
+        self.configuration = None
+        
+    @staticmethod
+    def init_element(configuration):
+        """
+        Generates the beam initial (root) element
+        Args:
+           configuration (tuple): the parser init config
+        Returns:
+           BeamElement to be used at init
+        """
+        b = BeamElement(None,None,0,0)
+        b.configuration = configuration
+
+        
+    def is_initial_element(self):
+        """
+        Returns:
+            bool. True if the element is root of the beam
+        """
+        return self.prev_element is None or self.prev_action is None
+    
 class RNNGparser:
     """
     This is an RNNG parser with in-order tree traversal
@@ -452,9 +489,9 @@ class RNNGparser:
             return zip(self.nonterminals.i2words,logprobs)
         elif lab_state == RNNGparser.NO_LABEL :
             restr = self.allowed_structural_actions(configuration)
-            if restr:#find a way not to return forbidden actions
+            if restr:
                 logprobs =  dy.log_softmax(self.structural_W  * dy.rectify(stack_state.output())  + self.structural_b,restr).value()
-                return zip(self.actions.i2words,logprobs)
+                return [ (self.actions.wordform(action_idx),logprob) for action_idx,logprob in zip(range(self.actions.size()),logprobs) if action_idx in restr]
 
         #parser trapped...
         return []
@@ -652,35 +689,108 @@ class RNNGparser:
                           'Batch size          : %d'%(batch_size),\
                           'Dropout             : %.3f'%(self.dropout),\
                           '----------------------------']) 
-                     
+
+    ###  BEAM SEARCH  #############################################################################
+    def exec_beam_action(self,beam_elt,sentence):
+        """
+        Generates the element's configuration and assigns it internally.
+
+        Args:
+             beam_elt  (BeamElement): a BeamElement missing its configuration
+             sentence         (list): a list of strings, the tokens.
+        """
+        configuration = beam_elt.prev_element.configuration
+        S,B,n,stack_state,lab_state = configuration
+        
+        if lab_state == RNNGparser.WORD_LABEL:
+            beam_elt.configuration = self.generate_word(configuration,sentence)
+        elif lab_state == RNNGparser.NT_LABEL:
+            beam_elt.configuration = self.label_nonterminal(configuration,beam_elt.prev_action)
+        elif self.prev_action == RNNGparser.CLOSE:
+            beam_elt.configuration = self.close_action(configuration)
+        elif self.prev_action == RNNGparser.OPEN:
+            beam_elt.configuration = self.open_action(configuration)
+        elif self.prev_action == RNNGparser.SHIFT:
+            beam_elt.configuration = self.shift_action(configuration)
+        elif self.prev_action == RNNGparser.TERMINATE:
+            beam_elt.configuration = configuration
+        elif self.prev_action is None: #init config case
+            pass
+        else:
+            print('oops')
+            
+
+    def sample_dprob(self,beam,K):
+        """
+        Samples without replacement K elements in the beam proportional to their *discriminative* probability
+        Inplace destructive operation on the beam.
+        Args:
+             beam  (list) : a beam data structure
+             K       (int): the number of elts to keep in the Beam
+        Returns:
+             The beam object
+        """
+        probs = np.exp(np.array([elt.prefix_dprob  for elt in beam[-1]]))
+        samp_idxes = npr.choice(list(range(len(beam[-1]))),size=min(len(beam[-1]),K),p=probs,replace=False)
+        beam[-1] = [ beam[-1][idx] for idx in samp_idxes]
+        return beam
+        
+    def prune_dprob(self,beam,K):
+        """
+        Prunes the beam to the top K elements using the *discriminative* probability.
+        Inplace destructive operation on the beam.
+        Args:
+             beam  (list) : a beam data structure
+             K       (int): the number of elts to keep in the Beam
+        Returns:
+             The beam object
+        """
+        beam[-1].sort(key=lambda x:x.prefix_dprob,reverse=True)
+        beam[-1] = beam[-1][:K]
+        return beam
+
     def predict_beam(self,sentence,K):
         """
-        Performs generative parsing and returns a beam
+        Performs generative parsing and returns a beam.
         Args: 
               sentence  (list): list of strings (tokens)
-              K          (int): beam width
+              K          (int): beam width        
         Returns:
-             RNNGbeam. Object with parse details
+             RNNGbeam. Object with parse details.
         """
         dy.renew_cg()
         init = BeamElement.init_element(self.init_configuration(len(sentence)))
-        beam = RNNGbeam(init)
+        beam,successes  = [[init]],[]
         
-        while beam.has_top():
-
-            beam.discriminative_sample(K)
+        while beam[-1]:
             
+            beam = sample_dprob(beam,K)                  #pruning
+            for elt in beam[-1]:
+                self.exec_beam_action(self,elt,sentence) #lazily builds configs
+                
             next_preds = []
-            for elt in beam.enumerate_top():
+            for elt in beam[-1]:
+                
                 configuration               = elt.configuration
                 S,B,n,stack_state,lab_state = configuration
                 if lab_state == RNNGParser.WORD_LABEL:
-                    next_preds.extend([ BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob) for (action, logprob) in self.predict_action_distrib(configuration,sentence) if logprob > -np.inf])
+                    for (action, logprob) in self.predict_action_distrib(configuration,sentence):                    
+                        next_preds.append(BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob)) #does not update dprob (!)
+                elif lab_state == RNNGParser.NT_LABEL:
+                    for (action, logprob) in self.predict_action_distrib(configuration,sentence):                    
+                        next_preds.append(BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob))
                 else:
-                    #!consider the TERMINATE CASE -> success
-                    next_preds.extend([ BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob) for (action, logprob) in self.predict_action_distrib(configuration,sentence) if logprob > -np.inf])
-            beam.push_top(next_preds)
+                    for (action, logprob) in self.predict_action_distrib(configuration,sentence):
+                        if action == RNNGparser.TERMINATE:
+                            beam.push_success(BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob))
+                        else:
+                            next_preds.append(BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob))
+            
+            beam.append(next_preds)
         return beam
+
+    
+
     
 if __name__ == '__main__':
 
