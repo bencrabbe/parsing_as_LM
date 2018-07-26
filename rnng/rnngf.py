@@ -732,6 +732,7 @@ class RNNGparser:
              The beam object
         """
         probs      = np.exp(np.array([elt.prefix_dprob  for elt in beam[-1]]))
+        print(probs.sum())
         samp_idxes = npr.choice(list(range(len(beam[-1]))),size=min(len(beam[-1]),K),p=probs,replace=False)
         beam[-1]   = [ beam[-1][idx] for idx in samp_idxes]
         return beam
