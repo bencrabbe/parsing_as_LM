@@ -429,7 +429,7 @@ class RNNGparser:
             MASK *= self.terminate_mask
         if not B or (S and n == 0):
             MASK *= self.shift_mask
-        if not S or n < 1 or S[-1].status == StackSymbol.PREDICTED: 
+        if not S or n < 1 or (len(S) >=2 and S[-2].status == StackSymbol.PREDICTED): 
             MASK *= self.close_mask
 
         allowed_idxes = [idx for idx, mask_val in enumerate(MASK) if mask_val]
