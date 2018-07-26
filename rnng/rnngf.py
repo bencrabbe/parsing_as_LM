@@ -833,10 +833,7 @@ class RNNGparser:
         init = BeamElement.init_element(self.init_configuration(len(sentence)))
         beam,successes  = [[init]],[]
 
-        #idx = 0
         while beam[-1]:
-            #idx+=1
-            #print(idx)
             beam = RNNGparser.sample_dprob(beam,K) if sample_search else RNNGparser.prune_dprob(beam,K) #pruning
             for elt in beam[-1]:
                 self.exec_beam_action(elt,sentence) #lazily builds configs
@@ -845,7 +842,6 @@ class RNNGparser:
             for elt in beam[-1]: 
                 configuration               = elt.configuration
                 S,B,n,stack_state,lab_state = configuration
-                #print(config2str(configuration))
                 if lab_state == RNNGparser.WORD_LABEL:
                     for (action, logprob) in self.predict_action_distrib(configuration,sentence):                    
                         next_preds.append(BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob)) #does not update dprob (!)
@@ -855,7 +851,6 @@ class RNNGparser:
                 else:
                     
                     for (action, logprob) in self.predict_action_distrib(configuration,sentence):
-                        #print(action)
                         if action == RNNGparser.TERMINATE:
                             successes.append(BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)) #really add these terminate probs to the prefix ?
                         else:
@@ -876,16 +871,28 @@ class RNNGparser:
         Kwargs:
            K              (int): the size of the beam
            sample_search (bool): uses sampling based search (or K-argmax beam pruning if false)
+           evalb_mode    (bool): take an ptb bracketed .mrg file as input and reinserts the pos tags as a post processing step. evalb requires pos tags
         """
         for line in istream:
-            tokens             = line.split()
-            results            = self.predict_beam(tokens,K,sample_search)
-            argmax_derivation  = RNNGparser.weighted_derivation(results[0])
-            argmax_tree        = RNNGparser.deriv2tree(argmax_derivation)
-            argmax_tree.expand_unaries() 
-            print(argmax_tree,file=ostream,flush=True)
-
-            
+            if evalb_mode:
+                tree               = ConsTree.read_tree(line)
+                wordsXtags         = tree.pos_tags()
+                tokens             = [tagnode.get_child().label for tagnode in wordsXtags]
+                tags               = [tagnode.label for tagnode in wordsXtags]
+                results            = self.predict_beam(tokens,K,sample_search)
+                argmax_derivation  = RNNGparser.weighted_derivation(results[0])
+                argmax_tree        = RNNGparser.deriv2tree(argmax_derivation)
+                argmax_tree.expand_unaries()
+                argmax_tree.add_gold_tags(tags)
+                print(argmax_tree,file=ostream,flush=True)
+            else: #normal case
+                tokens             = line.split()
+                results            = self.predict_beam(tokens,K,sample_search)
+                argmax_derivation  = RNNGparser.weighted_derivation(results[0])
+                argmax_tree        = RNNGparser.deriv2tree(argmax_derivation)
+                argmax_tree.expand_unaries() 
+                print(argmax_tree,file=ostream,flush=True)
+                
 if __name__ == '__main__':
 
     # train_treebank = [ ]
