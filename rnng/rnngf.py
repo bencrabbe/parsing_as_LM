@@ -882,7 +882,10 @@ class RNNGparser:
             argmax_tree        = RNNGparser.deriv2tree(argmax_derivation)
             argmax_tree.expand_unaries() 
             print(argmax_tree,file=ostream,flush=True)
-            exit(0)
+            print()
+            print()
+            print()
+
             
 if __name__ == '__main__':
 
