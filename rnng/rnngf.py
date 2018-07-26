@@ -714,9 +714,7 @@ class RNNGparser:
         else:
             configuration = beam_elt.prev_element.configuration
             S,B,n,stack_state,lab_state = configuration
-            
-            print('exec (', beam_elt.prev_action,')')
-            
+                        
             if lab_state == RNNGparser.WORD_LABEL:
                 beam_elt.configuration = self.generate_word(configuration,sentence)
             elif lab_state == RNNGparser.NT_LABEL:
@@ -794,16 +792,12 @@ class RNNGparser:
 
         prev_action = None
         for action,p in weighted_derivation:
-            print (','.join(["(%s,%s)"%(t.label,f) for t,f in stack]))
             if prev_action == RNNGparser.SHIFT:
-                print('shift')
                 stack.append( (ConsTree(action),True) )
             elif prev_action == RNNGparser.OPEN:
-                print('open')
                 lc_child,flag = stack.pop()
                 stack.append( (ConsTree(action,children=[lc_child]),False))
             elif action ==  RNNGparser.CLOSE:
-                print('close')
                 children = []
                 while stack:
                     node,completed = stack.pop()
@@ -813,16 +807,14 @@ class RNNGparser:
                         for c in reversed(children):
                             node.add_child(c)
                         stack.append((node,True))
-                        print("not back to 1st")
                         break
             prev_action = action
 
-        try:    
-            root,flag = stack.pop()
-            assert(not stack and flag)
-            return root
-        except:
-            print('pop from empty list')
+        
+        root,flag = stack.pop()
+        assert(not stack and flag)
+        return root
+       
     
     def predict_beam(self,sentence,K,sample_search=True):
         """
