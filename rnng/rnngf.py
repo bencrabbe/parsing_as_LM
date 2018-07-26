@@ -908,7 +908,7 @@ if __name__ == '__main__':
     # parser.train_model(train_treebank,dev_treebank,'test_rnngf/test_rnngf_gpu',epochs=20,lr=0.5,batch_size=32)
 
     parser = RNNGparser.load_model('test_rnngf/test_rnngf_gpu')
-    test_stream   = open('ptb_dev.raw')
+    test_stream   = open('ptb_test.raw')
     parser.parse_corpus(test_stream,sys.stderr,K=1)
     test_stream.close()
 
