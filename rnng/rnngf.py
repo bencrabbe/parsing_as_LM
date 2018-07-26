@@ -793,7 +793,7 @@ class RNNGparser:
 
         prev_action = None
         for action,p in weighted_derivation:
-            print (','.join([(t.label,flag) for t,f in stack]))
+            print (','.join([(t.label,f) for t,f in stack]))
             if prev_action == RNNGparser.SHIFT:
                 stack.append( (ConsTree(action),True) )
             elif prev_action == RNNGparser.OPEN:
