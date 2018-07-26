@@ -827,7 +827,7 @@ class RNNGparser:
                 self.exec_beam_action(elt,sentence) #lazily builds configs
                 
             next_preds = []
-            for elt in beam[-1]:
+            for elt in beam[-1]: 
                 configuration               = elt.configuration
                 S,B,n,stack_state,lab_state = configuration
                 if lab_state == RNNGparser.WORD_LABEL:
