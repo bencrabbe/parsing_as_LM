@@ -906,7 +906,7 @@ if __name__ == '__main__':
     dev_stream.close()
      
     parser = RNNGparser('ptb-250.brown')
-    parser.train_model(train_treebank,dev_treebank,'test_rnngf/test_rnngf_gpu',epochs=20,lr=0.5,batch_size=32)
+    parser.train_model(train_treebank,dev_treebank,'test_rnngf/test_rnngf_gpu',stack_embedding_size=300,stack_memory_size=300,word_embedding_size=300,epochs=20,lr=0.5,batch_size=32)
 
     # parser = RNNGparser.load_model('test_rnngf/test_rnngf_gpu')
     # test_stream   = open('ptb_test.mrg')
