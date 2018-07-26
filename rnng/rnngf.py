@@ -835,10 +835,10 @@ class RNNGparser:
         init = BeamElement.init_element(self.init_configuration(len(sentence)))
         beam,successes  = [[init]],[]
 
-        idx = 0
+        #idx = 0
         while beam[-1]:
-            idx+=1
-            print(idx)
+            #idx+=1
+            #print(idx)
             beam = RNNGparser.sample_dprob(beam,K) if sample_search else RNNGparser.prune_dprob(beam,K) #pruning
             for elt in beam[-1]:
                 self.exec_beam_action(elt,sentence) #lazily builds configs
@@ -847,7 +847,7 @@ class RNNGparser:
             for elt in beam[-1]: 
                 configuration               = elt.configuration
                 S,B,n,stack_state,lab_state = configuration
-                print(config2str(configuration))
+                #print(config2str(configuration))
                 if lab_state == RNNGparser.WORD_LABEL:
                     for (action, logprob) in self.predict_action_distrib(configuration,sentence):                    
                         next_preds.append(BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob)) #does not update dprob (!)
@@ -857,7 +857,7 @@ class RNNGparser:
                 else:
                     
                     for (action, logprob) in self.predict_action_distrib(configuration,sentence):
-                        print(action)
+                        #print(action)
                         if action == RNNGparser.TERMINATE:
                             successes.append(BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)) #really add these terminate probs to the prefix ?
                         else:
