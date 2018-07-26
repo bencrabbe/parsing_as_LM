@@ -821,8 +821,10 @@ class RNNGparser:
         dy.renew_cg()
         init = BeamElement.init_element(self.init_configuration(len(sentence)))
         beam,successes  = [[init]],[]
-        
+
+        print('<start>')
         while beam[-1]:
+            print('*')
             beam = RNNGparser.sample_dprob(beam,K) if sample_search else RNNGparser.prune_dprob(beam,K) #pruning
             for elt in beam[-1]:
                 self.exec_beam_action(elt,sentence) #lazily builds configs
@@ -866,7 +868,7 @@ class RNNGparser:
             argmax_derivation  = RNNGparser.weighted_derivation(results[0])
             argmax_tree        = RNNGparser.deriv2tree(argmax_derivation)
             argmax_tree.expand_unaries() 
-            print(argmax_tree,file=ostream)
+            print(argmax_tree,file=ostream,flush=True)
 
             
 if __name__ == '__main__':
