@@ -429,7 +429,7 @@ class RNNGparser:
             MASK *= self.terminate_mask
         if not B or (S and n == 0):
             MASK *= self.shift_mask
-        if not S or n < 1 or (len(S) >=2 and S[-2].status == StackSymbol.PREDICTED):
+        if not S or n < 1 or (len(S) >=2 and S[-2].status == StackSymbol.PREDICTED and B):
             #last condition prevents unaries and takes into account the reordering of open
             MASK *= self.close_mask
 
