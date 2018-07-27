@@ -422,7 +422,7 @@ class RNNGparser:
         S,B,n,stack_state,lab_state = configuration 
         MASK = np.array([True] * self.actions.size())
         
-        if not S or (len(S) >= 2 and S[-2].status == StackSymbol.PREDICTED):
+        if not S or  (len(S) >= 2 and S[-2].status == StackSymbol.PREDICTED):
             #last condition prevents unaries and takes into account the reordering of open
             MASK *= self.open_mask
         if B or n != 0 or len(S) > 1:
@@ -826,6 +826,7 @@ class RNNGparser:
         beam,successes  = [[init]],[]
 
         while beam[-1]:
+            print('=======> step <========')
             beam = RNNGparser.sample_dprob(beam,K) if sample_search else RNNGparser.prune_dprob(beam,K) #pruning
             for elt in beam[-1]:
                 self.exec_beam_action(elt,sentence) #lazily builds configs
