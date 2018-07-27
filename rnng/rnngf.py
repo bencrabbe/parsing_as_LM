@@ -825,7 +825,7 @@ class RNNGparser:
         beam,successes  = [[init]],[]
 
         while beam[-1]:
-            print('=======> step <========')
+            #print('=======> step <========')
             beam = RNNGparser.sample_dprob(beam,K) if sample_search else RNNGparser.prune_dprob(beam,K) #pruning
             for elt in beam[-1]:
                 self.exec_beam_action(elt,sentence) #lazily builds configs
@@ -833,8 +833,8 @@ class RNNGparser:
             next_preds = []
             for elt in beam[-1]: 
                 configuration               = elt.configuration
-                print('-----------')
-                print(config2str(configuration))
+                #print('-----------')
+                #print(config2str(configuration))
                 S,B,n,stack_state,lab_state = configuration
                 if lab_state == RNNGparser.WORD_LABEL:
                     for (action, logprob) in self.predict_action_distrib(configuration,sentence):                    
