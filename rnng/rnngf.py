@@ -422,14 +422,14 @@ class RNNGparser:
         S,B,n,stack_state,lab_state = configuration 
         MASK = np.array([True] * self.actions.size())
         
-        if not S or (len(S) >= 2 and S[-2].status == StackSymbol.PREDICTED and B):
+        if not S or (len(S) >= 2 and S[-2].status == StackSymbol.PREDICTED):
             #last condition prevents unaries and takes into account the reordering of open
             MASK *= self.open_mask
         if B or n != 0 or len(S) > 1:
             MASK *= self.terminate_mask
         if not B or (S and n == 0):
             MASK *= self.shift_mask
-        if not S or n < 1 or (len(S) >=2 and S[-2].status == StackSymbol.PREDICTED and B): 
+        if not S or n < 1 or (len(S) >=2 and S[-2].status == StackSymbol.PREDICTED): 
             MASK *= self.close_mask
 
         allowed_idxes = [idx for idx, mask_val in enumerate(MASK) if mask_val]
@@ -905,7 +905,7 @@ if __name__ == '__main__':
     #     dev_treebank.append(t)
     # dev_stream.close()
      
-    # parser = RNNGparser('ptb-250.brown',stack_embedding_size=300,stack_memory_size=300,word_embedding_size=300)
+    # parser = RNNGparser('ptb-250.brown',stack_embedding_size=300,stack_memory_size=200,word_embedding_size=300)
     # parser.train_model(train_treebank,dev_treebank,'test_rnngf/test_rnngf_gpu',epochs=20,lr=0.5,batch_size=32)
 
     parser = RNNGparser.load_model('test_rnngf/test_rnngf_gpu')
