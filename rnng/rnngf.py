@@ -415,7 +415,7 @@ class RNNGparser:
         """
         Returns the list of structural actions allowed given this configuration.
         Arguments:
-           configuration (tuple) : a configuration
+           configuration          (tuple) : a configuration
         Returns:
            a list. Indexes of the allowed actions
         """        
@@ -429,9 +429,10 @@ class RNNGparser:
             MASK *= self.terminate_mask
         if not B or (S and n == 0):
             MASK *= self.shift_mask
-        if not S or n < 1 or (len(S) >=2 and S[-2].status == StackSymbol.PREDICTED and B):
+        if not S or n < 1 or (len(S) >=2 and S[-2].status == StackSymbol.PREDICTED):
             #last condition prevents unaries and takes into account the reordering of open
-            MASK *= self.close_mask
+            if not (not B and len(S) == 2 and n == 1):
+                MASK *= self.close_mask
 
         allowed_idxes = [idx for idx, mask_val in enumerate(MASK) if mask_val]
         return allowed_idxes
@@ -470,8 +471,8 @@ class RNNGparser:
         Predicts the log distribution for next actions from the current configuration.
 
         Args:
-          configuration   (tuple): the current configuration
-          sentence         (list): a list of string, the tokens
+          configuration           (tuple): the current configuration
+          sentence                 (list): a list of string, the tokens
 
         Returns:
             a list of couples (action, log probability). The list is empty if the parser is trapped (aka no action is possible).
