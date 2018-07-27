@@ -429,9 +429,9 @@ class RNNGparser:
             MASK *= self.terminate_mask
         if not B or (S and n == 0):
             MASK *= self.shift_mask
-        if not S or n < 1 or (len(S) >=2 and S[-2].status == StackSymbol.PREDICTED):
+        if not S or n < 1 or (len(S) >=2 and S[-2].status == StackSymbol.PREDICTED and not (not B and len(S) == 2 and n == 1)):
             #last condition prevents unaries and takes into account the reordering of open
-            if not (not B and len(S) == 2 and n == 1):
+            #exceptional unaries allowed for single word sentences
                 MASK *= self.close_mask
 
         allowed_idxes = [idx for idx, mask_val in enumerate(MASK) if mask_val]
