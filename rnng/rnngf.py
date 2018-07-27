@@ -833,6 +833,8 @@ class RNNGparser:
             next_preds = []
             for elt in beam[-1]: 
                 configuration               = elt.configuration
+                print('-----------')
+                print(config2str(configuration))
                 S,B,n,stack_state,lab_state = configuration
                 if lab_state == RNNGparser.WORD_LABEL:
                     for (action, logprob) in self.predict_action_distrib(configuration,sentence):                    
@@ -843,6 +845,7 @@ class RNNGparser:
                 else:
                     
                     for (action, logprob) in self.predict_action_distrib(configuration,sentence):
+                        print(action)
                         if action == RNNGparser.TERMINATE:
                             successes.append(BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)) #really add these terminate probs to the prefix ?
                         else:
