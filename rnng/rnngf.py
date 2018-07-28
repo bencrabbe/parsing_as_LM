@@ -959,7 +959,7 @@ class RNNGparser:
                     r_tree        = RNNGparser.deriv2tree(r_derivation)
                     r_tree.expand_unaries()
                     r_tree.add_gold_tags(tags)
-                print(r_tree,r.prefix_gprob,file=ostream,flush=True)
+                    print(r_tree,r.prefix_gprob,file=ostream,flush=True)
                 
             else: #normal case
                 tokens             = line.split()
