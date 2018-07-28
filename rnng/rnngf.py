@@ -843,7 +843,7 @@ class RNNGparser:
             this_word = beam[-1]
             next_word = [ ]            
             while this_word and len(next_word) < K:
-                    print(len(next_word)
+                    print(len(next_word))
                     fringe     = [ ]
                     fast_track = [ ]
                     for elt in this_word:
