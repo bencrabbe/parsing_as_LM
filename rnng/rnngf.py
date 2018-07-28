@@ -901,21 +901,25 @@ class RNNGparser:
         current = BeamElement.init_element(self.init_configuration(len(sentence)))
         
         while not current is None:
+            print('***')
             configuration               = current.configuration
             S,B,n,stack_state,lab_state = configuration
             next_elt = None
             if lab_state == RNNGparser.WORD_LABEL:
                     for (action, logprob) in self.predict_action_distrib(configuration,sentence):                    
-                            next_elt = BeamElement(current,action,current.prefix_gprob+logprob,current.prefix_dprob) 
+                            next_elt = BeamElement(current,action,current.prefix_gprob+logprob,current.prefix_dprob)
+                            self.exec_beam_action(next_elt,sentence)
             elif lab_state == RNNGparser.NT_LABEL:
                     for (action, logprob) in self.predict_action_distrib(configuration,sentence):                    
                         next_elt = BeamElement(current,action,current.prefix_gprob+logprob,current.prefix_dprob+logprob)
+                        self.exec_beam_action(next_elt,sentence)
             else:
                     for (action, logprob) in self.predict_action_distrib(configuration,sentence):
                         if action == RNNGparser.TERMINATE:
                             return BeamElement(current,action,current.prefix_gprob+logprob,current.prefix_dprob+logprob)
                         else:
                             next_elt = BeamElement(current,action,current.prefix_gprob+logprob,current.prefix_dprob+logprob)
+                            self.exec_beam_action(next_elt,sentence)
             current = next_elt
         return None
         
