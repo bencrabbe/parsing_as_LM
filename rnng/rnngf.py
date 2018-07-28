@@ -607,7 +607,7 @@ class RNNGparser:
         if backprop:
             loss.backward()
             print('backpropping')
-            print_text_graphviz()
+            dy.print_text_graphviz()
             try:
                 self.trainer.update()
             except RuntimeError:
