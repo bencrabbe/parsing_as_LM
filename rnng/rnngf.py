@@ -580,7 +580,6 @@ class RNNGparser:
                 if lab_state == RNNGparser.WORD_LABEL:
                     configuration = self.generate_word(configuration,sentence)
                     lexical_NLL.append(nll)
-                    print(ref_action,nll.value())
                 elif lab_state == RNNGparser.NT_LABEL:
                     configuration = self.label_nonterminal(configuration,ref_action)
                 elif ref_action == RNNGparser.CLOSE:
@@ -1003,5 +1002,5 @@ if __name__ == '__main__':
   test_stream.close()
 
   parser = RNNGparser('ptb-250.brown',stack_embedding_size=300,stack_memory_size=200,word_embedding_size=300)
-  parser.train_model(test_treebank,[test_treebank[0].copy()],'test_rnngf/bidon',epochs=20,lr=1,batch_size=1)
+  parser.train_model(test_treebank,[test_treebank[0].copy()],'test_rnngf/bidon',epochs=40,lr=0.1,batch_size=1)
   parser.parse_corpus([line],sys.stdout,K=100,evalb_mode=True)
