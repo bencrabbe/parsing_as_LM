@@ -473,8 +473,8 @@ class RNNGparser:
         Applies dropout to a dynet expression only if dropout > 0.0.
         """
         return dy.dropout(expression,self.dropout) if self.dropout > 0.0 else expression
-        
-        
+
+    
     def predict_action_distrib(self,configuration,sentence):
         """
         Predicts the log distribution for next actions from the current configuration.
@@ -888,6 +888,37 @@ class RNNGparser:
             successes = successes[:K]
         return successes
 
+    def predict_greedy(self,sentence):
+        """
+        Greedy prediction.
+        
+        Args: 
+              sentence      (list): list of strings (tokens)
+        Returns:
+              a successful BeamElement if any or None
+        """
+        dy.renew_cg()
+        current = BeamElement.init_element(self.init_configuration(len(sentence)))
+        
+        while not current is None:
+            
+            configuration               = elt.configuration
+            S,B,n,stack_state,lab_state = configuration
+            if lab_state == RNNGparser.WORD_LABEL:
+                    for (action, logprob) in self.predict_action_distrib(configuration,sentence):                    
+                            current = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob) 
+                elif lab_state == RNNGparser.NT_LABEL:
+                    for (action, logprob) in self.predict_action_distrib(configuration,sentence):                    
+                        current = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)
+                else:
+                    for (action, logprob) in self.predict_action_distrib(configuration,sentence):
+                        if action == RNNGparser.TERMINATE:
+                            return BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)
+                        else:
+                            current = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)
+        return None
+        
+    
     def predict_beam(self,sentence,K,sample_search=True):
         """
         Performs generative parsing and returns an ordered list of successful beam elements.
@@ -958,13 +989,15 @@ class RNNGparser:
                 tokens             = [tagnode.get_child().label for tagnode in wordsXtags]
                 tags               = [tagnode.label for tagnode in wordsXtags]
                 print(tokens,tags)
-                results            = self.predict_beam_generative(tokens,K)
-                for r in results:
-                    r_derivation  = RNNGparser.weighted_derivation(r)
-                    r_tree        = RNNGparser.deriv2tree(r_derivation)
-                    r_tree.expand_unaries()
-                    r_tree.add_gold_tags(tags)
-                    print(r_tree,r.prefix_gprob,file=ostream,flush=True)
+                r            = self.predict_greedy(tokens)
+                print(r_tree,r.prefix_gprob,file=ostream,flush=True)
+                #results            = self.predict_beam_generative(tokens,K)
+                #for r in results:
+                #    r_derivation  = RNNGparser.weighted_derivation(r)
+                #    r_tree        = RNNGparser.deriv2tree(r_derivation)
+                #    r_tree.expand_unaries()
+                #    r_tree.add_gold_tags(tags)
+                #    print(r_tree,r.prefix_gprob,file=ostream,flush=True)
                 
             else: #normal case
                 tokens             = line.split()
