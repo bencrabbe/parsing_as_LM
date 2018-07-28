@@ -901,9 +901,9 @@ class RNNGparser:
         current = BeamElement.init_element(self.init_configuration(len(sentence)))
         
         while not current is None:
-            current = None
-            configuration               = elt.configuration
+            configuration               = current.configuration
             S,B,n,stack_state,lab_state = configuration
+            current = None
             if lab_state == RNNGparser.WORD_LABEL:
                     for (action, logprob) in self.predict_action_distrib(configuration,sentence):                    
                             current = BeamElement(current,action,current.prefix_gprob+logprob,current.prefix_dprob) 
