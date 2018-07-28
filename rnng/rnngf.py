@@ -944,6 +944,7 @@ class RNNGparser:
                 wordsXtags         = tree.pos_tags()
                 tokens             = [tagnode.get_child().label for tagnode in wordsXtags]
                 tags               = [tagnode.label for tagnode in wordsXtags]
+                print(tokens,tags)
                 results            = self.predict_beam_generative(tokens,K)
                 #results            = self.predict_beam(tokens,K,sample_search)
                 argmax_derivation  = RNNGparser.weighted_derivation(results[0])
