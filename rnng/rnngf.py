@@ -430,7 +430,8 @@ class RNNGparser:
         if not B or (S and n == 0):
             MASK *= self.shift_mask
         if not S or n < 1 or (len(S) >=2 and S[-2].status == StackSymbol.PREDICTED and S[-1].symbol in self.nonterminals):
-            #last condition prevents unaries and takes into account the reordering of open; exceptional unaries allowed for single word sentences
+            # last condition prevents unaries and takes into account the reordering of open;
+            # exceptional unaries are allowed on top of terminals symbols only
                 MASK *= self.close_mask
 
         allowed_idxes = [idx for idx, mask_val in enumerate(MASK) if mask_val]
@@ -805,8 +806,58 @@ class RNNGparser:
         root,flag = stack.pop()
         assert(not stack and flag)
         return root
-       
-    
+
+    def predict_beam_generative(self,sentence,K):
+        """
+        Performs generative parsing and returns an ordered list of successful beam elements.
+        This is direct generative parsing. 
+        Args:
+              sentence      (list): list of strings (tokens)
+              K              (int): beam width 
+        Returns:
+             list. List of BeamElements. 
+        """
+        Kw  = int(K/10)
+        Kft = int(K/100)
+        
+        dy.renew_cg()
+        init = BeamElement.init_element(self.init_configuration(len(sentence)))
+        beam,successes  = [[init]],[ ]
+
+        while beam[-1]:
+            this_word = beam[-1]
+            next_word = [ ]            
+            while next_word < K:
+                    fringe     = [ ]
+                    fast_track = []
+                    for elt in this_word:
+                        configuration = elt.configuration
+                        for (action, logprob) in self.predict_action_distrib(configuration,sentence):
+                            new_elt = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)
+                            if elt.prev_action == RNNGparser.SHIFT: #<=> we currently generate a word
+                                fast_track.append(new_elt)
+                            else:
+                                fringe.append(new_elt)
+                                
+                    fast_track.sort(key=lambda x:x.prefix_gprob,reverse=True)
+                    fast_track = fast_track[:Kft]
+                    fringe.sort(key=lambda x:x.prefix_gprob,reverse=True)
+                    fringe = fringe[:K-Kft]+fast_track
+                    
+                    this_word  = [ ]
+                    for s in fringe:
+                         prev_prev_action    = s.prev_element.prev_action
+                         if prev_prev_action == RNNGparser.SHIFT: #<=> tests if we currently generate a word
+                             next_word.append(s)
+                         else:
+                             self.exec_beam_action(s,sentence)
+                             this_word.append(s)
+            next_word.sort(key=lambda x:x.prefix_gprob,reverse=True)
+            next_word = next_word[:Kw]
+            for elt in next_word:
+                self.exec_beam_action(elt,sentence)
+            beam.append(next_word)
+            
     def predict_beam(self,sentence,K,sample_search=True):
         """
         Performs generative parsing and returns an ordered list of successful beam elements.
@@ -843,7 +894,6 @@ class RNNGparser:
                     for (action, logprob) in self.predict_action_distrib(configuration,sentence):                    
                         next_preds.append(BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob))
                 else:
-                    
                     for (action, logprob) in self.predict_action_distrib(configuration,sentence):
                         #print(action)
                         if action == RNNGparser.TERMINATE:
@@ -875,7 +925,7 @@ class RNNGparser:
                 wordsXtags         = tree.pos_tags()
                 tokens             = [tagnode.get_child().label for tagnode in wordsXtags]
                 tags               = [tagnode.label for tagnode in wordsXtags]
-                results            = self.predict_beam(tokens,K,sample_search)
+                results            = self.predict_beam_generative(tokens,K,sample_search)
                 argmax_derivation  = RNNGparser.weighted_derivation(results[0])
                 argmax_tree        = RNNGparser.deriv2tree(argmax_derivation)
                 argmax_tree.expand_unaries()
@@ -884,7 +934,7 @@ class RNNGparser:
                 
             else: #normal case
                 tokens             = line.split()
-                results            = self.predict_beam(tokens,K,sample_search)
+                results            = self.predict_beam_generative(tokens,K,sample_search)
                 argmax_derivation  = RNNGparser.weighted_derivation(results[0])
                 argmax_tree        = RNNGparser.deriv2tree(argmax_derivation)
                 argmax_tree.expand_unaries() 
