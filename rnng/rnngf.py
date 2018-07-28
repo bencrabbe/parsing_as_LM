@@ -907,10 +907,10 @@ class RNNGparser:
             if lab_state == RNNGparser.WORD_LABEL:
                     for (action, logprob) in self.predict_action_distrib(configuration,sentence):                    
                             current = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob) 
-                elif lab_state == RNNGparser.NT_LABEL:
+            elif lab_state == RNNGparser.NT_LABEL:
                     for (action, logprob) in self.predict_action_distrib(configuration,sentence):                    
                         current = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)
-                else:
+            else:
                     for (action, logprob) in self.predict_action_distrib(configuration,sentence):
                         if action == RNNGparser.TERMINATE:
                             return BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)
