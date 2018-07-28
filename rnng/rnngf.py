@@ -528,12 +528,12 @@ class RNNGparser:
         elif lab_state == RNNGparser.NO_LABEL :
             ref_idx = self.actions.index(ref_action)
             nll = dy.pickneglogsoftmax(self.structural_W  * self.ifdropout(dy.rectify(stack_state.output()))  + self.structural_b,ref_idx)
-            dstruct = dy.softmax(self.structural_W  * self.ifdropout(dy.rectify(stack_state.output()))  + self.structural_b,ref_idx).npvalue()
+            dstruct = dy.softmax(self.structural_W  * self.ifdropout(dy.rectify(stack_state.output()))  + self.structural_b).npvalue()
+            print(ref_action,np.exp(-nll.value()))
             for idx,p in enumerate(dstruct):
                 print(self.actions.wordform(idx),':',p)
         else:
             print('error in evaluation')
-        print(ref_action,np.exp(-nll.value()))
 
         return nll
 
