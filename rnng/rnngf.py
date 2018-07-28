@@ -999,7 +999,7 @@ if __name__ == '__main__':
     ConsTree.strip_tags(t) 
     ConsTree.close_unaries(t)
     test_treebank.append(t)
-    if idx == 1:
+    if idx == 0:
       break
     idx+=1
   test_stream.close()
