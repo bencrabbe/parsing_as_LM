@@ -832,7 +832,7 @@ class RNNGparser:
              list. List of BeamElements. 
         """
         Kw  = int(K/10)
-        Kft = int(K/25)
+        Kft = int(K/100)
         
         dy.renew_cg()
         init = BeamElement.init_element(self.init_configuration(len(sentence)))
@@ -842,7 +842,8 @@ class RNNGparser:
             
             this_word = beam[-1]
             next_word = [ ]            
-            while this_word and len(next_word) < K:                    
+            while this_word and len(next_word) < K:
+                    print(len(next_word)
                     fringe     = [ ]
                     fast_track = [ ]
                     for elt in this_word:
