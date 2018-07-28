@@ -917,9 +917,10 @@ class RNNGparser:
                     self.exec_beam_action(next_elt,sentence)
             else:
                 maxval = -np.inf
-                for (action, logprob) in self.predict_action_distrib(configuration,sentence):
-                     next_elt = BeamElement(current,action,current.prefix_gprob+logprob,current.prefix_dprob+logprob)
-                     maxval = prob
+                for (action, prob) in self.predict_action_distrib(configuration,sentence):
+                    if prob > maxval:
+                        next_elt = BeamElement(current,action,current.prefix_gprob+logprob,current.prefix_dprob+logprob)
+                        maxval = prob
                      
                 if next_elt.prev_action == RNNGparser.TERMINATE:
                     return next_elt
