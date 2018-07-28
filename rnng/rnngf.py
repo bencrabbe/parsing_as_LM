@@ -534,7 +534,7 @@ class RNNGparser:
             print('-------------------')
             print('REF',ref_action,np.exp(-nll.value()))
             for idx,logp in enumerate(dstruct):
-                print(self.actions.wordform(idx),':',np.exp(p))
+                print(self.actions.wordform(idx),':',np.exp(logp))
         else:
             print('error in evaluation')
 
