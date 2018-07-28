@@ -624,12 +624,8 @@ class RNNGparser:
         
         #Trees preprocessing
         for t in train_treebank:
-            print(t)
             ConsTree.strip_tags(t)
-            print(t)
             ConsTree.close_unaries(t)
-            print(t)
-            exit(0)
         for t in dev_treebank:
             ConsTree.strip_tags(t)
             ConsTree.close_unaries(t)
@@ -974,8 +970,6 @@ if __name__ == '__main__':
     # train_stream   = open('ptb_train.mrg')
     # for line in train_stream:
     #     t = ConsTree.read_tree(line)
-    #     ConsTree.strip_tags(t)
-    #     ConsTree.close_unaries(t)
     #     train_treebank.append(t)
     # train_stream.close()    
     
@@ -983,8 +977,6 @@ if __name__ == '__main__':
     # dev_stream   = open('ptb_dev.mrg')
     # for line in dev_stream:
     #     t = ConsTree.read_tree(line)
-    #     ConsTree.strip_tags(t) 
-    #     ConsTree.close_unaries(t)
     #     dev_treebank.append(t)
     # dev_stream.close()
      
