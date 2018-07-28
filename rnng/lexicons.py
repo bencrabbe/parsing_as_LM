@@ -75,6 +75,7 @@ class SymbolLexicon:
         @param token: a string
         @return the index of the word in this lexicon
         """
+        print(self.normal_wordform(token))
         return self.words2i[ self.normal_wordform(token) ]
 
     def unk_index(self):
