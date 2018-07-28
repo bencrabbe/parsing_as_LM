@@ -296,7 +296,7 @@ class RNNGparser:
         """
         S,B,n,stack_state,lab_state = configuration
         e = dy.rectify(self.word_embeddings[self.lexicon.index(sentence[B[0]])])
-        return (S + [StackSymbol(B[0],StackSymbol.COMPLETED,e)],B[1:],n,stack_state.add_input(e),RNNGparser.NO_LABEL)
+        return (S + [StackSymbol(B[0],StackSymbol.COMPLETED,e)],B[1:],n,stack_state.add_input(self.ifdropout(e)),RNNGparser.NO_LABEL)
 
     def open_action(self,configuration):
         """
@@ -323,7 +323,7 @@ class RNNGparser:
         
         stack_top = S[-1]
         e = dy.rectify(self.nonterminals_embeddings[self.nonterminals.index(Xlabel)])
-        return (S[:-1] + [StackSymbol(Xlabel,StackSymbol.PREDICTED,e),stack_top],B,n+1,stack_state.add_input(e),RNNGparser.NO_LABEL)
+        return (S[:-1] + [StackSymbol(Xlabel,StackSymbol.PREDICTED,e),stack_top],B,n+1,stack_state.add_input(self.ifdropout(e)),RNNGparser.NO_LABEL)
 
     def close_action(self,configuration):
         """
@@ -361,7 +361,7 @@ class RNNGparser:
         newS[-1] = newS[-1].complete()
         newS[-1].embedding = tree_embedding
         
-        return (newS,B,n-1,stack_state.add_input(tree_embedding),RNNGparser.NO_LABEL)
+        return (newS,B,n-1,stack_state.add_input(self.ifdropout(tree_embedding)),RNNGparser.NO_LABEL)
 
     
     def static_inorder_oracle(self,ref_tree,sentence,configuration=None):
@@ -467,6 +467,13 @@ class RNNGparser:
         self.tree_W                   = self.model.add_parameters((self.stack_embedding_size,self.stack_hidden_size*2))
         self.tree_b                   = self.model.add_parameters((self.stack_embedding_size))
 
+
+    def ifdropout(self,expression):
+        """
+        Applies dropout to a dynet expression only if dropout > 0.0.
+        """
+        return dy.dropout(expression,self.dropout) if self.dropout > 0.0 else expression
+        
         
     def predict_action_distrib(self,configuration,sentence):
         """
@@ -514,13 +521,13 @@ class RNNGparser:
 
         if lab_state == RNNGparser.WORD_LABEL :
             ref_idx  = self.lexicon.index(ref_action)
-            nll =  self.word_softmax.neg_log_softmax(dy.rectify(stack_state.output()),ref_idx)
+            nll =  self.word_softmax.neg_log_softmax(self.ifdropout(dy.rectify(stack_state.output())),ref_idx)
         elif lab_state == RNNGparser.NT_LABEL :
             ref_idx  = self.nonterminals.index(ref_action)
-            nll = dy.pickneglogsoftmax(self.nonterminals_W  * dy.rectify(stack_state.output())  + self.nonterminals_b,ref_idx)
+            nll = dy.pickneglogsoftmax(self.nonterminals_W  * self.ifdropout(dy.rectify(stack_state.output()))  + self.nonterminals_b,ref_idx)
         elif lab_state == RNNGparser.NO_LABEL :
             ref_idx = self.actions.index(ref_action)
-            nll = dy.pickneglogsoftmax(self.structural_W  * dy.rectify(stack_state.output())  + self.structural_b,ref_idx)
+            nll = dy.pickneglogsoftmax(self.structural_W  * self.ifdropout(dy.rectify(stack_state.output()))  + self.structural_b,ref_idx)
         else:
             print('error in evaluation')
 
@@ -596,7 +603,7 @@ class RNNGparser:
                 
         return runstats
     
-    def train_model(self,train_treebank,dev_treebank,modelname,lr=0.1,epochs=20,batch_size=1):
+    def train_model(self,train_treebank,dev_treebank,modelname,lr=0.1,epochs=20,batch_size=1,dropout=0.3):
         """
         Trains a full model for e epochs.
         It minimizes the NLL on the development set with SGD.
@@ -625,8 +632,8 @@ class RNNGparser:
         self.code_nonterminals(train_treebank,dev_treebank)
         self.code_struct_actions()
         self.allocate_structure()
-
         #Training
+        self.dropout = dropout
         self.trainer = dy.SimpleSGDTrainer(self.model,learning_rate=lr)
         min_nll      = np.inf
 
@@ -928,6 +935,7 @@ class RNNGparser:
            sample_search (bool): uses sampling based search (or K-argmax beam pruning if false)
            evalb_mode    (bool): take an ptb bracketed .mrg file as input and reinserts the pos tags as a post processing step. evalb requires pos tags
         """
+        self.dropout = 0.0
         for line in istream:
             
             if evalb_mode:
