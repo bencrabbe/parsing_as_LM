@@ -827,6 +827,7 @@ class RNNGparser:
         beam,successes  = [[init]],[ ]
 
         while beam[-1]:
+            
             print("<word>",flush=True)
 
             this_word = beam[-1]
@@ -847,12 +848,13 @@ class RNNGparser:
                     fast_track.sort(key=lambda x:x.prefix_gprob,reverse=True)
                     fast_track = fast_track[:Kft]
                     fringe.sort(key=lambda x:x.prefix_gprob,reverse=True)
-                    fringe = fringe[:K-Kft]+fast_track
+                    fringe = fringe[:K-len(fast_track)]+fast_track
                     
                     this_word  = [ ]
                     for s in fringe:
-                         prev_prev_action    = s.prev_element.prev_action
-                         if prev_prev_action == RNNGparser.SHIFT: #<=> tests if we currently generate a word
+                        print(s.prev_action)                        
+                        prev_prev_action    = s.prev_element.prev_action
+                        if prev_prev_action == RNNGparser.SHIFT: #<=> tests if we currently generate a word
                              next_word.append(s)
                          else:
                              self.exec_beam_action(s,sentence)
