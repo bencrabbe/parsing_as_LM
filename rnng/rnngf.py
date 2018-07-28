@@ -530,7 +530,7 @@ class RNNGparser:
             nll = dy.pickneglogsoftmax(self.structural_W  * self.ifdropout(dy.rectify(stack_state.output()))  + self.structural_b,ref_idx)
         else:
             print('error in evaluation')
-        print(ref_action,nll)
+        print(ref_action,nll.value())
 
         return nll
 
