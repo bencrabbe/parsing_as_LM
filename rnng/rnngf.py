@@ -1002,8 +1002,6 @@ if __name__ == '__main__':
   idx = 0
   for line in test_stream:
     t = ConsTree.read_tree(line)
-    ConsTree.strip_tags(t) 
-    ConsTree.close_unaries(t)
     test_treebank.append(t)
     if idx == 0:
       break
