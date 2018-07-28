@@ -625,8 +625,10 @@ class RNNGparser:
         #Trees preprocessing
         for t in train_treebank:
             ConsTree.strip_tags(t)
+            print(t)
             ConsTree.close_unaries(t)
-
+            print(t)
+            exit(0)
         for t in dev_treebank:
             ConsTree.strip_tags(t)
             ConsTree.close_unaries(t)
