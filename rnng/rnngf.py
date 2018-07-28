@@ -993,11 +993,14 @@ if __name__ == '__main__':
     
   test_treebank = [ ]
   test_stream   = open('ptb_test.mrg')
-  line = test_stream.readline()
-  t = ConsTree.read_tree(line)
-  ConsTree.strip_tags(t) 
-  ConsTree.close_unaries(t)
-  test_treebank.append(t)
+  idx = 0
+  for line in test_stream:
+    t = ConsTree.read_tree(line)
+    ConsTree.strip_tags(t) 
+    ConsTree.close_unaries(t)
+    test_treebank.append(t)
+    if idx == 2:
+      break
   test_stream.close()
 
   parser = RNNGparser('ptb-250.brown',stack_embedding_size=300,stack_memory_size=200,word_embedding_size=300)
