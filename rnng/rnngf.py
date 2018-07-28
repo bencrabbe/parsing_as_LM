@@ -843,7 +843,6 @@ class RNNGparser:
             this_word = beam[-1]
             next_word = [ ]            
             while this_word and len(next_word) < K:
-                    print(len(next_word))
                     fringe     = [ ]
                     fast_track = [ ]
                     for elt in this_word:
@@ -878,6 +877,7 @@ class RNNGparser:
                 self.exec_beam_action(elt,sentence)
             beam.append(next_word)
         if successes:
+            print(len(successes))
             successes.sort(key=lambda x:x.prefix_gprob,reverse=True)
             successes = successes[:K]
         return successes
