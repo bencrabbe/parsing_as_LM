@@ -530,11 +530,6 @@ class RNNGparser:
             restr   = self.allowed_structural_actions(configuration)
             assert(ref_idx in restr)
             nll = -dy.pick(dy.log_softmax(self.structural_W  * self.ifdropout(dy.rectify(stack_state.output()))  + self.structural_b,restr),ref_idx)
-            dstruct = dy.log_softmax(self.structural_W  * self.ifdropout(dy.rectify(stack_state.output()))  + self.structural_b,restr).npvalue()
-            print('-------------------')
-            print('REF',ref_action,np.exp(-nll.value()))
-            for idx,logp in enumerate(dstruct):
-                print(self.actions.wordform(idx),':',np.exp(logp))
         else:
             print('error in evaluation')
 
@@ -567,11 +562,8 @@ class RNNGparser:
         
         for ref_tree in ref_trees:
 
-            print(ref_tree)
             sentence = ref_tree.tokens()
             derivation,last_config = self.static_inorder_oracle(ref_tree,sentence)
-
-            print(derivation)
             
             runstats['lexN']  += len(sentence)
             runstats['N']  += len(derivation)
@@ -606,7 +598,6 @@ class RNNGparser:
         
         if backprop:
             loss.backward()
-            print('backpropping')
             try:
                 self.trainer.update()
             except RuntimeError:
@@ -632,9 +623,7 @@ class RNNGparser:
         #Trees preprocessing
         for t in train_treebank:
             ConsTree.strip_tags(t)
-            print(t)
             ConsTree.close_unaries(t)
-            print(t)
         for t in dev_treebank:
             ConsTree.strip_tags(t)
             ConsTree.close_unaries(t)
