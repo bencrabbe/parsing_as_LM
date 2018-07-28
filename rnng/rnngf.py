@@ -850,7 +850,6 @@ class RNNGparser:
                     
                     this_word  = [ ]
                     for s in fringe:
-                        print(s.prev_action)                        
                         prev_prev_action    = s.prev_element.prev_action
                         if prev_prev_action == RNNGparser.SHIFT: #<=> tests if we currently generate a word
                             next_word.append(s)
@@ -869,7 +868,6 @@ class RNNGparser:
             successes = successes[:K]
         return successes
 
-    
     def predict_beam(self,sentence,K,sample_search=True):
         """
         Performs generative parsing and returns an ordered list of successful beam elements.
