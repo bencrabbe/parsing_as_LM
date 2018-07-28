@@ -930,7 +930,7 @@ class RNNGparser:
         return successes
 
     
-    def parse_corpus(self,istream,ostream,K=10,sample_search=True,evalb_mode=False):
+    def parse_corpus(self,istream,ostream,K=10,sample_search=True,kbest=1,evalb_mode=False):
         """
         Parses a corpus and prints out the trees in a file.
         Args:
@@ -938,6 +938,7 @@ class RNNGparser:
            ostream  (stream): the stream where to write the data to
         Kwargs:
            K              (int): the size of the beam
+           kbest          (int): the number of parses outputted per sentence (<= K)
            sample_search (bool): uses sampling based search (or K-argmax beam pruning if false)
            evalb_mode    (bool): take an ptb bracketed .mrg file as input and reinserts the pos tags as a post processing step. evalb requires pos tags
         """
@@ -951,12 +952,12 @@ class RNNGparser:
                 tags               = [tagnode.label for tagnode in wordsXtags]
                 print(tokens,tags)
                 results            = self.predict_beam_generative(tokens,K)
-                #results            = self.predict_beam(tokens,K,sample_search)
-                argmax_derivation  = RNNGparser.weighted_derivation(results[0])
-                argmax_tree        = RNNGparser.deriv2tree(argmax_derivation)
-                argmax_tree.expand_unaries()
-                argmax_tree.add_gold_tags(tags)
-                print(argmax_tree,file=ostream,flush=True)
+                for r in results:
+                    r_derivation  = RNNGparser.weighted_derivation(r)
+                    r_tree        = RNNGparser.deriv2tree(r_derivation)
+                    r_tree.expand_unaries()
+                    r_tree.add_gold_tags(tags)
+                print(r_tree,r.prefix_gprob,file=ostream,flush=True)
                 
             else: #normal case
                 tokens             = line.split()
