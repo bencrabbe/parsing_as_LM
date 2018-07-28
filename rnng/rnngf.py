@@ -877,10 +877,8 @@ class RNNGparser:
                 self.exec_beam_action(elt,sentence)
             beam.append(next_word)
         if successes:
-            print('#S',len(successes))
             successes.sort(key=lambda x:x.prefix_gprob,reverse=True)
             successes = successes[:K]
-        print('#S',len(successes))
         return successes
 
     def predict_beam(self,sentence,K,sample_search=True):
