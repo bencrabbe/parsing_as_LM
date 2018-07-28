@@ -577,7 +577,7 @@ class RNNGparser:
                 if lab_state == RNNGparser.WORD_LABEL:
                     configuration = self.generate_word(configuration,sentence)
                     lexical_NLL.append(nll)
-                    print(ref_action,nll)
+                    print(ref_action,nll.value())
                 elif lab_state == RNNGparser.NT_LABEL:
                     configuration = self.label_nonterminal(configuration,ref_action)
                 elif ref_action == RNNGparser.CLOSE:
