@@ -999,8 +999,9 @@ if __name__ == '__main__':
     ConsTree.strip_tags(t) 
     ConsTree.close_unaries(t)
     test_treebank.append(t)
-    if idx == 2:
+    if idx == 1:
       break
+    idx+=1
   test_stream.close()
 
   parser = RNNGparser('ptb-250.brown',stack_embedding_size=300,stack_memory_size=200,word_embedding_size=300)
