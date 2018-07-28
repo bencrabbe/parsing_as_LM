@@ -925,7 +925,8 @@ class RNNGparser:
                 wordsXtags         = tree.pos_tags()
                 tokens             = [tagnode.get_child().label for tagnode in wordsXtags]
                 tags               = [tagnode.label for tagnode in wordsXtags]
-                results            = self.predict_beam_generative(tokens,K,sample_search)
+                results            = self.predict_beam_generative(tokens,K)
+                #results            = self.predict_beam(tokens,K,sample_search)
                 argmax_derivation  = RNNGparser.weighted_derivation(results[0])
                 argmax_tree        = RNNGparser.deriv2tree(argmax_derivation)
                 argmax_tree.expand_unaries()
@@ -934,7 +935,7 @@ class RNNGparser:
                 
             else: #normal case
                 tokens             = line.split()
-                results            = self.predict_beam_generative(tokens,K,sample_search)
+                results            = self.predict_beam(tokens,K,sample_search)
                 argmax_derivation  = RNNGparser.weighted_derivation(results[0])
                 argmax_tree        = RNNGparser.deriv2tree(argmax_derivation)
                 argmax_tree.expand_unaries() 
