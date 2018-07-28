@@ -1002,5 +1002,5 @@ if __name__ == '__main__':
   test_stream.close()
 
   parser = RNNGparser('ptb-250.brown',vocab_thresh=0,stack_embedding_size=300,stack_memory_size=200,word_embedding_size=300)
-  parser.train_model(test_treebank,[test_treebank[0].copy()],'test_rnngf/bidon',epochs=20,lr=0.5,batch_size=1)
+  parser.train_model(test_treebank,[test_treebank[0].copy()],'test_rnngf/bidon',epochs=20,lr=0.1,batch_size=1)
   parser.parse_corpus([line],sys.stdout,K=100,evalb_mode=True)
