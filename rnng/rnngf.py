@@ -295,8 +295,8 @@ class RNNGparser:
            tuple. a configuration after word generation
         """
         S,B,n,stack_state,lab_state = configuration
-        e = dy.rectify(self.word_embeddings[self.lexicon.index(sentence[B[0]])])
-        return (S + [StackSymbol(B[0],StackSymbol.COMPLETED,e)],B[1:],n,stack_state.add_input(self.ifdropout(e)),RNNGparser.NO_LABEL)
+        e = self.word_embeddings[self.lexicon.index(sentence[B[0]])]
+        return (S + [StackSymbol(B[0],StackSymbol.COMPLETED,e)],B[1:],n,stack_state.add_input(e),RNNGparser.NO_LABEL)
 
     def open_action(self,configuration):
         """
@@ -322,8 +322,8 @@ class RNNGparser:
         S,B,n,stack_state,lab_state = configuration
         
         stack_top = S[-1]
-        e = dy.rectify(self.nonterminals_embeddings[self.nonterminals.index(Xlabel)])
-        return (S[:-1] + [StackSymbol(Xlabel,StackSymbol.PREDICTED,e),stack_top],B,n+1,stack_state.add_input(self.ifdropout(e)),RNNGparser.NO_LABEL)
+        e = self.nonterminals_embeddings[self.nonterminals.index(Xlabel)]
+        return (S[:-1] + [StackSymbol(Xlabel,StackSymbol.PREDICTED,e),stack_top],B,n+1,stack_state.add_input(e),RNNGparser.NO_LABEL)
 
     def close_action(self,configuration):
         """
@@ -355,13 +355,13 @@ class RNNGparser:
         for SYM in closed_symbols:
             bwd_state = bwd_state.add_input(SYM.embedding)
 
-        tree_h         = dy.concatenate([fwd_state.output(),bwd_state.output()])
+        tree_h         = dy.concatenate([self.ifdropout(fwd_state.output()),self.ifdropout(bwd_state.output())])
         tree_embedding = dy.rectify(self.tree_W * tree_h + self.tree_b)
 
         newS[-1] = newS[-1].complete()
         newS[-1].embedding = tree_embedding
         
-        return (newS,B,n-1,stack_state.add_input(self.ifdropout(tree_embedding)),RNNGparser.NO_LABEL)
+        return (newS,B,n-1,stack_state.add_input(tree_embedding),RNNGparser.NO_LABEL)
 
     
     def static_inorder_oracle(self,ref_tree,sentence,configuration=None):
@@ -591,7 +591,7 @@ class RNNGparser:
         loss     = dy.esum(all_NLL)
         lex_loss = dy.esum(lexical_NLL)
 
-        runstats['NLL']  += loss.value()
+        runstats['NLL']   += loss.value()
         runstats['lexNLL'] = lex_loss.value()
         
         if backprop:
@@ -837,17 +837,17 @@ class RNNGparser:
             
             this_word = beam[-1]
             next_word = [ ]            
-            while this_word and len(next_word) < K:
-                    
+            while this_word and len(next_word) < K:                    
                     fringe     = [ ]
                     fast_track = [ ]
                     for elt in this_word:
                         configuration = elt.configuration
                         for (action, logprob) in self.predict_action_distrib(configuration,sentence):
-                            new_elt = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)
                             if elt.prev_action == RNNGparser.SHIFT: #<=> we currently generate a word
+                                new_elt = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob)
                                 fast_track.append(new_elt)
                             else:
+                                new_elt = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)
                                 fringe.append(new_elt)
                                 
                     fast_track.sort(key=lambda x:x.prefix_gprob,reverse=True)
@@ -855,7 +855,7 @@ class RNNGparser:
                     fringe.sort(key=lambda x:x.prefix_gprob,reverse=True)
                     fringe = fringe[:K-len(fast_track)]+fast_track
                     
-                    this_word  = [ ]
+                    this_word = [ ]
                     for s in fringe:
                         prev_prev_action    = s.prev_element.prev_action
                         if prev_prev_action == RNNGparser.SHIFT: #<=> tests if we currently generate a word
@@ -865,6 +865,7 @@ class RNNGparser:
                         else:
                             self.exec_beam_action(s,sentence)
                             this_word.append(s)
+                            
             next_word.sort(key=lambda x:x.prefix_gprob,reverse=True)
             next_word = next_word[:Kw]
             for elt in next_word:
