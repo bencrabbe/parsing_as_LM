@@ -832,7 +832,7 @@ class RNNGparser:
                     fast_track = []
                     for elt in this_word:
                         configuration = elt.configuration
-                        print(configuration)
+                        print('***',configuration)
                         for (action, logprob) in self.predict_action_distrib(configuration,sentence):
                             new_elt = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)
                             if elt.prev_action == RNNGparser.SHIFT: #<=> we currently generate a word
