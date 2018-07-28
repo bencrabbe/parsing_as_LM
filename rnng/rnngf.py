@@ -559,7 +559,8 @@ class RNNGparser:
         dy.renew_cg()
         
         for ref_tree in ref_trees:
-            
+
+            print(ref_tree)
             sentence = ref_tree.tokens()
             derivation,last_config = self.static_inorder_oracle(ref_tree,sentence)
 
