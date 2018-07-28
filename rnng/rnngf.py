@@ -519,7 +519,6 @@ class RNNGparser:
         """
         S,B,n,stack_state,lab_state = configuration
 
-        print(ref_action)
         if lab_state == RNNGparser.WORD_LABEL :
             ref_idx  = self.lexicon.index(ref_action)
             nll =  self.word_softmax.neg_log_softmax(self.ifdropout(dy.rectify(stack_state.output())),ref_idx)
@@ -531,6 +530,7 @@ class RNNGparser:
             nll = dy.pickneglogsoftmax(self.structural_W  * self.ifdropout(dy.rectify(stack_state.output()))  + self.structural_b,ref_idx)
         else:
             print('error in evaluation')
+        print(ref_action,nll)
 
         return nll
 
@@ -557,7 +557,7 @@ class RNNGparser:
         runstats = RuntimeStats('NLL','lexNLL','N','lexN')
         runstats.push_row()
         
-        dy.renew_cg(immediate_compute = True, check_validity = True)
+        dy.renew_cg()
         
         for ref_tree in ref_trees:
 
