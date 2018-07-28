@@ -962,26 +962,26 @@ class RNNGparser:
                 
 if __name__ == '__main__':
 
-    train_treebank = [ ]
-    train_stream   = open('ptb_train.mrg')
-    for line in train_stream:
-        t = ConsTree.read_tree(line)
-        ConsTree.strip_tags(t)
-        ConsTree.close_unaries(t)
-        train_treebank.append(t)
-    train_stream.close()    
+    # train_treebank = [ ]
+    # train_stream   = open('ptb_train.mrg')
+    # for line in train_stream:
+    #     t = ConsTree.read_tree(line)
+    #     ConsTree.strip_tags(t)
+    #     ConsTree.close_unaries(t)
+    #     train_treebank.append(t)
+    # train_stream.close()    
     
-    dev_treebank = [ ]
-    dev_stream   = open('ptb_dev.mrg')
-    for line in dev_stream:
-        t = ConsTree.read_tree(line)
-        ConsTree.strip_tags(t) 
-        ConsTree.close_unaries(t)
-        dev_treebank.append(t)
-    dev_stream.close()
+    # dev_treebank = [ ]
+    # dev_stream   = open('ptb_dev.mrg')
+    # for line in dev_stream:
+    #     t = ConsTree.read_tree(line)
+    #     ConsTree.strip_tags(t) 
+    #     ConsTree.close_unaries(t)
+    #     dev_treebank.append(t)
+    # dev_stream.close()
      
-    parser = RNNGparser('ptb-250.brown',stack_embedding_size=300,stack_memory_size=200,word_embedding_size=300)
-    parser.train_model(train_treebank,dev_treebank,'test_rnngf/test_rnngf_gpu',epochs=20,lr=0.5,batch_size=32)
+    # parser = RNNGparser('ptb-250.brown',stack_embedding_size=300,stack_memory_size=200,word_embedding_size=300)
+    # parser.train_model(train_treebank,dev_treebank,'test_rnngf/test_rnngf_gpu',epochs=20,lr=0.5,batch_size=32)
 
     # parser = RNNGparser.load_model('test_rnngf/test_rnngf_gpu')
     # test_stream   = open('ptb_test.mrg')
@@ -989,3 +989,14 @@ if __name__ == '__main__':
     # test_stream.close()
 
     
+  test_treebank = [ ]
+  test_stream   = open('ptb_test.mrg')
+  line = test_stream.readline()
+  t = ConsTree.read_tree(line)
+  ConsTree.strip_tags(t) 
+  ConsTree.close_unaries(t)
+  test_treebank.append(t)
+  test_stream.close()
+
+  parser = RNNGparser('ptb-250.brown',stack_embedding_size=300,stack_memory_size=200,word_embedding_size=300)
+  parser.train_model(train_treebank,dev_treebank,'test_rnngf/bidon',epochs=20,lr=0.1,batch_size=1)
