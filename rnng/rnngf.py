@@ -529,8 +529,8 @@ class RNNGparser:
             ref_idx = self.actions.index(ref_action)
             restr   = self.allowed_structural_actions(configuration)
             assert(ref_idx in restr)
-            nll = -dy.pick(dy.log_softmax(self.structural_W  * self.ifdropout(dy.rectify(stack_state.output()))  + self.structural_b),ref_idx)
-            dstruct = dy.log_softmax(self.structural_W  * self.ifdropout(dy.rectify(stack_state.output()))  + self.structural_b).npvalue()
+            nll = -dy.pick(dy.log_softmax(self.structural_W  * self.ifdropout(dy.rectify(stack_state.output()))  + self.structural_b,restr),ref_idx)
+            dstruct = dy.log_softmax(self.structural_W  * self.ifdropout(dy.rectify(stack_state.output()))  + self.structural_b,restr).npvalue()
             print('-------------------')
             print('REF',ref_action,np.exp(-nll.value()))
             for idx,logp in enumerate(dstruct):
