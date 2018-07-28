@@ -855,10 +855,10 @@ class RNNGparser:
                         print(s.prev_action)                        
                         prev_prev_action    = s.prev_element.prev_action
                         if prev_prev_action == RNNGparser.SHIFT: #<=> tests if we currently generate a word
-                             next_word.append(s)
-                         else:
-                             self.exec_beam_action(s,sentence)
-                             this_word.append(s)
+                            next_word.append(s)
+                        else:
+                            self.exec_beam_action(s,sentence)
+                            this_word.append(s)
             next_word.sort(key=lambda x:x.prefix_gprob,reverse=True)
             next_word = next_word[:Kw]
             for elt in next_word:
