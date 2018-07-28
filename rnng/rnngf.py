@@ -563,6 +563,8 @@ class RNNGparser:
             sentence = ref_tree.tokens()
             derivation,last_config = self.static_inorder_oracle(ref_tree,sentence)
 
+            print(derivation)
+            
             runstats['lexN']  += len(sentence)
             runstats['N']  += len(derivation)
     
