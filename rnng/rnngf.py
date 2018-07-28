@@ -82,8 +82,10 @@ class BeamElement:
         Returns:
            BeamElement to be used at init
         """
-        return BeamElement(None,None,0,0)
-        
+        b =  BeamElement(None,None,0,0)
+        b.configuration = configuration
+        return b
+    
     def is_initial_element(self):
         """
         Returns:
@@ -832,8 +834,6 @@ class RNNGparser:
                     fast_track = [ ]
                     for elt in this_word:
                         configuration = elt.configuration
-                        print('***',configuration,'***',flush=True)
-                        exit(0)
                         for (action, logprob) in self.predict_action_distrib(configuration,sentence):
                             new_elt = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)
                             if elt.prev_action == RNNGparser.SHIFT: #<=> we currently generate a word
