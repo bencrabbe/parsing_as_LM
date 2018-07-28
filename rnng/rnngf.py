@@ -832,7 +832,7 @@ class RNNGparser:
              list. List of BeamElements. 
         """
         Kw  = int(K/10)
-        Kft = int(K/100)
+        Kft = int(K/25)
         
         dy.renew_cg()
         init = BeamElement.init_element(self.init_configuration(len(sentence)))
