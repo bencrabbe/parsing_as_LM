@@ -607,7 +607,6 @@ class RNNGparser:
         if backprop:
             loss.backward()
             print('backpropping')
-            dy.print_text_graphviz()
             try:
                 self.trainer.update()
             except RuntimeError:
@@ -910,16 +909,22 @@ class RNNGparser:
                             next_elt = BeamElement(current,action,current.prefix_gprob+logprob,current.prefix_dprob)
                             self.exec_beam_action(next_elt,sentence)
             elif lab_state == RNNGparser.NT_LABEL:
-                    for (action, logprob) in self.predict_action_distrib(configuration,sentence):                    
-                        next_elt = BeamElement(current,action,current.prefix_gprob+logprob,current.prefix_dprob+logprob)
-                        self.exec_beam_action(next_elt,sentence)
+                    maxval = -np.inf
+                    for action,prob in self.predict_action_distrib(configuration,sentence):
+                            if prob > maxval:
+                                next_elt = BeamElement(current,action,current.prefix_gprob+logprob,current.prefix_dprob+logprob)
+                                maxval = prob
+                    self.exec_beam_action(next_elt,sentence)
             else:
-                    for (action, logprob) in self.predict_action_distrib(configuration,sentence):
-                        if action == RNNGparser.TERMINATE:
-                            return BeamElement(current,action,current.prefix_gprob+logprob,current.prefix_dprob+logprob)
-                        else:
-                            next_elt = BeamElement(current,action,current.prefix_gprob+logprob,current.prefix_dprob+logprob)
-                            self.exec_beam_action(next_elt,sentence)
+                maxval = -np.inf
+                for (action, logprob) in self.predict_action_distrib(configuration,sentence):
+                     next_elt = BeamElement(current,action,current.prefix_gprob+logprob,current.prefix_dprob+logprob)
+                     maxval = prob
+                     
+                if next_elt.prev_action == RNNGparser.TERMINATE:
+                    return next_elt
+                else:
+                    self.exec_beam_action(next_elt,sentence)
             current = next_elt
         return None
         
