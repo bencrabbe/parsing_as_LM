@@ -829,10 +829,11 @@ class RNNGparser:
             next_word = [ ]            
             while len(next_word) < K:
                     fringe     = [ ]
-                    fast_track = []
+                    fast_track = [ ]
                     for elt in this_word:
                         configuration = elt.configuration
-                        print('***',configuration,flush=True)
+                        print('***',configuration,'***',flush=True)
+                        exit(0)
                         for (action, logprob) in self.predict_action_distrib(configuration,sentence):
                             new_elt = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)
                             if elt.prev_action == RNNGparser.SHIFT: #<=> we currently generate a word
@@ -882,7 +883,7 @@ class RNNGparser:
             for elt in beam[-1]:
                 self.exec_beam_action(elt,sentence) #lazily builds configs
                 
-            next_preds = []
+            next_preds = [] 
             for elt in beam[-1]: 
                 configuration               = elt.configuration
                 #print('-----------')
