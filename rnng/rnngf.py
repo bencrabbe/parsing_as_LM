@@ -527,7 +527,9 @@ class RNNGparser:
             nll = dy.pickneglogsoftmax(self.nonterminals_W  * self.ifdropout(dy.rectify(stack_state.output()))  + self.nonterminals_b,ref_idx)
         elif lab_state == RNNGparser.NO_LABEL :
             ref_idx = self.actions.index(ref_action)
-            nll = dy.pickneglogsoftmax(self.structural_W  * self.ifdropout(dy.rectify(stack_state.output()))  + self.structural_b,ref_idx)
+            restr   = self.allowed_structural_actions(configuration)
+            assert(ref_idx in restr)
+            nll = -dy.pick(dy.logsoftmax(self.structural_W  * self.ifdropout(dy.rectify(stack_state.output()))  + self.structural_b),ref_idx)
             dstruct = dy.softmax(self.structural_W  * self.ifdropout(dy.rectify(stack_state.output()))  + self.structural_b).npvalue()
             print('-------------------')
             print('REF',ref_action,np.exp(-nll.value()))
