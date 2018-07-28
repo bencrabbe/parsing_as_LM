@@ -825,15 +825,13 @@ class RNNGparser:
         dy.renew_cg()
         init = BeamElement.init_element(self.init_configuration(len(sentence)))
         beam,successes  = [[init]],[ ]
-
+        
         while beam[-1]:
             
-            print("<word>",flush=True)
-
             this_word = beam[-1]
             next_word = [ ]            
             while this_word and len(next_word) < K:
-                    print("  <step>",flush=True)
+                    
                     fringe     = [ ]
                     fast_track = [ ]
                     for elt in this_word:
@@ -856,6 +854,8 @@ class RNNGparser:
                         prev_prev_action    = s.prev_element.prev_action
                         if prev_prev_action == RNNGparser.SHIFT: #<=> tests if we currently generate a word
                             next_word.append(s)
+                        elif s.prev_action ==  RNNGparser.TERMINATE:
+                            successes.append(s)
                         else:
                             self.exec_beam_action(s,sentence)
                             this_word.append(s)
@@ -864,7 +864,12 @@ class RNNGparser:
             for elt in next_word:
                 self.exec_beam_action(elt,sentence)
             beam.append(next_word)
-            
+        if successes:
+            successes.sort(key=lambda x:x.prefix_gprob,reverse=True)
+            successes = successes[:K]
+        return successes
+
+    
     def predict_beam(self,sentence,K,sample_search=True):
         """
         Performs generative parsing and returns an ordered list of successful beam elements.
