@@ -557,7 +557,7 @@ class RNNGparser:
         runstats = RuntimeStats('NLL','lexNLL','N','lexN')
         runstats.push_row()
         
-        dy.renew_cg()
+        dy.renew_cg(immediate_compute = True, check_validity = True)
         
         for ref_tree in ref_trees:
 
