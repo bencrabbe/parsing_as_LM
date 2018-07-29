@@ -989,7 +989,6 @@ class RNNGparser:
                 wordsXtags         = tree.pos_tags()
                 tokens             = [tagnode.get_child().label for tagnode in wordsXtags]
                 tags               = [tagnode.label for tagnode in wordsXtags]
-                print(tokens,tags)
                 #r            = self.predict_greedy(tokens)
                 #r_derivation  = RNNGparser.weighted_derivation(r)
                 #r_tree        = RNNGparser.deriv2tree(r_derivation)
@@ -1002,7 +1001,7 @@ class RNNGparser:
                     r_tree        = RNNGparser.deriv2tree(r_derivation)
                     r_tree.expand_unaries()
                     r_tree.add_gold_tags(tags)
-                    print(r_tree,r.prefix_gprob,file=ostream,flush=True)
+                    print(r_tree,file=ostream,flush=True)
                     break
                 
             else: #normal case
