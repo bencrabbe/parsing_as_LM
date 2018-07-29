@@ -1044,7 +1044,7 @@ if __name__ == '__main__':
         dev_treebank.append(t)
     dev_stream.close()
      
-    parser = RNNGparser('ptb-250.brown',stack_embedding_size=300,stack_memory_size=200,word_embedding_size=300)
+    parser = RNNGparser('ptb-250.brown',stack_embedding_size=300,stack_memory_size=200,word_embedding_size=250)
     parser.train_model(train_treebank,dev_treebank,'test_rnngf/test_rnngf_gpu',epochs=20,lr=0.5,batch_size=32)
 
     # parser = RNNGparser.load_model('test_rnngf/test_rnngf_gpu')
