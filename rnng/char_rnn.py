@@ -1,3 +1,4 @@
+import sys
 import dynet as dy
 from lexicons import *
 
@@ -9,7 +10,7 @@ class CharRNNBuilder:
     """
     def __init__(self,char_embedding_size,memory_size,charset,model):
         """
-        Creates a CharRNN from scratch. Should be used as a external constructor.
+        Creates a CharRNN from scratch. Should be used as an external constructor.
         Args:
             char_embedding_size          (int): size of char embeddings
             memory_size                  (int): size of RNN memory
@@ -74,7 +75,10 @@ class CharRNNBuilder:
         """
         token = list(token)
         char_embeddings = [self.E[self.charset.index(c)] for c in token if c in self.charset] #ignores unk chars
-
+        if not char_embeddings: #empty word, no char recognized
+            print('problematic token',token,file=sys.stderr)
+            return self.b
+            
         fwd_state       = self.fwd_rnn.initial_state()
         fwd_states      = fwd_state.transduce(char_embeddings)
                

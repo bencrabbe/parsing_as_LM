@@ -710,6 +710,8 @@ class RNNGparser:
                           'Word embedding size : %d'%(self.word_embedding_size),\
                           'Stack embedding size: %d'%(self.stack_embedding_size),\
                           'Stack memory size   : %d'%(self.stack_hidden_size),\
+                          'Char embedding size : %d'%(self.char_embedding_size),\
+                          'Char memory size    : %d'%(self.char_memory_size),\
                           '',\
                           '# training trees    : %d'%(train_bank_size),\
                           '# validation trees  : %d'%(dev_bank_size),\
