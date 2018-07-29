@@ -1,3 +1,4 @@
+import dynet as dy
 from lexicons import *
 
 class CharRNNBuilder:
