@@ -1,4 +1,4 @@
-
+from lexicons import *
 
 class CharRNNBuilder:
 
