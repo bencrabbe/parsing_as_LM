@@ -284,7 +284,7 @@ class RNNGparser:
            tuple. an initial configuration
         """
         stack_state = self.rnn.initial_state()
-        e = self.word_embeddings[self.lexicon.index(RNNGparser.START_TOKEN)]
+        e = dy.concatenate([ self.word_embeddings[self.lexicon.index(RNNGparser.START_TOKEN)] ,self.char_rnn(RNNGparser.START_TOKEN)])
         stack_state = stack_state.add_input(e)
         return ([],tuple(range(N)),0,stack_state,RNNGparser.NO_LABEL)
     
@@ -312,7 +312,7 @@ class RNNGparser:
            tuple. a configuration after word generation
         """
         S,B,n,stack_state,lab_state = configuration
-        e = self.word_embeddings[self.lexicon.index(sentence[B[0]])]
+        e = dy.concatenate( [ self.word_embeddings[self.lexicon.index(sentence[B[0]])] , self.char_rnn(sentence[B[0]]) ] )
         return (S + [StackSymbol(B[0],StackSymbol.COMPLETED,e)],B[1:],n,stack_state.add_input(e),RNNGparser.NO_LABEL)
 
     def open_action(self,configuration):
