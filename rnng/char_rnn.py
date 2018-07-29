@@ -20,6 +20,25 @@ class CharRNNBuilder:
         self.model               = model
         self.charset             = SymbolLexicon(list(charset))
         self.allocate_structure()
+
+    @staticmethod    
+    def load_charset(self,modelname):
+        """
+        Loads a symbol lexicon from file
+        Args:
+            modelname (string):
+        Returns:
+            SymbolLexicon
+        """
+        return SymbolLexicon.load(modelname+'.char.codes')
+
+    def save_charset(self,modelname):
+        """
+        Saves a symbol lexicon to file
+        Args:
+            modelname (string):
+        """
+        self.charset.save(modelname+'.char.codes')
         
     def allocate_structure(self):
         """

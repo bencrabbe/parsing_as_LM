@@ -15,7 +15,7 @@ from constree      import *
 from lexicons      import *
 from proc_monitors import *
 from rnng_params   import *
-
+from char_rnn      import *
 
 class StackSymbol:
     """
@@ -116,7 +116,9 @@ class RNNGparser:
                       vocab_thresh=1,\
                       stack_embedding_size=100,
                       stack_memory_size=100,
-                      word_embedding_size=100):
+                      word_embedding_size=100,
+                      char_embedding_size=50,
+                      char_memory_size=50):
         """
         Args:
            brown_clusters       (str)  : a filename where to find brown clusters     
@@ -125,15 +127,20 @@ class RNNGparser:
            stack_embedding_size (int)  : size of stack lstm input 
            stack_memory_size    (int)  : size of the stack and tree lstm hidden layers
            word_embedding_size  (int)  : size of word embeddings
+           char_embedding_size  (int)  : size of char lstm input 
+           char_memory_size     (int)  : size of char lstm hidden layer
         """
-        
+
+        assert(char_embedding_size + word_embedding_size == stack_embedding_size)
         self.brown_file           = brown_clusters
         self.vocab_thresh         = vocab_thresh
         self.stack_embedding_size = stack_embedding_size
         self.stack_hidden_size    = stack_memory_size
         self.word_embedding_size  = word_embedding_size
+        self.char_embedding_size  = char_embedding_size
+        self.char_memory_size     = char_memory_size 
         self.dropout              = 0.0
-
+                
     def code_lexicon(self,treebank):
         """
         Codes a lexicon on integers indexes and generates a lexicon object.
@@ -151,8 +158,15 @@ class RNNGparser:
         known_vocabulary.add(RNNGparser.START_TOKEN)
         self.brown_file  = normalize_brown_file(self.brown_file,known_vocabulary,self.brown_file+'.unk',UNK_SYMBOL=RNNGparser.UNKNOWN_TOKEN)
         self.lexicon     = SymbolLexicon( list(known_vocabulary),unk_word=RNNGparser.UNKNOWN_TOKEN)
-        return self.lexicon
+
+        self.charset = set([])
+        for word in known_vocabulary:
+            self.charset.update(list(word))
+        self.charset = list(self.charset)
         
+        return self.lexicon
+
+    
     def code_nonterminals(self,train_treebank,dev_treebank):
         """
         Extracts the nonterminals from a treebank and codes them on integers as a lexicon object.
@@ -171,7 +185,8 @@ class RNNGparser:
             nonterminals.update(tree.collect_nonterminals())
         self.nonterminals = SymbolLexicon(list(nonterminals))
         return self.nonterminals
-        
+
+    
     def code_struct_actions(self):
         """
         Codes the structural actions on integers and generates bool masks
@@ -210,14 +225,16 @@ class RNNGparser:
                             vocab_thresh=hyperparams['vocab_thresh'],\
                             stack_embedding_size=hyperparams['stack_embedding_size'],\
                             stack_memory_size=hyperparams['stack_hidden_size'],\
-                            word_embedding_size=hyperparams['word_embedding_size'])
+                            word_embedding_size=hyperparams['word_embedding_size'],\
+                            char_embedding_size=hyperparams['char_embedding_size'],\
+                            char_memory_size=hyperparams['char_memory_size'])
 
         parser.lexicon      = SymbolLexicon.load(model_name+'.lex')
         parser.nonterminals = SymbolLexicon.load(model_name+'.nt')
+        self.charset = CharRNNBuilder.load_charset(model_name).i2words 
         parser.code_struct_actions()
         parser.allocate_structure()
         parser.model.populate(model_name+".weights")
-
         return parser
 
     def save_model(self,model_name):
@@ -231,12 +248,15 @@ class RNNGparser:
                         'vocab_thresh':self.vocab_thresh,\
                         'stack_embedding_size':self.stack_embedding_size,\
                         'stack_hidden_size':self.stack_hidden_size,\
-                        'word_embedding_size':self.word_embedding_size}
+                        'word_embedding_size':self.word_embedding_size,\
+                        'char_memory_size':self.char_memory_size,\
+                        'char_embedding_size':self.char_embedding_size}
   
         jfile = open(model_name+'.json','w')
         jfile.write(json.dumps(hyperparams))
         jfile.close()
 
+        self.char_rnn.save(model_name)
         self.model.save(model_name+'.weights')
         self.lexicon.save(model_name+'.lex')
         self.nonterminals.save(model_name+'.nt')
@@ -464,7 +484,8 @@ class RNNGparser:
         self.tree_W                   = self.model.add_parameters((self.stack_embedding_size,self.stack_hidden_size*2))
         self.tree_b                   = self.model.add_parameters((self.stack_embedding_size))
 
-
+        self.char_rnn                 = CharRNNBuilder(self.char_embedding_size,self.memory_size,self.charset,self.model)
+        
     def ifdropout(self,expression):
         """
         Applies dropout to a dynet expression only if dropout > 0.0.
