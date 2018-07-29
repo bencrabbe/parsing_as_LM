@@ -1003,6 +1003,7 @@ class RNNGparser:
                     r_tree.expand_unaries()
                     r_tree.add_gold_tags(tags)
                     print(r_tree,r.prefix_gprob,file=ostream,flush=True)
+                    break
                 
             else: #normal case
                 tokens             = line.split()
