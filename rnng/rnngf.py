@@ -938,7 +938,6 @@ class RNNGparser:
         beam,successes  = [[init]],[]
 
         while beam[-1]:
-            #print('=======> step <========')
             beam = RNNGparser.sample_dprob(beam,K) if sample_search else RNNGparser.prune_dprob(beam,K) #pruning
             for elt in beam[-1]:
                 self.exec_beam_action(elt,sentence) #lazily builds configs
@@ -946,8 +945,6 @@ class RNNGparser:
             next_preds = [] 
             for elt in beam[-1]: 
                 configuration               = elt.configuration
-                #print('-----------')
-                #print(config2str(configuration))
                 S,B,n,stack_state,lab_state = configuration
                 if lab_state == RNNGparser.WORD_LABEL:
                     for (action, logprob) in self.predict_action_distrib(configuration,sentence):                    
@@ -957,7 +954,6 @@ class RNNGparser:
                         next_preds.append(BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob))
                 else:
                     for (action, logprob) in self.predict_action_distrib(configuration,sentence):
-                        #print(action)
                         if action == RNNGparser.TERMINATE:
                             successes.append(BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)) #really add these terminate probs to the prefix ?
                         else:
@@ -995,7 +991,8 @@ class RNNGparser:
                 #r_tree.expand_unaries()
                 #r_tree.add_gold_tags(tags)
                 #print(r_tree,r.prefix_gprob,file=ostream,flush=True)
-                results            = self.predict_beam_generative(tokens,K)
+                results            = self.predict_beam(tokens,K,sample_search)
+                #results            = self.predict_beam_generative(tokens,K)
                 for r in results:
                     r_derivation  = RNNGparser.weighted_derivation(r)
                     r_tree        = RNNGparser.deriv2tree(r_derivation)
@@ -1033,7 +1030,7 @@ if __name__ == '__main__':
 
     parser = RNNGparser.load_model('test_rnngf/test_rnngf_gpu')
     test_stream   = open('ptb_test.mrg')
-    parser.parse_corpus(test_stream,sys.stdout,K=400,evalb_mode=True)
+    parser.parse_corpus(test_stream,sys.stdout,K=100,evalb_mode=True)
     test_stream.close()
 
     
