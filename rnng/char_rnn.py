@@ -7,7 +7,7 @@ class CharRNNBuilder:
     This is a bi-lstm kind of model made to be used as a sub-model similarly to other dynet builders.
     """
     def __init__(self,char_embedding_size,memory_size,charset,model):
-       """
+        """
         Creates a CharRNN from scratch. Should be used as a external constructor.
         Args:
             char_embedding_size          (int): size of char embeddings
