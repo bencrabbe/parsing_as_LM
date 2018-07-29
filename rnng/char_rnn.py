@@ -19,6 +19,7 @@ class CharRNNBuilder:
         self.memory_size         = memory_size
         self.model               = model
         self.charset             = SymbolLexicon(list(charset))
+        self.allocate_structure()
         
     def allocate_structure(self):
         """
