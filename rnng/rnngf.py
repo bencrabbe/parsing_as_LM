@@ -256,7 +256,7 @@ class RNNGparser:
         jfile.write(json.dumps(hyperparams))
         jfile.close()
 
-        self.char_rnn.save(model_name)
+        self.char_rnn.save_charset(model_name)
         self.model.save(model_name+'.weights')
         self.lexicon.save(model_name+'.lex')
         self.nonterminals.save(model_name+'.nt')
