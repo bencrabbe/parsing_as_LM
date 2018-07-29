@@ -81,7 +81,7 @@ class CharRNNBuilder:
         bwd_state       = self.bwd_rnn.initial_state()
         bwd_states      = bwd_state.transduce(reversed(char_embeddings))
         
-        hidden          = dy.concatenate([fwd_states[-1].output(),bwd_states[-1].output()])
+        hidden          = dy.concatenate([fwd_states[-1],bwd_states[-1]])
         return dy.rectify(self.O * hidden + self.b)
 
 
