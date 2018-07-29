@@ -72,7 +72,7 @@ class CharRNNBuilder:
              a dynet expression. The char embedding.
         """
         token = list(token)
-        char_embeddings = self.E[self.charset.index(c) for c in token if token in charset] #ignores unk chars
+        char_embeddings = [self.E[self.charset.index(c)] for c in token if token in charset] #ignores unk chars
 
         fwd_state       = self.fwd_rnn.initial_state()
         fwd_states      = fwd_state.transduce(char_embeddings)
