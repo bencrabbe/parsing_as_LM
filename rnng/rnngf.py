@@ -484,7 +484,8 @@ class RNNGparser:
         self.tree_W                   = self.model.add_parameters((self.stack_embedding_size,self.stack_hidden_size*2))
         self.tree_b                   = self.model.add_parameters((self.stack_embedding_size))
 
-        self.char_rnn                 = CharRNNBuilder(self.char_embedding_size,self.memory_size,self.charset,self.model)
+        self.char_rnn                 = CharRNNBuilder(self.char_embedding_size,self.char_memory_size,self.charset,self.model)
+
         
     def ifdropout(self,expression):
         """
