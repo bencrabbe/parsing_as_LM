@@ -1081,6 +1081,7 @@ class RNNGparser:
                            if evalb_mode:
                                r_tree.add_gold_tags(tags)
                            print(r_tree,file=ostream,flush=True)
+                    print('agg',flush=True)
                     nll,dataframe = self.aggregate_stats(derivation_set,tokens)
                     NLL += nll
                     N   += len(tokens)
