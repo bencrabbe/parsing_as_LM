@@ -5,17 +5,20 @@ import sys
 import dynet as dy
 import numpy as np
 import numpy.random as npr
+import pandas as pda
 import getopt
 import warnings
 import json
 
 from collections   import Counter
 from random        import shuffle
+from functools     import reduce
 from constree      import *
 from lexicons      import *
 from proc_monitors import *
 from rnng_params   import *
 from char_rnn      import *
+
 
 class StackSymbol:
     """
@@ -799,6 +802,71 @@ class RNNGparser:
         D.reverse()
         return D
 
+    @staticmethod
+    def deriv2stats(weighted_derivation):
+        """
+        Computes statistical indicators of interest from a derivation.
+        Args:
+           weighted_derivation (list): a list [ (Action,logprob)_0 ... (Action,logprob)_m ].
+        Returns:
+           A pandas DataFrame. Dataframe with word aligned stats collected on a single derivation.
+           The stats collected are such as number of OPEN CLOSE since last word, P(w_i| D, w_i<)... 
+        """
+        
+        header = ("nOPEN","nCLOSE","cond_logp","logp") #cond_logp = P(a | a<) ; logp = P(a_1,... a_K)
+
+        data         = []
+        nOp, nCl     = 0,0
+        prev_action  = None
+        prev_logprob = 0
+        
+        for action,logprob in weighted_derivation:
+            if prev_action == RNNGparser.SHIFT:
+                cond_prob = logprob-prev_logprob
+                datum     = (nOp,nCl,cond_logp,logprob)
+                data.append(datum)
+                nOp, nCl     = 0,0
+                prev_logprob = logprob
+            elif action == RNNGparser.OPEN:
+                nOp +=1
+            elif action == RNNGparser.CLOSE:
+                nCl +=1
+            prev_action = action
+            
+        return pda.DataFrame.from_records(data,columns=header)
+
+    def aggregate_stats(self,derivation_list,sentence):
+        """
+        Aggregates statistics from multiple derivations
+        Args:
+           derivation_list (list): a list of derivations
+           sentence        (list): a list o strings, the input tokens
+        Returns:
+           (NLL, pandas DataFrame). a couple with the Negative LoglikeLihood of the sentence and a Dataframe with word aligned stats aggregated over the list of derivations. 
+           The stats collected are such as avg number of OPEN CLOSE since last word, P(w_i| w_i<)...
+        """
+        deriv_frames = [RNNGparser.deriv2stats(f) for f in derivation_list]
+        N            = len(derivation_list)
+
+        agg_OP    = deriv_frames[0]["nOPEN"].values
+        agg_CL    = deriv_frames[0]["nCLOSE"].values
+        agg_Cond  = deriv_frames[0]["cond_logp"].values
+        logp      = deriv_frames[0]["logp"].values
+        entropy   = logp/np.log(2) * np.exp(logp)
+        
+        for df in deriv_frames[1:]:
+            agg_OP  += df["nOPEN"].values
+            agg_CL  += df["nCL"].values
+            agg_Cond = np.logaddexp(agg_Cond.values,df["cond_logp"].values)
+            entropy += df["logp"].values/np.log(2) * np.exp(df["logp"].values)
+        agg_OP   /= N
+        agg_CL   /= N
+        entropy   = -entropy 
+        surprisal = agg_Cond /np.log(2) #change from base e to base 2
+        unks      = np.array([not (token in self.lexicon) for token in sentence])
+        return pda.DataFrame({'mean_OPEN':agg_OP,'mean_CLOSE':agg_CL,'cond_logp':agg_Cond,'surprisal':surprisal,'entropy':entropy,'is_unk':unks})
+        
+            
     @staticmethod
     def deriv2tree(weighted_derivation):
         """
