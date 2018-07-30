@@ -814,7 +814,7 @@ class RNNGparser:
         """
         
         header = ("nOPEN","nCLOSE","logp") #logp = P(a_1,... a_K)
-
+        print(weighted_derivation)
         data         = []
         nOp, nCl     = 0,0
         prev_action  = None
