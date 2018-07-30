@@ -1082,12 +1082,12 @@ class RNNGparser:
                            if evalb_mode:
                                r_tree.add_gold_tags(tags)
                            print(r_tree,file=ostream,flush=True)
-                    nll,dataframe = self.aggregate_stats(derivation_set,tokens)
+                    nll,df = self.aggregate_stats(derivation_set,tokens)
                     NLL += nll
                     N   += len(tokens)
                     print('done')
                     if stats_stream:
-                        #print(dataframe,flush=True)
+                        print(df,flush=True)
                         #dataframe.to_csv(stats_stream,header=stats_header,mode='a')
                         stats_header = False
                 else:
