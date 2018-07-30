@@ -1085,10 +1085,8 @@ class RNNGparser:
                     NLL += nll
                     N   += len(tokens)
                     if stats_stream:
-                        print('w?')
-                        print(dataframe.to_csv(header=stats_header),file=stats_stream,flush=True)
+                        dataframe.to_csv(stats_stream,header=stats_header,mode='a'),flush=True)
                         stats_header = False
-                        print('w!')
                 else:
                     print('(())')
                 
