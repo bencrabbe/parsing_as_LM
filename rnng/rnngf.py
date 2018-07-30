@@ -1083,6 +1083,7 @@ class RNNGparser:
                            print(r_tree,file=ostream,flush=True)
                     print('agg',flush=True)
                     nll,dataframe = self.aggregate_stats(derivation_set,tokens)
+                    print('noagg',flush=True)
                     NLL += nll
                     N   += len(tokens)
                     if stats_stream:
