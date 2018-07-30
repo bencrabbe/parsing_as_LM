@@ -24,7 +24,7 @@ class CharRNNBuilder:
         self.allocate_structure()
 
     @staticmethod    
-    def load_charset(self,modelname):
+    def load_charset(modelname):
         """
         Loads a symbol lexicon from file
         Args:
