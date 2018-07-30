@@ -1085,7 +1085,6 @@ class RNNGparser:
                     nll,df = self.aggregate_stats(derivation_set,tokens)
                     NLL += nll
                     N   += len(tokens)
-                    print('done')
                     if stats_stream:
                         print(df,flush=True)
                         #dataframe.to_csv(stats_stream,header=stats_header,mode='a')
