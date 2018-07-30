@@ -1063,6 +1063,7 @@ class RNNGparser:
         self.dropout = 0.0
         NLL = 0
         N   = 0
+        stats_header = True 
         for line in istream:
                 tree               = ConsTree.read_tree(line)
                 wordsXtags         = tree.pos_tags()
@@ -1083,7 +1084,8 @@ class RNNGparser:
                     NLL += nll
                     N   += len(tokens)
                     if stats_stream:
-                        print(dataframe.to_csv(),file=stats_stream)
+                        print(dataframe.to_csv(header=stats_header),file=stats_stream)
+                        stats_header = False
                 else:
                     print('(())')
                 
