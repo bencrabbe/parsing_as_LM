@@ -1072,7 +1072,7 @@ class RNNGparser:
                 results            = self.predict_beam_generative(tokens,K)
                 if results:
                     derivation_set     = []
-                    for r in enumerate(results)[:kbest]:
+                    for r in results[:kbest]:
                         r_derivation  = RNNGparser.weighted_derivation(r)
                         r_tree        = RNNGparser.deriv2tree(r_derivation)
                         r_tree.expand_unaries()
@@ -1115,7 +1115,7 @@ if __name__ == '__main__':
     sstream  = open('ptb_stats.csv','w') 
     parser.parse_corpus(test_stream,sys.stdout,stats_stream=sstream,K=400,evalb_mode=True)
     test_stream.close()
-
+    sstream.close()
     
   # test_treebank = [ ]
   # test_stream   = open('ptb_test.mrg')
