@@ -823,7 +823,7 @@ class RNNGparser:
             if prev_action == RNNGparser.SHIFT:
                 datum     = (nOp,nCl,logprob)
                 data.append(datum)
-                nOp, nCl     = 0,0
+                nOp, nCl     = 0.0,0.0
             elif action == RNNGparser.OPEN:
                 nOp +=1
             elif action == RNNGparser.CLOSE:
