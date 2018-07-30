@@ -159,10 +159,10 @@ class RNNGparser:
         self.brown_file  = normalize_brown_file(self.brown_file,known_vocabulary,self.brown_file+'.unk',UNK_SYMBOL=RNNGparser.UNKNOWN_TOKEN)
         self.lexicon     = SymbolLexicon( list(known_vocabulary),unk_word=RNNGparser.UNKNOWN_TOKEN)
 
-        self.charset = set([])
+        charset = set([])
         for word in known_vocabulary:
-            self.charset.update(list(word))
-        self.charset = list(self.charset)
+            charset.update(list(word))
+        self.charset =  SymbolLexicon(list(charset))
         
         return self.lexicon
 
@@ -231,7 +231,7 @@ class RNNGparser:
 
         parser.lexicon      = SymbolLexicon.load(model_name+'.lex')
         parser.nonterminals = SymbolLexicon.load(model_name+'.nt')
-        parser.charset = CharRNNBuilder.load_charset(model_name).i2words 
+        parser.charset      = SymbolLexicon.load(model_name+'.char')
         parser.code_struct_actions()
         parser.allocate_structure()
         parser.model.populate(model_name+".weights")
@@ -256,7 +256,7 @@ class RNNGparser:
         jfile.write(json.dumps(hyperparams))
         jfile.close()
 
-        self.char_rnn.save_charset(model_name)
+        self.charset.save(model_name+'.char')
         self.model.save(model_name+'.weights')
         self.lexicon.save(model_name+'.lex')
         self.nonterminals.save(model_name+'.nt')
@@ -985,7 +985,6 @@ class RNNGparser:
             successes = successes[:K]
         return successes
 
-    
     def parse_corpus(self,istream,ostream,K=10,sample_search=True,kbest=1,evalb_mode=False):
         """
         Parses a corpus and prints out the trees in a file.
@@ -998,37 +997,24 @@ class RNNGparser:
            sample_search (bool): uses sampling based search (or K-argmax beam pruning if false)
            evalb_mode    (bool): take an ptb bracketed .mrg file as input and reinserts the pos tags as a post processing step. evalb requires pos tags
         """
+        
         self.dropout = 0.0
         for line in istream:
-            
-            if evalb_mode:
                 tree               = ConsTree.read_tree(line)
                 wordsXtags         = tree.pos_tags()
                 tokens             = [tagnode.get_child().label for tagnode in wordsXtags]
                 tags               = [tagnode.label for tagnode in wordsXtags]
-                #r            = self.predict_greedy(tokens)
-                #r_derivation  = RNNGparser.weighted_derivation(r)
-                #r_tree        = RNNGparser.deriv2tree(r_derivation)
-                #r_tree.expand_unaries()
-                #r_tree.add_gold_tags(tags)
-                #print(r_tree,r.prefix_gprob,file=ostream,flush=True)
-                #results            = self.predict_beam(tokens,K,sample_search)
                 results            = self.predict_beam_generative(tokens,K)
-                for r in results:
-                    r_derivation  = RNNGparser.weighted_derivation(r)
-                    r_tree        = RNNGparser.deriv2tree(r_derivation)
-                    r_tree.expand_unaries()
-                    r_tree.add_gold_tags(tags)
-                    print(r_tree,file=ostream,flush=True)
-                    break
-                
-            else: #normal case
-                tokens             = line.split()
-                results            = self.predict_beam(tokens,K,sample_search)
-                argmax_derivation  = RNNGparser.weighted_derivation(results[0])
-                argmax_tree        = RNNGparser.deriv2tree(argmax_derivation)
-                argmax_tree.expand_unaries() 
-                print(argmax_tree,file=ostream,flush=True)
+                if results:
+                    for r in enumerate(results)[:kbest]:
+                        r_derivation  = RNNGparser.weighted_derivation(r)
+                        r_tree        = RNNGparser.deriv2tree(r_derivation)
+                        r_tree.expand_unaries()
+                        if evalb_mode:
+                            r_tree.add_gold_tags(tags)
+                        print(r_tree,file=ostream,flush=True)
+                else:
+                    print('(())')
                 
 if __name__ == '__main__':
 

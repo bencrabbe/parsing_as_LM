@@ -14,33 +14,15 @@ class CharRNNBuilder:
         Args:
             char_embedding_size          (int): size of char embeddings
             memory_size                  (int): size of RNN memory
-            charset                      (str): a list of chars understood to be the charset of this model
+            charset            (SymbolLexicon): a char indexing object
             model  (dynet.ParameterCollection): parameters from the caller model
         """
         self.char_embedding_size = char_embedding_size
         self.memory_size         = memory_size
         self.model               = model
-        self.charset             = SymbolLexicon(list(charset))
+        self.charset             = charset
         self.allocate_structure()
 
-    @staticmethod    
-    def load_charset(modelname):
-        """
-        Loads a symbol lexicon from file
-        Args:
-            modelname (string):
-        Returns:
-            SymbolLexicon
-        """
-        return SymbolLexicon.load(modelname+'.char.codes')
-
-    def save_charset(self,modelname):
-        """
-        Saves a symbol lexicon to file
-        Args:
-            modelname (string):
-        """
-        self.charset.save(modelname+'.char.codes')
         
     def allocate_structure(self):
         """
