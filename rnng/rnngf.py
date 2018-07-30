@@ -810,23 +810,19 @@ class RNNGparser:
            weighted_derivation (list): a list [ (Action,logprob)_0 ... (Action,logprob)_m ].
         Returns:
            A pandas DataFrame. Dataframe with word aligned stats collected on a single derivation.
-           The stats collected are such as number of OPEN CLOSE since last word, P(w_i| D, w_i<)... 
+           The stats collected are the number of OPEN CLOSE since last word and log P(a_1...a_K) 
         """
         
-        header = ("nOPEN","nCLOSE","cond_logp","logp") #cond_logp = P(a | a<) ; logp = P(a_1,... a_K)
+        header = ("nOPEN","nCLOSE","logp") #logp = P(a_1,... a_K)
 
         data         = []
         nOp, nCl     = 0,0
         prev_action  = None
-        prev_logprob = 0
-        
         for action,logprob in weighted_derivation:
             if prev_action == RNNGparser.SHIFT:
-                cond_prob = logprob-prev_logprob
-                datum     = (nOp,nCl,cond_logp,logprob)
+                datum     = (nOp,nCl,logprob)
                 data.append(datum)
                 nOp, nCl     = 0,0
-                prev_logprob = logprob
             elif action == RNNGparser.OPEN:
                 nOp +=1
             elif action == RNNGparser.CLOSE:
@@ -848,23 +844,26 @@ class RNNGparser:
         deriv_frames = [RNNGparser.deriv2stats(f) for f in derivation_list]
         N            = len(derivation_list)
 
-        agg_OP    = deriv_frames[0]["nOPEN"].values
-        agg_CL    = deriv_frames[0]["nCLOSE"].values
-        agg_Cond  = deriv_frames[0]["cond_logp"].values
-        logp      = deriv_frames[0]["logp"].values
-        entropy   = logp/np.log(2) * np.exp(logp)
+        agg_OP     = deriv_frames[0]["nOPEN"].values
+        agg_CL     = deriv_frames[0]["nCLOSE"].values
+        logpX      = deriv_frames[0]["logp"].values
+        entropy    = logpX/np.log(2) * np.exp(logpX)
         
         for df in deriv_frames[1:]:
-            agg_OP  += df["nOPEN"].values
-            agg_CL  += df["nCL"].values
-            agg_Cond = np.logaddexp(agg_Cond.values,df["cond_logp"].values)
-            entropy += df["logp"].values/np.log(2) * np.exp(df["logp"].values)
-        agg_OP   /= N
-        agg_CL   /= N
-        entropy   = -entropy 
-        surprisal = agg_Cond /np.log(2) #change from base e to base 2
-        unks      = np.array([not (token in self.lexicon) for token in sentence])
-        return pda.DataFrame({'mean_OPEN':agg_OP,'mean_CLOSE':agg_CL,'cond_logp':agg_Cond,'surprisal':surprisal,'entropy':entropy,'is_unk':unks})
+            agg_OP    += df["nOPEN"].values
+            agg_CL    += df["nCL"].values
+            logp       = df["logp"].values
+            logpX      = np.logaddexp(logpX,logp)
+            entropy   += logp/np.log(2) * np.exp(logp)
+            
+        agg_OP        /= N #unweighted mean
+        agg_CL        /= N #unweighted mean
+        entropy        = -entropy
+        prev_logpX     = [0] + logpX[:-1]
+        neg_cond_probs = [-(logp-prev_logp) for logp,prev_logp in zip(logpX,prev_logpX)]
+        surprisals     = neg_cond_probs / np.log(2) #change from base e to base 2
+        unks           = np.array([not (token in self.lexicon) for token in sentence])
+        return (neg_cond_probs.sum(),pda.DataFrame({'mean_OPEN':agg_OP,'mean_CLOSE':agg_CL,'cond_prob':np.exp(-neg_cond_probs)),'surprisal':surprisals,'entropy':entropy,'is_unk':unks}))
         
             
     @staticmethod
@@ -898,7 +897,6 @@ class RNNGparser:
                         break
             prev_action = action
 
-        
         root,flag = stack.pop()
         assert(not stack and flag)
         return root
@@ -1004,8 +1002,7 @@ class RNNGparser:
                     self.exec_beam_action(next_elt,sentence)
             current = next_elt
         return None
-        
-    
+            
     def predict_beam(self,sentence,K,sample_search=True):
         """
         Performs generative parsing and returns an ordered list of successful beam elements.
@@ -1013,7 +1010,7 @@ class RNNGparser:
         The alternative search strategy amounts to explore the search space with a conventional K-argmax pruning method (on disc probs) and to rank the results with generative probs.
         Args: 
               sentence      (list): list of strings (tokens)
-              K              (int): beam width  
+              K              (int): beam width
         Kwargs:
               sample_search (bool): if true samples the search space for pruning, else uses a conventional K-argmax
         Returns:
@@ -1021,7 +1018,7 @@ class RNNGparser:
         """
         dy.renew_cg()
         init = BeamElement.init_element(self.init_configuration(len(sentence)))
-        beam,successes  = [[init]],[]
+        beam,successes  = [[init]],[ ]
 
         while beam[-1]:
             beam = RNNGparser.sample_dprob(beam,K) if sample_search else RNNGparser.prune_dprob(beam,K) #pruning
@@ -1061,8 +1058,7 @@ class RNNGparser:
            kbest          (int): the number of parses outputted per sentence (<= K)
            sample_search (bool): uses sampling based search (or K-argmax beam pruning if false)
            evalb_mode    (bool): take an ptb bracketed .mrg file as input and reinserts the pos tags as a post processing step. evalb requires pos tags
-        """
-        
+        """        
         self.dropout = 0.0
         for line in istream:
                 tree               = ConsTree.read_tree(line)
