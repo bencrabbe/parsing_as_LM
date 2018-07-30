@@ -812,7 +812,8 @@ class RNNGparser:
            A pandas DataFrame. Dataframe with word aligned stats collected on a single derivation.
            The stats collected are the number of OPEN CLOSE since last word and log P(a_1...a_K) 
         """
-        
+
+        print('d2stats')
         header = ("nOPEN","nCLOSE","logp") #logp = P(a_1,... a_K)
         print(weighted_derivation)
         data         = []
