@@ -1087,7 +1087,7 @@ class RNNGparser:
                     N   += len(tokens)
                     print('done')
                     if stats_stream:
-                        print(dataframe,flush=True)
+                        #print(dataframe,flush=True)
                         #dataframe.to_csv(stats_stream,header=stats_header,mode='a')
                         stats_header = False
                 else:
