@@ -1075,7 +1075,7 @@ class RNNGparser:
                     derivation_set     = []
                     for idx,r in enumerate(results):
                         r_derivation  = RNNGparser.weighted_derivation(r)
-                        derivation_set.append(RNNGparser.deriv2stats(r_derivation))
+                        derivation_set.append(r_derivation)
                         if idx < kbest:
                            r_tree        = RNNGparser.deriv2tree(r_derivation)
                            r_tree.expand_unaries()
