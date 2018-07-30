@@ -841,31 +841,31 @@ class RNNGparser:
            (NLL, pandas DataFrame). a couple with the Negative LoglikeLihood of the sentence and a Dataframe with word aligned stats aggregated over the list of derivations. 
            The stats collected are such as avg number of OPEN CLOSE since last word, P(w_i| w_i<)...
         """
-        deriv_frames = [RNNGparser.deriv2stats(f) for f in derivation_list]
         N            = len(derivation_list)
 
-        agg_OP     = deriv_frames[0]["nOPEN"].values
-        agg_CL     = deriv_frames[0]["nCLOSE"].values
-        logpX      = deriv_frames[0]["logp"].values
+        df = RNNGparser.deriv2stats(derivation_list[0])
+        agg_OP     = df["nOPEN"].values
+        agg_CL     = df["nCLOSE"].values
+        logpX      = df["logp"].values
         entropy    = logpX/np.log(2) * np.exp(logpX)
-        
-        for df in deriv_frames[1:]:
+
+        for deriv in derivation_list[1:]:
+            df         = RNNGparser.deriv2stats(deriv)
             agg_OP    += df["nOPEN"].values
-            agg_CL    += df["nCL"].values
+            agg_CL    += df["nCLOSE"].values
             logp       = df["logp"].values
             logpX      = np.logaddexp(logpX,logp)
             entropy   += logp/np.log(2) * np.exp(logp)
             
-        agg_OP        /= N #unweighted mean
-        agg_CL        /= N #unweighted mean
+        agg_OP        /= N            #unweighted mean
+        agg_CL        /= N            #unweighted mean
         entropy        = -entropy
         prev_logpX     = [0] + logpX[:-1]
-        neg_cond_probs = [-(logp-prev_logp) for logp,prev_logp in zip(logpX,prev_logpX)]
+        neg_cond_probs = [prev_logp-logp for logp,prev_logp in zip(logpX,prev_logpX)]
         surprisals     = neg_cond_probs / np.log(2) #change from base e to base 2
         unks           = np.array([not (token in self.lexicon) for token in sentence])
-        return (neg_cond_probs.sum(),pda.DataFrame({'mean_OPEN':agg_OP,'mean_CLOSE':agg_CL,'cond_prob':np.exp(-neg_cond_probs),'surprisal':surprisals,'entropy':entropy,'is_unk':unks}))
-        
-            
+        return (neg_cond_probs.sum(),pda.DataFrame({'mean_OPEN':agg_OP,'mean_CLOSE':agg_CL,'cond_logprob':-neg_cond_probs,'surprisal':surprisals,'entropy':entropy,'is_unk':unks}))
+
     @staticmethod
     def deriv2tree(weighted_derivation):
         """
@@ -1047,19 +1047,22 @@ class RNNGparser:
             successes = successes[:K]
         return successes
 
-    def parse_corpus(self,istream,ostream,K=10,sample_search=True,kbest=1,evalb_mode=False):
+    def parse_corpus(self,istream,ostream,stats_stream=None,K=10,sample_search=True,kbest=1,evalb_mode=False):
         """
         Parses a corpus and prints out the trees in a file.
         Args:
            istream  (stream): the stream where to read the data from
            ostream  (stream): the stream where to write the data to
         Kwargs:
-           K              (int): the size of the beam
-           kbest          (int): the number of parses outputted per sentence (<= K)
-           sample_search (bool): uses sampling based search (or K-argmax beam pruning if false)
-           evalb_mode    (bool): take an ptb bracketed .mrg file as input and reinserts the pos tags as a post processing step. evalb requires pos tags
+           stats_stream (string): the stream where to dump stats
+           K               (int): the size of the beam
+           kbest           (int): the number of parses outputted per sentence (<= K)
+           sample_search  (bool): uses sampling based search (or K-argmax beam pruning if false)
+           evalb_mode     (bool): take an ptb bracketed .mrg file as input and reinserts the pos tags as a post processing step. evalb requires pos tags
         """        
         self.dropout = 0.0
+        NLL = 0
+        N   = 0
         for line in istream:
                 tree               = ConsTree.read_tree(line)
                 wordsXtags         = tree.pos_tags()
@@ -1067,6 +1070,7 @@ class RNNGparser:
                 tags               = [tagnode.label for tagnode in wordsXtags]
                 results            = self.predict_beam_generative(tokens,K)
                 if results:
+                    derivation_set     = []
                     for r in enumerate(results)[:kbest]:
                         r_derivation  = RNNGparser.weighted_derivation(r)
                         r_tree        = RNNGparser.deriv2tree(r_derivation)
@@ -1074,9 +1078,17 @@ class RNNGparser:
                         if evalb_mode:
                             r_tree.add_gold_tags(tags)
                         print(r_tree,file=ostream,flush=True)
+                        derivation_set.append(RNNGparser.deriv2stats(r_derivation))
+                    nll,dataframe = self.aggregate_stats(derivation_set,tokens)
+                    NLL += nll
+                    N   += len(tokens)
+                    if stats_stream:
+                        print(dataframe.to_csv(),file=stats_stream)
                 else:
                     print('(())')
                 
+        print("NLL = %d, PPL = %f"%(NLL,np.exp(NLL/N)),file=sys.stderr)
+                    
 if __name__ == '__main__':
 
     # train_treebank = [ ]
@@ -1098,7 +1110,8 @@ if __name__ == '__main__':
 
     parser = RNNGparser.load_model('test_rnngf/test_rnngf_gpu')
     test_stream   = open('ptb_test.mrg')
-    parser.parse_corpus(test_stream,sys.stdout,K=400,evalb_mode=True)
+    sstream  = open('ptb_stats.csv','w') 
+    parser.parse_corpus(test_stream,sys.stdout,stats_stream=sstream,K=400,evalb_mode=True)
     test_stream.close()
 
     
