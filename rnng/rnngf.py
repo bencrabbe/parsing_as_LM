@@ -759,7 +759,7 @@ class RNNGparser:
         Inplace destructive operation on the beam.
         Args:
              beam  (list) : a beam data structure
-             K       (int): the number of elts to keep in the Beam
+             K      (int) : the number of elts to keep in the Beam
         Returns:
              The beam object
         """
@@ -815,7 +815,7 @@ class RNNGparser:
 
         header = ("nOPEN","nCLOSE","logp") #logp = P(a_1,... a_K)
         data         = []
-        nOp, nCl     = 0,0
+        nOp, nCl     = 0.0,0.0
         prev_action  = None
         for action,logprob in weighted_derivation:
             if prev_action == RNNGparser.SHIFT:
@@ -855,7 +855,7 @@ class RNNGparser:
             logp       = df["logp"].values
             logpX      = np.logaddexp(logpX,logp)
             entropy   += logp/np.log(2) * np.exp(logp)
-
+        
         agg_OP        /= N            #unweighted mean
         agg_CL        /= N            #unweighted mean
         entropy        = -entropy
@@ -870,7 +870,7 @@ class RNNGparser:
                             'cond_logprob':-neg_cond_probs,\
                             'surprisal':surprisals,\
                             'entropy':entropy,\
-                            'is_unk':unks},columns=['tokens','mean_OPEN','mean_CLOSE','cond_logprob','surprisal','entropy','is_unk'])
+                            'is_unk':unks},columns=['tokens','mean_OPEN','mean_CLOSE','cond_log_prob','surprisal','entropy','is_unk'])
         return (neg_cond_probs.sum(),df)
     
         
