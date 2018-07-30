@@ -856,12 +856,16 @@ class RNNGparser:
             logpX      = np.logaddexp(logpX,logp)
             entropy   += logp/np.log(2) * np.exp(logp)
 
-        print(logpX)
         agg_OP        /= N            #unweighted mean
         agg_CL        /= N            #unweighted mean
         entropy        = -entropy
         prev_logpX     = [0.0] + list(logpX)[:-1]
-        
+
+        print(logpX)
+        print(prev_logpX)
+        print(neg_cond_probs)
+
+
         neg_cond_probs = np.array([prev_logp-logp for logp,prev_logp in zip(logpX,prev_logpX)])
         surprisals     = neg_cond_probs / np.log(2) #change from base e to base 2
         unks           = np.array([not (token in self.lexicon) for token in sentence])
