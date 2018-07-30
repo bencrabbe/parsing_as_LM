@@ -1,6 +1,8 @@
 #! /usr/bin/env python
+
 from collections import Counter
 import json
+import sys
 import numpy as np
 
 """
@@ -118,10 +120,6 @@ class SymbolLexicon:
         lex.i2words  = lexlist
         lex.unk_word = UNK
         return lex
-
-
-
-
     
 def normalize_brown_file(brown_filename,lexical_set,out_filename,UNK_SYMBOL='<UNK>'):
     """
@@ -147,13 +145,38 @@ def normalize_brown_file(brown_filename,lexical_set,out_filename,UNK_SYMBOL='<UN
     istream.close()
     ostream.close()
     return out_filename
-        
 
+
+def get_known_vocabulary(text,vocab_treshold=1):
+    """
+    This is a method common to all models in the package for acquiring the known lexicon.
+    Args:
+          text            (list): a list of strings (lines of the text) or an open input stream 
+          vocab_treshold   (int): words with counts > threshold are known to the vocab, otherwise unknown
+    Returns:
+          A set of string. The vocabulary 
+    """
+    lexicon = Counter()
+    for line in text:
+        lexicon.update(line.split())
+    return set([word for word, counts in lexicon.items() if counts > self.vocab_threshold])
+        
  
 
 if __name__ == '__main__':
-    symlex = SymbolLexicon(["A"]*3+['B']*4+['C'],count_threshold=1)
-    print(symlex)
-    print(symlex.index('A'),symlex.index('B'),symlex.index('C'),symlex.index('D'))
-    print(symlex.wordform(0),symlex.wordform(1),symlex.wordform(2))
-    print(blex)
+    #Simulates the lookup procedure for all models in the package and prints back the result.
+    #first arg = text where to acquire the vocab, following args = texts where to perform the simulation 
+
+    istream = open(sys.argv[1])
+    V = get_known_vocabulary(istream)
+    istream.close()
+    Lex = SymbolLexicon(list(V),unk_word='<UNKNOWN>')
+
+    for text in sys.argv[2:]:
+        istream = open(text)
+        for line in istream:
+           print(' '.join([Lex.normal_wordform(token) for token in line.split()]))
+        istream.close()
+    
+
+    
