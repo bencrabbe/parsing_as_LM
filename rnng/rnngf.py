@@ -863,7 +863,7 @@ class RNNGparser:
         neg_cond_probs = [-(logp-prev_logp) for logp,prev_logp in zip(logpX,prev_logpX)]
         surprisals     = neg_cond_probs / np.log(2) #change from base e to base 2
         unks           = np.array([not (token in self.lexicon) for token in sentence])
-        return (neg_cond_probs.sum(),pda.DataFrame({'mean_OPEN':agg_OP,'mean_CLOSE':agg_CL,'cond_prob':np.exp(-neg_cond_probs)),'surprisal':surprisals,'entropy':entropy,'is_unk':unks}))
+        return (neg_cond_probs.sum(),pda.DataFrame({'mean_OPEN':agg_OP,'mean_CLOSE':agg_CL,'cond_prob':np.exp(-neg_cond_probs),'surprisal':surprisals,'entropy':entropy,'is_unk':unks}))
         
             
     @staticmethod
