@@ -813,9 +813,7 @@ class RNNGparser:
            The stats collected are the number of OPEN CLOSE since last word and log P(a_1...a_K) 
         """
 
-        print('d2stats')
         header = ("nOPEN","nCLOSE","logp") #logp = P(a_1,... a_K)
-        print(weighted_derivation,flush=True)
         data         = []
         nOp, nCl     = 0,0
         prev_action  = None
@@ -863,7 +861,7 @@ class RNNGparser:
         agg_CL        /= N            #unweighted mean
         entropy        = -entropy
         prev_logpX     = [0] + logpX[:-1]
-        neg_cond_probs = [prev_logp-logp for logp,prev_logp in zip(logpX,prev_logpX)]
+        neg_cond_probs = np.array([prev_logp-logp for logp,prev_logp in zip(logpX,prev_logpX)])
         surprisals     = neg_cond_probs / np.log(2) #change from base e to base 2
         unks           = np.array([not (token in self.lexicon) for token in sentence])
         return (neg_cond_probs.sum(),pda.DataFrame({'mean_OPEN':agg_OP,'mean_CLOSE':agg_CL,'cond_logprob':-neg_cond_probs,'surprisal':surprisals,'entropy':entropy,'is_unk':unks}))
