@@ -855,7 +855,8 @@ class RNNGparser:
             logp       = df["logp"].values
             logpX      = np.logaddexp(logpX,logp)
             entropy   += logp/np.log(2) * np.exp(logp)
-        
+
+        print(logpX)
         agg_OP        /= N            #unweighted mean
         agg_CL        /= N            #unweighted mean
         entropy        = -entropy
