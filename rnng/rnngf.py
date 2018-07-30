@@ -860,20 +860,10 @@ class RNNGparser:
         agg_CL        /= N            #unweighted mean
         entropy        = -entropy
         prev_logpX     = [0.0] + list(logpX)[:-1]
-        print('logpX',logpX)
-        print('prev_logpX',prev_logpX)
         
         neg_cond_probs = np.array([prev_logp-logp for logp,prev_logp in zip(logpX,prev_logpX)])
         surprisals     = neg_cond_probs / np.log(2) #change from base e to base 2
         unks           = np.array([not (token in self.lexicon) for token in sentence])
-
-        print(agg_OP)
-        print(agg_CL)
-        print(entropy)
-        print(neg_cond_probs)
-        print(surprisals)
-        print(unks)
-        print(sentence)
         return (neg_cond_probs.sum(),pda.DataFrame({'tokens':sentence,'mean_OPEN':agg_OP,'mean_CLOSE':agg_CL,'cond_logprob':-neg_cond_probs,'surprisal':surprisals,'entropy':entropy,'is_unk':unks}))
 
     @staticmethod
@@ -1091,14 +1081,14 @@ class RNNGparser:
                            if evalb_mode:
                                r_tree.add_gold_tags(tags)
                            print(r_tree,file=ostream,flush=True)
-                    print('agg',flush=True)
                     nll,dataframe = self.aggregate_stats(derivation_set,tokens)
-                    print('noagg',flush=True)
                     NLL += nll
                     N   += len(tokens)
                     if stats_stream:
+                        print('w?')
                         print(dataframe.to_csv(header=stats_header),file=stats_stream,flush=True)
                         stats_header = False
+                        print('w!')
                 else:
                     print('(())')
                 
