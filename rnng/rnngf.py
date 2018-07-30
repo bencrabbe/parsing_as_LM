@@ -231,7 +231,7 @@ class RNNGparser:
 
         parser.lexicon      = SymbolLexicon.load(model_name+'.lex')
         parser.nonterminals = SymbolLexicon.load(model_name+'.nt')
-        self.charset = CharRNNBuilder.load_charset(model_name).i2words 
+        parser.charset = CharRNNBuilder.load_charset(model_name).i2words 
         parser.code_struct_actions()
         parser.allocate_structure()
         parser.model.populate(model_name+".weights")
