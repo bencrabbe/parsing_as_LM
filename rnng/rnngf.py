@@ -815,7 +815,7 @@ class RNNGparser:
 
         print('d2stats')
         header = ("nOPEN","nCLOSE","logp") #logp = P(a_1,... a_K)
-        print(weighted_derivation)
+        print(weighted_derivation,flush=True)
         data         = []
         nOp, nCl     = 0,0
         prev_action  = None
