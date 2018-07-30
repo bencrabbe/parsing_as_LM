@@ -859,8 +859,8 @@ class RNNGparser:
             entropy   += logp/np.log(2) * np.exp(logp)
 
         print(agg_OP)
-        agg_OP        /= float(N)            #unweighted mean
-        agg_CL        /= float(N)            #unweighted mean
+        agg_OP        /= N            #unweighted mean
+        agg_CL        /= N            #unweighted mean
         entropy        = -entropy
         prev_logpX     = [0] + logpX[:-1]
         neg_cond_probs = [prev_logp-logp for logp,prev_logp in zip(logpX,prev_logpX)]
