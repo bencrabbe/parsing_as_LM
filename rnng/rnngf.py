@@ -859,7 +859,7 @@ class RNNGparser:
         agg_OP        /= N            #unweighted mean
         agg_CL        /= N            #unweighted mean
         entropy        = -entropy
-        prev_logpX     = [0.0] + logpX[:-1]
+        prev_logpX     = [0.0] + list(logpX)[:-1]
         print('logpX',logpX)
         print('prev_logpX',prev_logpX)
         
