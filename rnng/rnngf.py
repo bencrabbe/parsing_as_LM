@@ -1100,7 +1100,6 @@ class RNNGparser:
                         if stats_header:
                             print('\t'.join(header),file=stats_stream)
                         for row in df.values:
-                            print(row)
                             print('\t'.join([str(v) for v in row]),file=stats_stream,flush=True)
                         stats_header = False
                 else:
