@@ -151,10 +151,7 @@ class RNNGparser:
         Returns:
              SymbolLexicon. The bijective encoding
         """
-        lexicon = Counter()
-        for tree in treebank:
-            lexicon.update(tree.tokens())
-        known_vocabulary = set([word for word, counts in lexicon.items() if counts > self.vocab_thresh])
+        known_vocabulary = get_known_vocabulary([tree.tokens() for tree in treebank],vocab_treshold=1)
         known_vocabulary.add(RNNGparser.START_TOKEN)
         self.brown_file  = normalize_brown_file(self.brown_file,known_vocabulary,self.brown_file+'.unk',UNK_SYMBOL=RNNGparser.UNKNOWN_TOKEN)
         self.lexicon     = SymbolLexicon( list(known_vocabulary),unk_word=RNNGparser.UNKNOWN_TOKEN)

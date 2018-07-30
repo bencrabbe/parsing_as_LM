@@ -151,14 +151,18 @@ def get_known_vocabulary(text,vocab_treshold=1):
     """
     This is a method common to all models in the package for acquiring the known lexicon.
     Args:
-          text            (list): a list of strings (lines of the text) or an open input stream 
+          text            (list): a list of strings (lines of the text or lists of tokens) or an open input stream 
           vocab_treshold   (int): words with counts > threshold are known to the vocab, otherwise unknown
     Returns:
           A set of string. The vocabulary 
     """
     lexicon = Counter()
     for line in text:
-        lexicon.update(line.split())
+        if type(line) == str:
+            lexicon.update(line.split())
+        else:
+            lexicon.update(line)
+            
     return set([word for word, counts in lexicon.items() if counts > self.vocab_threshold])
         
  
@@ -170,7 +174,7 @@ if __name__ == '__main__':
     istream = open(sys.argv[1])
     V = get_known_vocabulary(istream)
     istream.close()
-    Lex = SymbolLexicon(list(V),unk_word='<UNKNOWN>')
+    Lex = SymbolLexicon(list(V),unk_word='<UNK>')
 
     for text in sys.argv[2:]:
         istream = open(text)
