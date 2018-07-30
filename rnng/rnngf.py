@@ -865,7 +865,7 @@ class RNNGparser:
         surprisals     = neg_cond_probs / np.log(2) #change from base e to base 2
         unks           = np.array([not (token in self.lexicon) for token in sentence])
         cond_probs     = -neg_cond_probs
-        p
+        
         df = pda.DataFrame({'tokens':sentence,\
                             'mean_OPEN':agg_OP,\
                             'mean_CLOSE':agg_CL,\
