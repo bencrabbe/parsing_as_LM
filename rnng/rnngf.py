@@ -1072,19 +1072,20 @@ class RNNGparser:
                 results            = self.predict_beam_generative(tokens,K)
                 if results:
                     derivation_set     = []
-                    for r in results[:kbest]:
+                    for idx,r in enumerate(results):
                         r_derivation  = RNNGparser.weighted_derivation(r)
-                        r_tree        = RNNGparser.deriv2tree(r_derivation)
-                        r_tree.expand_unaries()
-                        if evalb_mode:
-                            r_tree.add_gold_tags(tags)
-                        print(r_tree,file=ostream,flush=True)
                         derivation_set.append(RNNGparser.deriv2stats(r_derivation))
+                        if idx < kbest:
+                           r_tree        = RNNGparser.deriv2tree(r_derivation)
+                           r_tree.expand_unaries()
+                           if evalb_mode:
+                               r_tree.add_gold_tags(tags)
+                           print(r_tree,file=ostream,flush=True)
                     nll,dataframe = self.aggregate_stats(derivation_set,tokens)
                     NLL += nll
                     N   += len(tokens)
                     if stats_stream:
-                        print(dataframe.to_csv(header=stats_header),file=stats_stream)
+                        print(dataframe.to_csv(header=stats_header),file=stats_stream,flush=True)
                         stats_header = False
                 else:
                     print('(())')
