@@ -1085,6 +1085,7 @@ class RNNGparser:
                     NLL += nll
                     N   += len(tokens)
                     if stats_stream:
+                        print(dataframe)
                         dataframe.to_csv(stats_stream,header=stats_header,mode='a')
                         stats_header = False
                 else:
