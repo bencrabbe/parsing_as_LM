@@ -163,7 +163,7 @@ def get_known_vocabulary(text,vocab_treshold=1):
         else:
             lexicon.update(line)
             
-    return set([word for word, counts in lexicon.items() if counts > self.vocab_threshold])
+    return set([word for word, counts in lexicon.items() if counts > vocab_threshold])
         
  
 
