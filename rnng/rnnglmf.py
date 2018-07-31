@@ -169,8 +169,7 @@ class RNNGlm:
                 toklist = [] 
                 for sent in test_sentences[bbegin:bend]:
                     toklist.extend(sent)
-                batch_stats  =
-                '\n'.join(["%s\t%f\t%f\t%s"%(word,-neglogprob.value(),neglogprob.value()/np.log(2),not word in self.lexicon) for word,neglogprob in zip(toklist,outputs)])
+                batch_stats  = '\n'.join(["%s\t%f\t%f\t%s"%(word,-neglogprob.value(),neglogprob.value()/np.log(2),not word in self.lexicon) for word,neglogprob in zip(toklist,outputs)])
                 print(batch_stats,file=stats_file)
                 stats_header = False
                 
