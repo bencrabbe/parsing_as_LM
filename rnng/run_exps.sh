@@ -16,7 +16,6 @@ make_config(){
 
     echo >> $CNAME
     echo "[learning]"                  >> $CNAME
-    echo "lex_max_size  = 10000"       >> $CNAME
     echo "num_epochs    = $NUM_EPOCHS" >> $CNAME
     echo "batch_size    = 32"          >> $CNAME
     echo "learning_rate = 0.5"         >> $CNAME
