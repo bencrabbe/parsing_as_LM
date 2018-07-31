@@ -268,7 +268,7 @@ if __name__ == '__main__':
         elif opt in ['-c','--config']:
             config_file = arg
         elif opt in ['-s','--stats']:
-            stats_file = arg
+            stats   = True
         else:
             print('unknown option %s, ignored'%(arg))
             
