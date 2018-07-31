@@ -215,9 +215,12 @@ class RNNGlm:
         jfile.write(json.dumps({'vocab_thresh'    :self.vocab_thresh,\
                                 'embedding_size':self.embedding_size,\
                                 'brown_file':self.brown_file,\
+                                'char_embedding_size':self.char_embedding_size,\
+                                'char_memory_size':self.char_memory_size,\
                                 'hidden_size':self.hidden_size}))
         self.model.save(model_name+'.prm')
         self.lexicon.save(model_name+'.lex')
+        self.charset.save(model_name+'.char')
 
     @staticmethod
     def load_model(model_name):
@@ -225,8 +228,14 @@ class RNNGlm:
         Loads the whole shebang and returns an LM.
         """
         struct     = json.loads(open(model_name+'.json').read())
-        lm         = RNNGlm(struct['brown_file'],vocab_thresh=struct['vocab_thresh'],embedding_size=struct['embedding_size'],memory_size=struct['hidden_size'])
+        lm         = RNNGlm(struct['brown_file'],\
+                            vocab_thresh=struct['vocab_thresh'],\
+                            embedding_size=struct['embedding_size'],\
+                            memory_size=struct['hidden_size'],\
+                            char_memory_size=struct['char_memory_size'],\
+                            char_embedding_size=struct['char_embedding_size'])
         lm.lexicon = SymbolLexicon.load(model_name+'.lex')
+        lm.charset = SymbolLexicon.load(model_name+'.char')
         lm.make_structure()
         lm.model.populate(model_name+".prm")
         return lm
