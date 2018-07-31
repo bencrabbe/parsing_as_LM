@@ -243,9 +243,10 @@ if __name__ == '__main__':
     brown_file  = ''
     model_name  = ''
     config_file = ''
+    stats_file  = None 
     
     try:
-        opts, args = getopt.getopt(sys.argv[1:],"ht:d:p:m:b:c:")
+        opts, args = getopt.getopt(sys.argv[1:],"ht:d:p:m:b:c:s:")
     except getopt.GetoptError:
         print('Ooops, wrong command line arguments')
         print('for training...')
@@ -267,6 +268,8 @@ if __name__ == '__main__':
             brown_file = arg
         elif opt in ['-c','--config']:
             config_file = arg
+        elif opt in ['-s','--stats']:
+            stats_file = arg
         else:
             print('unknown option %s, ignored'%(arg))
             
@@ -299,5 +302,5 @@ if __name__ == '__main__':
         test_treebank = [line.split() for line in istream]
         istream.close()
         
-        print('Test PPL',rnnlm.eval_model(test_treebank,batch_size=32))
+        print('Test PPL',rnnlm.eval_model(test_treebank,batch_size=32,stats_file=stats_file))
         
