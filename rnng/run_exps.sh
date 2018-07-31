@@ -1,7 +1,7 @@
 #!/bin/sh
 
-MKL_NUM_THREADS=10
-NUM_EPOCHS=40
+MKL_NUM_THREADS=6
+NUM_EPOCHS=20
 
 make_config(){
     #$1 NAME $2 = stack embedding size , $3 = lstm memory size $4 = word embedding size $5 = dropout
@@ -42,9 +42,8 @@ train_rnng(){
    mkdir -p $NAME
    make_config "$NAME/$NAME" $1 $2 $3 $4 
    source activate py36
-   nohup python rnng.py -m $NAME/$NAME -t ptb_train.mrg -d -ptb_dev.mrg -b ptb-250.brown -c "$NAME/$NAME.prm" > "nohup.$NAME.out" & 
+   nohup python rnngf.py -m $NAME/$NAME -t ptb_train.mrg -d -ptb_dev.mrg -b ptb-250.brown -c "$NAME/$NAME.prm" -p ptb_test.mrg -s > "nohup.$NAME.out" & 
 }
-
 
 train_rnnlm(){
     # $1 = embedding size , $2 = lstm memory size $3 = dropout
@@ -52,13 +51,13 @@ train_rnnlm(){
     mkdir -p $NAME
     make_lmconfig "$NAME/$NAME" $1 $2 $3 
     source activate py36
-    nohup python rnnglmf.py -m $NAME/$NAME -t ptb_train.raw -d ptb_dev.raw -b ptb-250.brown -c "$NAME/$NAME.prm" > "nohup.$NAME.out" &   
+    nohup python rnnglmf.py -m $NAME/$NAME -t ptb_train.raw -d ptb_dev.raw -b ptb-250.brown -c "$NAME/$NAME.prm" -p ptb_test.raw -s > "nohup.$NAME.out" &   
 } 
 
-train_rnnlm 300 200 0.5
-train_rnnlm 100 150 0.3
-train_rnnlm 100 250 0.3
+train_rnnlm 250 250 0.3
+train_rnnlm 300 250 0.3
+train_rnnlm 300 300 0.3
 
-#train_rnng 150 200 100 0.3
-#train_rnng 250 300 200 0.3
-#train_rnng  150 250 100 0.3
+train_rnng 350 250 300 0.3
+train_rnng 250 300 200 0.3
+train_rnng 250 200 200 0.3

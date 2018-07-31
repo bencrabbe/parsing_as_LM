@@ -27,11 +27,12 @@ class RNNGlm:
             brown_clusters       (str): a filename where to find brown clusters
         Kwargs:
             vocab_thresh         (int): number of counts above which a word is known to the vocab
-            stack_embedding_size (int): size of stack lstm input 
-            stack_memory_size    (int): size of the stack and tree lstm hidden layers
+            embedding_size       (int): size of stack lstm input 
+            memory_size          (int): size of the stack and tree lstm hidden layers
             char_embedding_size  (int): size of char embeddings
             char_memory_size     (int): size of char bi-lstm memory
         """
+        assert(embedding_size+c)
         self.vocab_thresh        = vocab_thresh
         self.embedding_size      = embedding_size
         self.hidden_size         = memory_size
@@ -64,11 +65,11 @@ class RNNGlm:
         self.model = dy.ParameterCollection()
 
         #Lex input
-        self.E    = self.model.add_lookup_parameters((self.lexicon.size(),self.embedding_size))
+        self.E    = self.model.add_lookup_parameters((self.lexicon.size(),self.embedding_size+self.char_embedding_size))
         #Lex output
         self.O    = dy.ClassFactoredSoftmaxBuilder(self.hidden_size,self.brown_file,self.lexicon.words2i,self.model,bias=True)
         #RNN
-        self.rnn = dy.LSTMBuilder(1,self.embedding_size,self.hidden_size,self.model)  
+        self.rnn = dy.LSTMBuilder(2,self.embedding_size+self.char_embedding_size,self.hidden_size,self.model)  
 
         #char encodings
         self.char_rnn = CharRNNBuilder(self.char_embedding_size,self.char_memory_size,self.charset,self.model)
@@ -318,7 +319,7 @@ if __name__ == '__main__':
         
     if model_name and test_file:
 
-        rnnlm = RNNGlm.load_model(model_name+'/'+model_name)
+        rnnlm = RNNGlm.load_model(model_name)
 
         istream       = open(test_file)
         test_treebank = [line.split() for line in istream]

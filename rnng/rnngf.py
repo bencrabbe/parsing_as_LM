@@ -1161,8 +1161,7 @@ if __name__ == '__main__':
                                 stack_memory_size=config['stack_hidden_size'],\
                                 word_embedding_size=config['word_embedding_size'],\
                                 char_embedding_size=config['char_embedding_size'],\
-                                char_hidden_size=config['char_hidden_size'])
-                                
+                                char_hidden_size=config['char_hidden_size'])                               
             parser.train_model(train_stream,dev_stream,model_name,epochs=config['num_epochs'],lr=config['learning_rate'],batch_size=config['batch_size'],dropout=config['dropout'])
         else:
             parser = RNNGparser(brown_file,stack_embedding_size=300,stack_memory_size=200,word_embedding_size=250)
