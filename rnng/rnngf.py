@@ -1155,6 +1155,7 @@ if __name__ == '__main__':
         train_stream   = open(train_file)
         dev_stream     = open(dev_file)
         if config_file:
+            print(config_file)
             config = read_config(config_file)
             parser = RNNGparser(brown_file,\
                                 stack_embedding_size=config['stack_embedding_size'],\

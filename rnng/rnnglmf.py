@@ -64,7 +64,7 @@ class RNNGlm:
         self.model = dy.ParameterCollection()
 
         #Lex input
-        self.E    = self.model.add_lookup_parameters((self.lexicon.size(),self.embedding_size+self.char_embedding_size))
+        self.E    = self.model.add_lookup_parameters((self.lexicon.size(),self.embedding_size))
         #Lex output
         self.O    = dy.ClassFactoredSoftmaxBuilder(self.hidden_size,self.brown_file,self.lexicon.words2i,self.model,bias=True)
         #RNN
