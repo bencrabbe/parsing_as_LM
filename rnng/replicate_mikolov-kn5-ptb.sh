@@ -6,7 +6,7 @@ export PATH=$PATH:$PWD/srilm/bin/i686-m64
 ORD=5
 
 python lexicons.py ptb_train.raw ptb_train.raw > ptb_train.unk
-python lexicons.py ptb_train.raw ptb_dev.raw > ptb_test.unk
+python lexicons.py ptb_train.raw ptb_dev.raw > ptb_dev.unk
 python lexicons.py ptb_train.raw ptb_test.raw > ptb_test.unk
 
 
