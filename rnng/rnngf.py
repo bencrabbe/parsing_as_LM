@@ -475,7 +475,7 @@ class RNNGparser:
         self.nonterminals_b           = self.model.add_parameters((self.nonterminals.size()))
 
         #stack_lstm
-        self.rnn                      = dy.LSTMBuilder(1,self.stack_embedding_size, self.stack_hidden_size,self.model)          
+        self.rnn                      = dy.LSTMBuilder(2,self.stack_embedding_size, self.stack_hidden_size,self.model)          
  
         #tree bi-lstm
         self.tree_fwd                 = dy.LSTMBuilder(1,self.stack_embedding_size, self.stack_hidden_size,self.model)        
