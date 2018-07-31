@@ -147,7 +147,8 @@ def normalize_brown_file(brown_filename,lexical_set,out_filename,UNK_SYMBOL='<UN
     return out_filename
 
 
-def get_known_vocabulary(text,vocab_treshold=1):
+
+def get_known_vocabulary(text,vocab_threshold=1):
     """
     This is a method common to all models in the package for acquiring the known lexicon.
     Args:
