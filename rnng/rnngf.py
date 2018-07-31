@@ -1112,7 +1112,28 @@ class RNNGparser:
                     print('(())')
                 
         print("NLL = %d, PPL = %f"%(NLL,np.exp(NLL/N)),file=sys.stderr)
-                    
+
+def read_config(filename=None):
+
+    """
+    Return an hyperparam dictionary
+    """
+    import configparser
+    config = configparser.ConfigParser()
+    config.read(filename)
+
+    params = {}
+    params['stack_embedding_size'] = int(config['structure']['stack_embedding_size']) if 'stack_embedding_size' in config['structure'] else 100
+    params['stack_hidden_size']    = int(config['structure']['stack_hidden_size'])    if 'stack_hidden_size'    in config['structure'] else 100
+    params['word_embedding_size']  = int(config['structure']['word_embedding_size'])  if 'word_embedding_size'  in config['structure'] else 100
+
+    params['dropout']         = float(config['learning']['dropout'])      if 'dropout' in config['learning'] else 0.1
+    params['learning_rate']   = float(config['learning']['learning_rate'])if 'learning_rate' in config['learning'] else 0.1
+    params['num_epochs']      = int(config['learning']['num_epochs'])     if 'num_epochs' in config['learning'] else 20
+    params['batch_size']      = int(config['learning']['batch_size'])     if 'batch_size' in config['learning'] else 20
+
+    return params
+        
 if __name__ == '__main__':
 
 
@@ -1159,10 +1180,8 @@ if __name__ == '__main__':
             config = read_config(config_file)
             parser = RNNGparser(brown_file,\
                                 stack_embedding_size=config['stack_embedding_size'],\
-                                stack_memory_size=config['stack_hidden_size'],\
-                                word_embedding_size=config['word_embedding_size'],\
-                                char_embedding_size=config['char_embedding_size'],\
-                                char_hidden_size=config['char_hidden_size'])                               
+                                stack_memory_size=config['stack_memory_size'],\
+                                word_embedding_size=config['word_embedding_size'])                               
             parser.train_model(train_stream,dev_stream,model_name,epochs=config['num_epochs'],lr=config['learning_rate'],batch_size=config['batch_size'],dropout=config['dropout'])
         else:
             parser = RNNGparser(brown_file,stack_embedding_size=300,stack_memory_size=200,word_embedding_size=250)
