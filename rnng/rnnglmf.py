@@ -165,7 +165,7 @@ class RNNGlm:
 
             if stats_file:###stats generation
                 if stats_header:
-                    print('token\tcond_logprob\tsurprisal\tis_unk')
+                    print('token\tcond_logprob\tsurprisal\tis_unk',file=stats_file)
                 toklist = [] 
                 for sent in test_sentences[bbegin:bend]:
                     toklist.extend(sent)
@@ -300,6 +300,7 @@ if __name__ == '__main__':
         istream       = open(test_file)
         test_treebank = [line.split() for line in istream]
         istream.close()
-        
-        print('Test PPL',rnnlm.eval_model(test_treebank,batch_size=32,stats_file=stats_file))
-        
+
+        stats_stream = open(stats_file,'w')
+        print('Test PPL',rnnlm.eval_model(test_treebank,batch_size=32,stats_file=stats_stream))
+        stats_stream.close()
