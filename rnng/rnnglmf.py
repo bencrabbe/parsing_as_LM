@@ -302,6 +302,6 @@ if __name__ == '__main__':
         istream.close()
 
         stats_stream = open(model_name + '/' + model_name +'.tsv','w') if stats else None
-        print('Test PPL',rnnlm.eval_model(test_treebank,batch_size=32,stats_file=stats_stream))
+        print('Test NLL = %f, PPL = %f'%rnnlm.eval_model(test_treebank,batch_size=32,stats_file=stats_stream))
         if stats:
             stats_stream.close()
