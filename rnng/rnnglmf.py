@@ -242,10 +242,10 @@ if __name__ == '__main__':
     brown_file  = ''
     model_name  = ''
     config_file = ''
-    stats_file  = None 
+    stats       = False
     
     try:
-        opts, args = getopt.getopt(sys.argv[1:],"ht:d:p:m:b:c:s:")
+        opts, args = getopt.getopt(sys.argv[1:],"ht:d:p:m:b:c:s")
     except getopt.GetoptError:
         print('Ooops, wrong command line arguments')
         print('for training...')
@@ -301,6 +301,7 @@ if __name__ == '__main__':
         test_treebank = [line.split() for line in istream]
         istream.close()
 
-        stats_stream = open(stats_file,'w')
+        stats_stream = open(model_name + '/' + model_name +'.tsv','w') if stats else None
         print('Test PPL',rnnlm.eval_model(test_treebank,batch_size=32,stats_file=stats_stream))
-        stats_stream.close()
+        if stats:
+            stats_stream.close()
