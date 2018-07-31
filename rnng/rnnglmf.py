@@ -8,33 +8,39 @@ import sys
 
 from random import shuffle
 from lexicons import *
+from char_rnn import *
+
 
 """
 That's a simple class factored RNNLM designed to be interoperable with the rnng parser.
-Allows comparisons.
-** It is designed to run mainly on a CPU **
+Allows comparisons. ** It is designed to run mainly on a CPU **
 """
-
 class RNNGlm:
     
     #special tokens
     UNKNOWN_TOKEN = '<UNK>'
     START_TOKEN   = '<START>'
     
-    def __init__(self,brown_clusters,vocab_thresh=1,embedding_size=50,memory_size=50):
+    def __init__(self,brown_clusters,vocab_thresh=1,embedding_size=50,memory_size=50,char_embedding_size=50,char_memory_size=50):
         """
-        @param brown_clusters          : a filename where to find brown clusters
-        @param vocab_thresh            : number of counts above which a word is known to the vocab
-        @param stack_embedding_size    : size of stack lstm input 
-        @param stack_memory_size       : size of the stack and tree lstm hidden layers
+        Args:
+            brown_clusters       (str): a filename where to find brown clusters
+        Kwargs:
+            vocab_thresh         (int): number of counts above which a word is known to the vocab
+            stack_embedding_size (int): size of stack lstm input 
+            stack_memory_size    (int): size of the stack and tree lstm hidden layers
+            char_embedding_size  (int): size of char embeddings
+            char_memory_size     (int): size of char bi-lstm memory
         """
-        self.vocab_thresh   = vocab_thresh
-        self.embedding_size = embedding_size
-        self.hidden_size    = memory_size
-        self.dropout        = 0.0
-        self.brown_file     = brown_clusters
+        self.vocab_thresh        = vocab_thresh
+        self.embedding_size      = embedding_size
+        self.hidden_size         = memory_size
+        self.dropout             = 0.0
+        self.brown_file          = brown_clusters
+        self.char_embedding_size = char_embedding_size
+        self.char_memory_size    = char_memory_size
         
-        #Extras (brown lexicon and external embeddings)
+        #Extras (external embeddings)
         self.ext_embeddings = False
 
     def code_lexicon(self,raw_treebank):
@@ -45,6 +51,11 @@ class RNNGlm:
         self.brown_file  = normalize_brown_file(self.brown_file,known_vocabulary,self.brown_file+'.unk',UNK_SYMBOL=RNNGlm.UNKNOWN_TOKEN)
         self.lexicon     = SymbolLexicon( list(known_vocabulary),unk_word=RNNGlm.UNKNOWN_TOKEN)
 
+        charset = set([])
+        for word in known_vocabulary:
+            charset.update(list(word))
+        self.charset =  SymbolLexicon(list(charset))
+        
     def make_structure(self):
         """
         Creates and allocates the network structure
@@ -58,6 +69,9 @@ class RNNGlm:
         self.O    = dy.ClassFactoredSoftmaxBuilder(self.hidden_size,self.brown_file,self.lexicon.words2i,self.model,bias=True)
         #RNN
         self.rnn = dy.LSTMBuilder(1,self.embedding_size,self.hidden_size,self.model)  
+
+        #char encodings
+        self.char_rnn = CharRNNBuilder(self.char_embedding_size,self.char_memory_size,self.charset,self.model)
 
     def rnn_dropout(self,expr):
         """
@@ -103,10 +117,11 @@ class RNNGlm:
                 outputs = []
                 bend = min(ntrain_sentences,bbegin + batch_size)
                 for sent in train_sentences[bbegin:bend]:
-                    X          = [self.lexicon.index(word) for word  in [RNNGlm.START_TOKEN] + sent[:-1] ]
+                    winput     = [RNNGlm.START_TOKEN] + sent[:-1]
+                    X          = [self.lexicon.index(word) for word  in winput ]
                     Y          = [self.lexicon.index(word) for word in sent]
                     state      = self.rnn.initial_state()
-                    xinputs    = [dy.dropout(self.E[x],self.dropout) for x in X]
+                    xinputs    = [dy.dropout(dy.concatenate([self.E[word_idx],self.char_rnn(word)]),self.dropout) for word,word_idx in zip(winput,X) ]
                     state_list = state.add_inputs(xinputs)
                     outputs.extend([self.O.neg_log_softmax(dy.dropout(S.output(),self.dropout),y) for (S,y) in zip(state_list,Y) ])
                     N         += len(Y)
@@ -153,10 +168,11 @@ class RNNGlm:
             outputs = []                
             bend = min(ntest_sentences,bbegin + batch_size)
             for sent in test_sentences[bbegin:bend]:
-                X          = [self.lexicon.index(word) for word  in [RNNGlm.START_TOKEN] + sent[:-1] ]
+                winput     = [RNNGlm.START_TOKEN] + sent[:-1]
+                X          = [self.lexicon.index(word) for word  in winput ]
                 Y          = [self.lexicon.index(word) for word in sent]
                 state      = self.rnn.initial_state()
-                xinputs    = [self.E[x] for x in X]
+                xinputs    = [dy.dropout(dy.concatenate([self.E[word_idx],self.char_rnn(word)]),self.dropout) for word,word_idx in zip(winput,X) ]
                 state_list = state.add_inputs(xinputs)
                 outputs.extend([self.O.neg_log_softmax(S.output(),y) for (S,y) in zip(state_list,Y) ])
                 N         += len(Y)
