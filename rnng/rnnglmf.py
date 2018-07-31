@@ -45,7 +45,7 @@ class RNNGlm:
 
     def code_lexicon(self,raw_treebank):
         
-        known_vocabulary = get_known_vocabulary(raw_treebank,vocab_treshold=1)
+        known_vocabulary = get_known_vocabulary(raw_treebank,vocab_threshold=1)
         known_vocabulary.add(RNNGlm.START_TOKEN)
         
         self.brown_file  = normalize_brown_file(self.brown_file,known_vocabulary,self.brown_file+'.unk',UNK_SYMBOL=RNNGlm.UNKNOWN_TOKEN)
