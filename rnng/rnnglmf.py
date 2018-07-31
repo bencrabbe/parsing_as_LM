@@ -128,21 +128,26 @@ class RNNGlm:
             print('[Validation] Epoch %d, NLL = %f, PPL = %f\n'%(e,NLL,np.exp(NLL/N)),flush=True)
 
             
-    def eval_model(self,test_sentences,batch_size):
+    def eval_model(self,test_sentences,batch_size,stats_file=None):
         """
         Tests a model on a validation set and returns the NLL and the Number of words in the dataset.
-        @param test_sentences : a list of list of strings.
-        @return (NLL,N)
+        Args:
+             test_sentences (list): a list of list of strings.
+             batch_size      (int): the size of the batch used
+        Kwargs:
+             stats_file   (stream): the stream where to write the stats or None
+        Returns:
+             a couple that allows to compute perplexities. (Negative LL,N) 
         """
         
         NLL = 0
         N = 0
-        
         ntest_sentences   = len(test_sentences)
 
         batches_processed = 0
         bbegin = 0
-    
+
+        stats_header = True 
         while bbegin < ntest_sentences:
             dy.renew_cg()
             outputs = []                
@@ -157,6 +162,18 @@ class RNNGlm:
                 N         += len(Y)
             loc_nll    = dy.esum(outputs)
             NLL       += loc_nll.value()
+
+            if stats_file:###stats generation
+                if stats_header:
+                    print('token\tcond_logprob\tsurprisal\tis_unk')
+                toklist = [] 
+                for sent in test_sentences[bbegin:bend]:
+                    toklist.extend(sent)
+                batch_stats  =
+                '\n'.join(["%s\t%f\t%f\t%s"%(word,logprob.value(),-logprob.value()/np.log(2),word in self.lexicon) for word,logprob in zip(toklist,outputs)])
+                print(batch_stats,file=stats_file)
+                stats_header = False
+                
             batches_processed += 1
             bbegin = batches_processed * batch_size
 
