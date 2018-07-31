@@ -210,7 +210,7 @@ class RNNGlm:
         """
         struct     = json.loads(open(model_name+'.json').read())
         lm         = RNNGlm(struct['brown_file'],vocab_thresh=struct['vocab_thresh'],embedding_size=struct['embedding_size'],memory_size=struct['hidden_size'])
-        lm.lexicon = SymbolLexicon.load(modelname+'.lex')
+        lm.lexicon = SymbolLexicon.load(model_name+'.lex')
         lm.make_structure()
         lm.model.populate(model_name+".prm")
         return lm
