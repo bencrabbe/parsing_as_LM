@@ -295,7 +295,7 @@ if __name__ == '__main__':
         
     if model_name and test_file:
 
-        rnnlm = RNNGlm.load_model(model_name)
+        rnnlm = RNNGlm.load_model(model_name+'/'+model_name)
 
         istream       = open(test_file)
         test_treebank = [line.split() for line in istream]
