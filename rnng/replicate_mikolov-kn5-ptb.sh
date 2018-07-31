@@ -15,6 +15,7 @@ ngram-count -order $ORD -text ptb_train.unk -lm templm -kndiscount -interpolate 
 
 ngram -ppl ptb_dev.unk -lm templm -order $ORD -unk
 ngram -ppl ptb_test.unk -lm templm -order $ORD -unk
+ngram -ppl ptb_test.raw -lm templm -order $ORD -unk
 
 rm ptb_train.unk
 rm ptb_dev.unk
