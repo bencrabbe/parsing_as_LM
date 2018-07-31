@@ -865,7 +865,7 @@ class RNNGparser:
         agg_OP        /= N            #unweighted mean
         agg_CL        /= N            #unweighted mean
         entropy        = -entropy
-        prev_logpX     = [0.0] + list(logpX)[:-1]ù
+        prev_logpX     = [0.0] + list(logpX)[:-1]
 
         neg_cond_probs = np.array([prev_logp-logp for logp,prev_logp in zip(logpX,prev_logpX)])
         surprisals     = neg_cond_probs / np.log(2) #change from base e to base 2

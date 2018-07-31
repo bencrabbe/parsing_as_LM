@@ -32,7 +32,6 @@ class RNNGlm:
             char_embedding_size  (int): size of char embeddings
             char_memory_size     (int): size of char bi-lstm memory
         """
-        assert(embedding_size+c)
         self.vocab_thresh        = vocab_thresh
         self.embedding_size      = embedding_size
         self.hidden_size         = memory_size
