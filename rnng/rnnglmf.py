@@ -204,7 +204,7 @@ class RNNGlm:
         self.lexicon.save(model_name+'.lex')
 
     @staticmethod
-    def load_model(self,model_name):
+    def load_model(model_name):
         """
         Loads the whole shebang and returns an LM.
         """
