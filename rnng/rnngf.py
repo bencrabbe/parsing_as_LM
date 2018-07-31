@@ -7,12 +7,11 @@ import numpy as np
 import numpy.random as npr
 import pandas as pda
 import getopt
-import warnings
 import json
 
-from collections   import Counter
+#from collections   import Counter
 from random        import shuffle
-from functools     import reduce
+#from functools     import reduce
 from constree      import *
 from lexicons      import *
 from proc_monitors import *
@@ -624,14 +623,14 @@ class RNNGparser:
                 
         return runstats
     
-    def train_model(self,train_treebank,dev_treebank,modelname,lr=0.1,epochs=20,batch_size=1,dropout=0.3):
+    def train_model(self,train_stream,dev_stream,modelname,lr=0.1,epochs=20,batch_size=1,dropout=0.3):
         """
         Trains a full model for e epochs.
         It minimizes the NLL on the development set with SGD.
 
         Args:
-          train_treebank (list): a list of ConsTree
-          dev_treebank   (list): a list of ConsTree
+          train_stream (stream): a stream of ConsTree, one on each line
+          dev_stream   (stream): a stream of ConsTree, one on each line
           modelname    (string): the dirname of the generated model
         Kwargs:
           lr            (float): the learning rate for SGD
@@ -640,13 +639,20 @@ class RNNGparser:
         """
         
         #Trees preprocessing
-        for t in train_treebank:
+        train_treebank = []
+        for line in train_stream:
+            t = ConsTree.read_tree(line)
             ConsTree.strip_tags(t)
             ConsTree.close_unaries(t)
-        for t in dev_treebank:
-            ConsTree.strip_tags(t)
-            ConsTree.close_unaries(t)
+            train_treebank.append(t)
 
+        dev_treebank = []
+        for line in dev_stream:
+            t = ConsTree.read_tree(line)
+            ConsTree.strip_tags(t)
+            ConsTree.close_unaries(t)
+            dev_treebank.append(t)
+            
         #Coding & model structure
         self.code_lexicon(train_treebank)
         self.code_nonterminals(train_treebank,dev_treebank)
@@ -1095,7 +1101,7 @@ class RNNGparser:
                     NLL += nll
                     N   += len(tokens)
                     if stats_stream:# writes out the stats
-                        #hacky, but pandas built-in output support currently hangs on my machine (!?)
+                        #hacked up, but pandas built-in output support for csv  currently hangs on my machine (!?)
                         header = list(df)
                         if stats_header:
                             print('\t'.join(header),file=stats_stream)
@@ -1109,41 +1115,69 @@ class RNNGparser:
                     
 if __name__ == '__main__':
 
-    # train_treebank = [ ]
-    # train_stream   = open('ptb_train.mrg')
-    # for line in train_stream:
-    #     t = ConsTree.read_tree(line)
-    #     train_treebank.append(t)
-    # train_stream.close()    
-    
-    # dev_treebank = [ ]
-    # dev_stream   = open('ptb_dev.mrg')
-    # for line in dev_stream:
-    #     t = ConsTree.read_tree(line)
-    #     dev_treebank.append(t)
-    # dev_stream.close()
-     
-    # parser = RNNGparser('ptb-250.brown',stack_embedding_size=300,stack_memory_size=200,word_embedding_size=250)
-    # parser.train_model(train_treebank,dev_treebank,'test_rnngf/test_rnngf_gpu',epochs=20,lr=0.5,batch_size=32)
 
-    parser = RNNGparser.load_model('test_rnngf/test_rnngf_gpu')
-    test_stream   = open('ptb_test.mrg')
-    sstream  = open('ptb_stats.csv','w') 
-    parser.parse_corpus(test_stream,sys.stdout,stats_stream=sstream,K=400,evalb_mode=True)
-    test_stream.close()
-    sstream.close()
+    train_file  = ''
+    dev_file    = ''
+    test_file   = ''
+    brown_file  = ''
+    model_name  = ''
+    config_file = ''
+    stats       = False
     
-  # test_treebank = [ ]
-  # test_stream   = open('ptb_test.mrg')
-  # idx = 0
-  # for line in test_stream:
-  #   t = ConsTree.read_tree(line)
-  #   test_treebank.append(t)
-  #   if idx == 0:
-  #     break
-  #   idx+=1
-  # test_stream.close()
+    try:
+        opts, args = getopt.getopt(sys.argv[1:],"ht:d:p:m:b:c:s")
+    except getopt.GetoptError:
+        print('Ooops, wrong command line arguments')
+        print('for training...')
+        print ('rnnglm.py -t <inputfile> -d <inputfile> -m <model_file> -b <brown_file> -c <config_file>')
+        print('for testing...')
+        print ('rnnglm.py -m <model_file> -p <test_file> -s')
+        sys.exit(0)
 
-  #parser = RNNGparser('ptb-250.brown',vocab_thresh=0,stack_embedding_size=300,stack_memory_size=200,word_embedding_size=300)
-  #parser.train_model(test_treebank,[test_treebank[0].copy()],'test_rnngf/bidon',epochs=40,lr=0.5,batch_size=1,dropout=0)
-  # parser.parse_corpus([line],sys.stdout,K=100,kbest=50,evalb_mode=True)
+    for opt, arg in opts:
+        if opt in   ['-t','--train']:
+            train_file = arg
+        elif opt in ['-d','--dev']:
+            dev_file = arg
+        elif opt in ['-p','--pred']:
+            test_file = arg
+        elif opt in ['-c','--config']:
+            config_file = arg
+        elif opt in ['-m','--model']:
+            model_name = arg
+        elif opt in ['-b','--brown']:
+            brown_file = arg
+        elif opt in ['-s','--stats']:
+            stats = True
+
+    if train_file and dev_file and brown_file and model_name:
+        
+        train_stream   = open(train_file)
+        dev_stream     = open(dev_file)
+        if config_file:
+            config = read_config(config_file)
+            parser = RNNGparser(brown_file,\
+                                stack_embedding_size=config['stack_embedding_size'],\
+                                stack_memory_size=config['stack_hidden_size'],\
+                                word_embedding_size=config['word_embedding_size'],\
+                                char_embedding_size=config['char_embedding_size'],\
+                                char_hidden_size=config['char_hidden_size'])
+                                
+            parser.train_model(train_stream,dev_stream,model_name,epochs=config['num_epochs'],lr=config['learning_rate'],batch_size=config['batch_size'],dropout=config['dropout'])
+        else:
+            parser = RNNGparser(brown_file,stack_embedding_size=300,stack_memory_size=200,word_embedding_size=250)
+            parser.train_model(train_stream,dev_stream,model_name,epochs=20,lr=0.5,batch_size=32)
+        train_stream.close()
+        dev_stream.close()
+        print('\ntraining done.')
+
+    if model_name and test_file:
+        
+        parser = RNNGparser.load_model(model_name)
+        test_stream   = open(test_file)
+        sstream  = open('ptb_stats.csv','w') if stats else None
+        parser.parse_corpus(test_stream,sys.stdout,stats_stream=sstream,K=400,evalb_mode=True)
+        test_stream.close()
+        if stats:
+            sstream.close()
+    

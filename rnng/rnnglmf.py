@@ -257,8 +257,6 @@ def read_config(filename=None):
     params['num_epochs']      = int(config['learning']['num_epochs'])     if 'num_epochs' in config['learning'] else 20
     return params
 
-
-    
 if __name__ == '__main__':
     
     train_file  = ''
@@ -274,9 +272,9 @@ if __name__ == '__main__':
     except getopt.GetoptError:
         print('Ooops, wrong command line arguments')
         print('for training...')
-        print ('rnnglm.py -t <inputfile> -d <inputfile> -m <model_file> -b <brown_file>')
+        print('rnnglm.py -t <inputfile> -d <inputfile> -m <model_file> -b <brown_file> -c <config_file>')
         print('for testing...')
-        print ('rnnglm.py -m <model_file> -p <test_file>')
+        print('rnnglm.py -m <model_file> -p <test_file> -s')
         sys.exit(0)
         
     for opt, arg in opts:
