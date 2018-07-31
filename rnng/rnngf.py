@@ -1180,7 +1180,7 @@ if __name__ == '__main__':
             config = read_config(config_file)
             parser = RNNGparser(brown_file,\
                                 stack_embedding_size=config['stack_embedding_size'],\
-                                stack_memory_size=config['stack_memory_size'],\
+                                stack_memory_size=config['stack_hidden_size'],\
                                 word_embedding_size=config['word_embedding_size'])                               
             parser.train_model(train_stream,dev_stream,model_name,epochs=config['num_epochs'],lr=config['learning_rate'],batch_size=config['batch_size'],dropout=config['dropout'])
         else:
