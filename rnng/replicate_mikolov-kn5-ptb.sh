@@ -16,4 +16,4 @@ ngram -ppl ptb_test.unk -lm templm -order $ORD -unk
 
 rm ptb_train.unk
 rm ptb_dev.unk
-ptb_test.unk
+rm ptb_test.unk
