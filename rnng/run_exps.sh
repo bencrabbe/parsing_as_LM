@@ -32,7 +32,7 @@ make_lmconfig(){
     echo "[learning]"          >> $CNAME
     echo "dropout        = $4" >> $CNAME
     echo "learning_rate  = 0.1">> $CNAME
-    echo "num_epochs     = 40 >> $CNAME
+    echo "num_epochs     = 40" >> $CNAME
 }
 
 
