@@ -31,8 +31,8 @@ make_lmconfig(){
     echo "memory_size    = $3" >> $CNAME
     echo "[learning]"          >> $CNAME
     echo "dropout        = $4" >> $CNAME
-    echo "learning_rate  = 0.3">> $CNAME
-    echo "num_epochs     = $NUM_EPOCHS" >> $CNAME
+    echo "learning_rate  = 0.1">> $CNAME
+    echo "num_epochs     = 40 >> $CNAME
 }
 
 
@@ -58,6 +58,6 @@ train_rnnlm 250 250 0.2
 train_rnnlm 300 250 0.2
 train_rnnlm 300 300 0.2
 
-train_rnng 350 250 300 0.3
-train_rnng 250 300 200 0.3
-train_rnng 250 200 200 0.3
+#train_rnng 350 250 300 0.3
+#train_rnng 250 300 200 0.3
+#train_rnng 250 200 200 0.3
