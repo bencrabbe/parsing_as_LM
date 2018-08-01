@@ -5,7 +5,7 @@ NUM_EPOCHS=20
 
 make_config(){
     #$1 NAME $2 = stack embedding size , $3 = lstm memory size $4 = word embedding size $5 = dropout
-    CNAME="$1.prm"
+    CNAME="$1.conf"
     echo > $CNAME  
     echo "[structure]" >> $CNAME
     echo "stack_embedding_size = $2" >> $CNAME
@@ -24,7 +24,7 @@ make_config(){
 
 make_lmconfig(){
     # $1 NAME $2 = embedding size , $3 = lstm memory size $4 = dropout
-    CNAME="$1.prm"
+    CNAME="$1.conf"
     echo > $CNAME
     echo "[structure]"         >> $CNAME
     echo "embedding_size = $2" >> $CNAME
@@ -42,7 +42,7 @@ train_rnng(){
    mkdir -p $NAME
    make_config "$NAME/$NAME" $1 $2 $3 $4 
    source activate py36
-   nohup python rnngf.py -m $NAME/$NAME -t ptb_train.mrg -d ptb_dev.mrg -b ptb-250.brown -c "$NAME/$NAME.prm" -p ptb_test.mrg -s > "nohup.$NAME.out" & 
+   nohup python rnngf.py -m $NAME/$NAME -t ptb_train.mrg -d ptb_dev.mrg -b ptb-250.brown -c "$NAME/$NAME.conf" -p ptb_test.mrg -s > "nohup.$NAME.out" & 
 }
 
 train_rnnlm(){
@@ -51,7 +51,7 @@ train_rnnlm(){
     mkdir -p $NAME
     make_lmconfig "$NAME/$NAME" $1 $2 $3 
     source activate py36
-    nohup python rnnglmf.py -m $NAME/$NAME -t ptb_train.raw -d ptb_dev.raw -b ptb-250.brown -c "$NAME/$NAME.prm" -p ptb_test.raw -s > "nohup.$NAME.out" &   
+    nohup python rnnglmf.py -m $NAME/$NAME -t ptb_train.raw -d ptb_dev.raw -b ptb-250.brown -c "$NAME/$NAME.conf" -p ptb_test.raw -s > "nohup.$NAME.out" &   
 } 
 
 train_rnnlm 250 250 0.2
