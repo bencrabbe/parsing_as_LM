@@ -118,7 +118,7 @@ class RNNGlm:
                     X          = [self.lexicon.index(word) for word  in winput ]
                     Y          = [self.lexicon.index(word) for word in sent]
                     state      = self.rnn.initial_state()
-                    xinputs    = [dy.dropout(dy.concatenate([self.E[word_idx],self.char_rnn(word)]),self.dropout) for word,word_idx in zip(winput,X) ]
+                    xinputs    = [dy.concatenate([dy.dropout(self.E[word_idx],self.dropout),self.char_rnn(word)]) for word,word_idx in zip(winput,X) ]
                     state_list = state.add_inputs(xinputs)
                     outputs.extend([self.O.neg_log_softmax(dy.dropout(S.output(),self.dropout),y) for (S,y) in zip(state_list,Y) ])
                     N         += len(Y)

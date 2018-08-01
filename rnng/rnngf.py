@@ -567,6 +567,10 @@ class RNNGparser:
         Returns:
           RuntimeStats. the model NLL, the word only NLL, the size of the derivations, the number of predicted words on this batch
         """
+
+        dropout = self.dropout
+        if not backprop:
+            self.dropout = 0.0
         
         ref_trees = [ref_tree_list] if type(ref_tree_list) != list else ref_tree_list
     
@@ -620,7 +624,9 @@ class RNNGparser:
                 self.trainer.update()
             except RuntimeError:
                 print('\nGradient exploded, batch update aborted...')
-                
+        else:
+            self.dropout = dropout
+
         return runstats
     
     def train_model(self,train_stream,dev_stream,modelname,lr=0.1,epochs=20,batch_size=1,dropout=0.3):
