@@ -73,16 +73,13 @@ class RNNGlm:
         #char encodings
         self.char_rnn = CharRNNBuilder(self.char_embedding_size,self.char_memory_size,self.charset,self.model)
 
-    def rnn_dropout(self,expr):
+    def ifdropout(self,expr):
         """
         That is a conditional dropout that applies dropout to a dynet expression only at training time
         @param expr: a dynet expression
         @return a dynet expression
         """
-        if self.dropout == 0:
-            return expr
-        else:
-            return dy.dropout(expr,self.dropout)
+        return expr if self.dropout == 0 else dy.dropout(expr,self.dropout)
         
     def train_rnn_lm(self,modelname,train_sentences,validation_sentences,lr=0.1,dropout=0.3,max_epochs=10,batch_size=1):
         """
@@ -172,7 +169,7 @@ class RNNGlm:
                 X          = [self.lexicon.index(word) for word  in winput ]
                 Y          = [self.lexicon.index(word) for word in sent]
                 state      = self.rnn.initial_state()
-                xinputs    = [dy.dropout(dy.concatenate([self.E[word_idx],self.char_rnn(word)]),self.dropout) for word,word_idx in zip(winput,X) ]
+                xinputs    = [dy.concatenate([self.E[word_idx],self.char_rnn(word)]) for word,word_idx in zip(winput,X) ]
                 state_list = state.add_inputs(xinputs)
                 outputs.extend([self.O.neg_log_softmax(S.output(),y) for (S,y) in zip(state_list,Y) ])
                 N         += len(Y)
