@@ -1194,8 +1194,10 @@ if __name__ == '__main__':
         
         parser = RNNGparser.load_model(model_name)
         test_stream   = open(test_file)
+        test_out = open(model_name+".test.mrg",'w')
         sstream  = open('ptb_stats.csv','w') if stats else None
-        parser.parse_corpus(test_stream,sys.stdout,stats_stream=sstream,K=400,evalb_mode=True)
+        parser.parse_corpus(test_stream,test_out,stats_stream=sstream,K=400,evalb_mode=True)
+        test_out.close()
         test_stream.close()
         if stats:
             sstream.close()
