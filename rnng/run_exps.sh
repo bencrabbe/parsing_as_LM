@@ -58,6 +58,6 @@ train_rnnlm 250 250 0.2
 train_rnnlm 300 250 0.2
 train_rnnlm 300 300 0.2
 
-#train_rnng 350 250 300 0.3
-#train_rnng 250 300 200 0.3
-#train_rnng 250 200 200 0.3
+train_rnng 350 250 300 0.3
+train_rnng 250 300 200 0.3
+train_rnng 250 200 200 0.3
