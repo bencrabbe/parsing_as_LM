@@ -94,6 +94,9 @@ class RNNGlm:
           (float,int) . The negative loglikelihood of the batch, the number of words in the batch
         """
         dy.renew_cg()
+        run_stats = RuntimeStats('NLL','N')
+
+
         outputs = []
         for sent in eval_sentences:
             winput     = [RNNGlm.START_TOKEN] + sent[:-1]
@@ -103,10 +106,10 @@ class RNNGlm:
             xinputs    = [self.ifdropout(dy.concatenate([self.E[word_idx],self.char_rnn(word)])) for word,word_idx in zip(winput,X) ]
             state_list = state.add_inputs(xinputs)
             outputs.extend([self.O.neg_log_softmax(self.ifdropout(S.output()),y) for (S,y) in zip(state_list,Y) ])
-            N         += len(Y)
+            run_stats['N'] += len(Y)
 
-        loc_nll    = dy.esum(outputs)
-        NLL       += loc_nll.value()
+        loc_nll            = dy.esum(outputs)
+        run_stats['NLL']  += loc_nll.value()
         
         if backprop:  ### backprop
             loc_nll.backward()
