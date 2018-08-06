@@ -95,7 +95,7 @@ class RNNGlm:
         """
         dy.renew_cg()
         run_stats = RuntimeStats('NLL','N')
-
+        run_stats.push_row()
 
         outputs = []
         for sent in eval_sentences:
@@ -121,11 +121,7 @@ class RNNGlm:
                 toklist.extend(sent)
             batch_stats  = '\n'.join(["%s\t%f\t%f\t%s"%(word,-neglogprob.value(),neglogprob.value()/np.log(2),not word in self.lexicon) for word,neglogprob in zip(toklist,outputs)])
             print(batch_stats,file=stats_file)
-
-        run_stats = RuntimeStats('NLL','N')
-        run_stats.push_row()
-        run_stats['NLL'] = NLL
-        run_stats['N']   = N
+            
         return run_stats
         
     
