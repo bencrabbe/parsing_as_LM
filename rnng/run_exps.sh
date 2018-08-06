@@ -31,7 +31,7 @@ make_lmconfig(){
     echo "memory_size    = $3" >> $CNAME
     echo "[learning]"          >> $CNAME
     echo "dropout        = $4" >> $CNAME
-    echo "learning_rate  = 0.5">> $CNAME
+    echo "learning_rate  = 0.3">> $CNAME
     echo "num_epochs     = 25" >> $CNAME
 }
 
