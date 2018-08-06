@@ -93,7 +93,6 @@ class RNNGlm:
         Returns:
           (float,int) . The negative loglikelihood of the batch, the number of words in the batch
         """
-        NLL,N = 0.0,0.0
         dy.renew_cg()
         outputs = []
         for sent in eval_sentences:
@@ -119,7 +118,12 @@ class RNNGlm:
                 toklist.extend(sent)
             batch_stats  = '\n'.join(["%s\t%f\t%f\t%s"%(word,-neglogprob.value(),neglogprob.value()/np.log(2),not word in self.lexicon) for word,neglogprob in zip(toklist,outputs)])
             print(batch_stats,file=stats_file)
-        return (NLL,N)
+
+        run_stats = RuntimeStats('NLL','N')
+        run_stats.push_row()
+        run_stats['NLL'] = NLL
+        run_stats['N']   = N
+        return run_stats
         
     
     def train_rnn_lm(self,modelname,train_sentences,validation_sentences,lr=0.1,dropout=0.3,max_epochs=10,batch_size=1):
