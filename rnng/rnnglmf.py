@@ -141,6 +141,7 @@ class RNNGlm:
 
         self.code_lexicon(train_sentences)
         self.make_structure()
+        self.dropout = dropout
         self.trainer = dy.SimpleSGDTrainer(self.model,learning_rate=lr)
 
         ntrain_sentences = len(train_sentences)
