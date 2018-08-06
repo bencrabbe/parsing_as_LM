@@ -9,6 +9,7 @@ import sys
 from random import shuffle
 from lexicons import *
 from char_rnn import *
+from proc_monitors import *
 
 
 """
@@ -80,119 +81,134 @@ class RNNGlm:
         @return a dynet expression
         """
         return expr if self.dropout == 0 else dy.dropout(expr,self.dropout)
+
+    def eval_sentences(self,eval_sentences,backprop=True,stats_file=None):
+        """
+        Evaluates a batch of sentences against a reference text.
+        Args:
+           eval_sentences (list): a list of list of strings (the tokens)
+        Kwargs:
+           backprop       (bool): a flag telling wether to backprop too.
+           stats_file   (stream): a stream where to dump lexical predictions.
+        Returns:
+          (float,int) . The negative loglikelihood of the batch, the number of words in the batch
+        """
+        NLL,N = 0.0,0.0
+        dy.renew_cg()
+        outputs = []
+        for sent in eval_sentences:
+            winput     = [RNNGlm.START_TOKEN] + sent[:-1]
+            X          = [self.lexicon.index(word) for word  in winput ]
+            Y          = [self.lexicon.index(word) for word in sent]
+            state      = self.rnn.initial_state()
+            xinputs    = [self.ifdropout(dy.concatenate([self.E[word_idx],self.char_rnn(word)])) for word,word_idx in zip(winput,X) ]
+            state_list = state.add_inputs(xinputs)
+            outputs.extend([self.O.neg_log_softmax(self.ifdropout(S.output()),y) for (S,y) in zip(state_list,Y) ])
+            N         += len(Y)
+
+        loc_nll    = dy.esum(outputs)
+        NLL       += loc_nll.value()
         
+        if backprop:  ### backprop
+            loc_nll.backward()
+            self.trainer.update()
+
+        if stats_file:###stats generation
+            toklist = [] 
+            for sent in eval_sentences:
+                toklist.extend(sent)
+            batch_stats  = '\n'.join(["%s\t%f\t%f\t%s"%(word,-neglogprob.value(),neglogprob.value()/np.log(2),not word in self.lexicon) for word,neglogprob in zip(toklist,outputs)])
+            print(batch_stats,file=stats_file)
+        return (NLL,N)
+        
+    
     def train_rnn_lm(self,modelname,train_sentences,validation_sentences,lr=0.1,dropout=0.3,max_epochs=10,batch_size=1):
         """
         Trains an RNNLM on a data set. Vanilla SGD training mode with simple minibatching and without any funny optimization.
-        @param modelname: a string used as prefix of output files
-        @param train_sentences,validation_sentences: lists of strings
-        @param lr: learning rate for SGD
-        @param dropout: dropout
-        @param max_epochs : number of epochs to run
-        @param batch_size : size of batches
+        Args:
+           modelname          (string): a string used as prefix of output files
+           train_sentences      (list):lists of strings
+           validation_sentences (list): lists of strings
+        Kwargs:
+           lr             (float): learning rate for SGD
+           dropout        (float): dropout
+           param max_epochs (int): number of epochs to run
+           param batch_size (int): size of batches
         """
 
         self.code_lexicon(train_sentences)
         self.make_structure()
-
-        trainer = dy.SimpleSGDTrainer(self.model,learning_rate=lr)
-        min_nll = np.inf
+        self.trainer = dy.SimpleSGDTrainer(self.model,learning_rate=lr)
 
         ntrain_sentences = len(train_sentences)
+        ndev_sentences   = len(validation_sentences)
+        self.print_summary(ntrain_sentences,ndev_sentences,lr,dropout)
 
-        self.print_summary(ntrain_sentences,len(validation_sentences),lr,dropout)
+        min_nll = np.inf
 
+        train_stats = RuntimeStats('NLL','N')
+        dev_stats   = RuntimeStats('NLL','N')
+        
         for e in range(max_epochs):
 
-            NLL = 0
-            N = 0
-            
+            train_stats.push_row()
+            self.dropout = dropout
             bbegin = 0
-            
             while bbegin < ntrain_sentences:
-                dy.renew_cg()
-                outputs = []
                 bend = min(ntrain_sentences,bbegin + batch_size)
-                for sent in train_sentences[bbegin:bend]:
-                    winput     = [RNNGlm.START_TOKEN] + sent[:-1]
-                    X          = [self.lexicon.index(word) for word  in winput ]
-                    Y          = [self.lexicon.index(word) for word in sent]
-                    state      = self.rnn.initial_state()
-                    xinputs    = [dy.dropout(dy.concatenate([self.E[word_idx],self.char_rnn(word)]),self.dropout) for word,word_idx in zip(winput,X) ]
-                    state_list = state.add_inputs(xinputs)
-                    outputs.extend([self.O.neg_log_softmax(dy.dropout(S.output(),self.dropout),y) for (S,y) in zip(state_list,Y) ])
-                    N         += len(Y)
-
-                loc_nll    = dy.esum(outputs)
-                NLL       += loc_nll.value()
-                loc_nll.backward()
-                trainer.update()
+                train_stats += self.eval_sentences(train_sentences[bbegin:bend],backprop=True)
                 bbegin = bend
-                    
+
+            NLL,N = train_stats.peek()   
             print('[Training]   Epoch %d, NLL = %f, PPL = %f'%(e,NLL,np.exp(NLL/N)),flush=True)
 
-            NLL,N = self.eval_model(validation_sentences,batch_size)
-                
+            dev_stats.push_row()
+            self.dropout = 0
+            bbegin = 0
+            while bbegin < ndev_sentences:            
+                bend = min(ndev_sentences,bbegin + batch_size)
+                dev_stats += self.eval_sentences(validation_sentences[bbegin:bend],backprop=True)
+                bbegin = bend
+                                
+            NLL,N = dev_stats.peek()   
             if NLL < min_nll:
                 self.save_model(modelname)
                 min_nll = NLL
-                
             print('[Validation] Epoch %d, NLL = %f, PPL = %f\n'%(e,NLL,np.exp(NLL/N)),flush=True)
 
-            
-    def eval_model(self,test_sentences,batch_size,stats_file=None):
+    def test_model(self,test_sentences,batch_size,stats_file=None):
         """
-        Tests a model on a validation set and returns the NLL and the Number of words in the dataset.
+        Tests a model on a test set and returns the NLL and the Number of words in the dataset.
+        Prints out the lexical stats as a side effect.
         Args:
              test_sentences (list): a list of list of strings.
              batch_size      (int): the size of the batch used
-        Kwargs:
-             stats_file   (stream): the stream where to write the stats or None
+        Kwargs: 
+             stats_file   (stream): the stream where to write the stats
         Returns:
              a couple that allows to compute perplexities. (Negative LL,N) 
         """
-        
-        NLL = 0
-        N = 0
+
         ntest_sentences   = len(test_sentences)
+        dpout = self.dropout
+        self.dropout = 0
+        
+        print('token\tcond_logprob\tsurprisal\tis_unk',file=stats_file)        
 
-        batches_processed = 0
         bbegin = 0
-
-        stats_header = True 
+        NLL,N = 0.0,0
         while bbegin < ntest_sentences:
-            dy.renew_cg()
-            outputs = []                
-            bend = min(ntest_sentences,bbegin + batch_size)
-            for sent in test_sentences[bbegin:bend]:
-                winput     = [RNNGlm.START_TOKEN] + sent[:-1]
-                X          = [self.lexicon.index(word) for word  in winput ]
-                Y          = [self.lexicon.index(word) for word in sent]
-                state      = self.rnn.initial_state()
-                xinputs    = [dy.concatenate([self.E[word_idx],self.char_rnn(word)]) for word,word_idx in zip(winput,X) ]
-                state_list = state.add_inputs(xinputs)
-                outputs.extend([self.O.neg_log_softmax(S.output(),y) for (S,y) in zip(state_list,Y) ])
-                N         += len(Y)
-            loc_nll    = dy.esum(outputs)
-            NLL       += loc_nll.value()
-
-            if stats_file:###stats generation
-                if stats_header:
-                    print('token\tcond_logprob\tsurprisal\tis_unk',file=stats_file)
-                toklist = [] 
-                for sent in test_sentences[bbegin:bend]:
-                    toklist.extend(sent)
-                batch_stats  = '\n'.join(["%s\t%f\t%f\t%s"%(word,-neglogprob.value(),neglogprob.value()/np.log(2),not word in self.lexicon) for word,neglogprob in zip(toklist,outputs)])
-                print(batch_stats,file=stats_file)
-                stats_header = False
-                
-            batches_processed += 1
-            bbegin = batches_processed * batch_size
-
+            bend         = min(ntest_sentences,bbegin + batch_size)
+            locNLL,locN  = self.eval_sentences(test_sentences[bbegin:bend],backprop=False,stats_file=stats_file)
+            NLL         += locNLL
+            N           += locN
+            bbegin = bend
+            
+        self.dropout = dpout
         return (NLL,N)
 
     
-    def print_summary(self,ntrain,ndev,lr,dropout):
+    def print_summary(self,ntrain,ndev,lr):
         """
         Prints a summary of the model structure.
         """
@@ -202,7 +218,7 @@ class RNNGlm:
         print('embedding size          :',self.embedding_size,flush=True)
         print('hidden size             :',self.hidden_size,flush=True)
         print('Learning rate           :',lr,flush=True)
-        print('Dropout                 :',dropout,flush=True)
+        print('Dropout                 :',self.dropout,flush=True)
 
     def save_model(self,model_name):
         """
@@ -322,7 +338,7 @@ if __name__ == '__main__':
         istream.close()
 
         stats_stream = open(model_name +'.tsv','w') if stats else None
-        NLL,N = rnnlm.eval_model(test_treebank,batch_size=32,stats_file=stats_stream)
+        NLL,N = rnnlm.test_model(test_treebank,batch_size=32,stats_file=stats_stream)
         print('Test NLL = %f, PPL = %f'%(NLL,np.exp(NLL/N)))
         if stats:
             stats_stream.close()
