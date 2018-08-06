@@ -107,10 +107,10 @@ class RNNGlm:
             state_list = state.add_inputs(xinputs)
             outputs.extend([self.O.neg_log_softmax(self.ifdropout(S.output()),y) for (S,y) in zip(state_list,Y) ])
             run_stats['N'] += len(Y)
-
+ 
         loc_nll            = dy.esum(outputs)
         run_stats['NLL']  += loc_nll.value()
-        
+         
         if backprop:  ### backprop
             loc_nll.backward()
             self.trainer.update()
