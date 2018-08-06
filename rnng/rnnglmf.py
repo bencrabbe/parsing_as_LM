@@ -142,7 +142,7 @@ class RNNGlm:
 
         ntrain_sentences = len(train_sentences)
         ndev_sentences   = len(validation_sentences)
-        self.print_summary(ntrain_sentences,ndev_sentences,lr,dropout)
+        self.print_summary(ntrain_sentences,ndev_sentences,lr)
 
         min_nll = np.inf
 
