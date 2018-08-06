@@ -91,7 +91,7 @@ class RNNGlm:
            backprop       (bool): a flag telling wether to backprop too.
            stats_file   (stream): a stream where to dump lexical predictions.
         Returns:
-          (float,int) . The negative loglikelihood of the batch, the number of words in the batch
+          RuntimeStats . The negative loglikelihood of the batch and the number of words in the batch
         """
         dy.renew_cg()
         run_stats = RuntimeStats('NLL','N')
@@ -200,15 +200,15 @@ class RNNGlm:
         print('token\tcond_logprob\tsurprisal\tis_unk',file=stats_file)        
 
         bbegin = 0
-        NLL,N = 0.0,0
+        run_stats = RuntimeStats('NLL','N')
+        run_stats.push_row()
         while bbegin < ntest_sentences:
             bend         = min(ntest_sentences,bbegin + batch_size)
-            locNLL,locN  = self.eval_sentences(test_sentences[bbegin:bend],backprop=False,stats_file=stats_file)
-            NLL         += locNLL
-            N           += locN
+            run_stats   += self.eval_sentences(test_sentences[bbegin:bend],backprop=False,stats_file=stats_file)
             bbegin = bend
             
         self.dropout = dpout
+        NLL,N = run_stats.peek()   
         return (NLL,N)
 
     

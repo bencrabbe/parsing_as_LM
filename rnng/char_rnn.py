@@ -59,7 +59,7 @@ class CharRNNBuilder:
         char_embeddings = [self.E[self.charset.index(c)] for c in token if c in self.charset] #ignores unk chars
 
         if not char_embeddings: #empty word, no char recognized
-            print('problematic token',token,file=sys.stderr)
+            print('problematic token',token,file=sys.stderr,flush=True)
             return self.b
             
         fwd_state       = self.fwd_rnn.initial_state()
