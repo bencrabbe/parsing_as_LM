@@ -138,7 +138,6 @@ class RNNGlm:
            param max_epochs (int): number of epochs to run
            param batch_size (int): size of batches
         """
-
         self.code_lexicon(train_sentences)
         self.make_structure()
         self.dropout = dropout
@@ -171,7 +170,7 @@ class RNNGlm:
             bbegin = 0
             while bbegin < ndev_sentences:            
                 bend = min(ndev_sentences,bbegin + batch_size)
-                dev_stats += self.eval_sentences(validation_sentences[bbegin:bend],backprop=True)
+                dev_stats += self.eval_sentences(validation_sentences[bbegin:bend],backprop=False)
                 bbegin = bend
                                 
             NLL,N = dev_stats.peek()   

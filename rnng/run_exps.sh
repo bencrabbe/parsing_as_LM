@@ -31,7 +31,7 @@ make_lmconfig(){
     echo "memory_size    = $3" >> $CNAME
     echo "[learning]"          >> $CNAME
     echo "dropout        = $4" >> $CNAME
-    echo "learning_rate  = 0.3">> $CNAME
+    echo "learning_rate  = 0.5">> $CNAME
     echo "num_epochs     = 25" >> $CNAME
 }
 
@@ -54,7 +54,7 @@ train_rnnlm(){
     nohup python rnnglmf.py -m $NAME/$NAME -t ptb_train.raw -d ptb_dev.raw -b ptb-250.brown -c "$NAME/$NAME.conf" -p ptb_test.raw -s > "nohup.$NAME.out" &   
 } 
 
-train_rnnlm 150 300 0.5
+train_rnnlm 250 300 0.5
 train_rnnlm 250 200 0.5
 train_rnnlm 250 150 0.5
 
