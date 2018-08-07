@@ -4,6 +4,7 @@ MKL_NUM_THREADS=6
 NUM_EPOCHS=20
 
 make_config(){
+    
     #$1 NAME $2 = stack embedding size , $3 = lstm memory size $4 = word embedding size $5 = dropout
     CNAME="$1.conf"
     echo > $CNAME  

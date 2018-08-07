@@ -274,7 +274,88 @@ class ConsTree:
         assert(len(stack) == 1)
         return stack[-1].get_child()
 
+    
+class FrenchTreebank:
+    """
+    That's a namespace for processing french treebank SPRML sources.
+    This is meant to generate the traditional setup for PS parsing
+    """
+    @staticmethod
+    def strip_features(ctree):
+        """
+        That's an inplace destructive method for removing features from FTB preterminals.
+        """
+        ctree.label = ctree.label.split('##')[0]
+        
+        for child in ctree.children:
+            FrenchTreebank.strip_features(child)
+        return ctree
+            
+    @staticmethod
+    def strip_decoration(ctree):
+        """
+        That's an inplace destructive function removing French Treebank trees internal node label decorations (such as functions etc).
+        @param ctree: a ConsTree object.
+        """
+        ctree.label = ctree.label.split('-')[0]
+        for child in ctree.children:
+            FrenchTreebank.strip_features(child)
+        return ctree
 
+    @staticmethod
+    def process_root(ctree,root_label='TOP'):
+        """
+        Sets a label to the root node
+        """
+        ctree.label = root_label
+        return ctree
+        
+    @staticmethod
+    def normalize_numbers(ctree,num_token='<num>'):
+        """
+        Replaces all numbers with the <num> token
+        """
+        if ctree.is_leaf():
+            if re.match(r'[0-9]+([,/\.][0-9]+)*',ctree.label):
+                ctree.label = num_token
+        for child in ctree.children:
+            FrenchTreebank.normalize_numbers(child,num_token)
+        return ctree
+
+    @staticmethod
+    def generate_standard_split(spmrl_root_dir,dest_dir):
+        """
+        Generates the standard split for French Treebank
+        """
+        itrain     = open(os.path.join(spmrl_root_dir,'train','train.French.gold.ptb'))
+        idev       = open(os.path.join(spmrl_root_dir,'dev','dev.French.gold.ptb'))
+        itest      = open(os.path.join(spmrl_root_dir,'test','test.French.gold.ptb'))
+        
+        train_file = open(os.path.join(out_data_dir,'ftb_train.mrg'),'w')
+        dev_file   = open(os.path.join(out_data_dir,'ftb_dev.mrg'),'w')
+        test_file  = open(os.path.join(out_data_dir,'ftb_test.mrg'),'w')
+        train_raw  = open(os.path.join(out_data_dir,'ftb_train.raw'),'w')
+        dev_raw    = open(os.path.join(out_data_dir,'ftb_dev.raw'),'w')
+        test_raw   = open(os.path.join(out_data_dir,'ftb_test.raw'),'w')
+
+        ilist   = [itrain,idev,itest]
+        mrglist = [train_file,dev_file,test_file]
+        rawlist = [train_raw,dev_raw,test_raw]
+        
+        for ifile,mrgfile,rawfile in zip(ilist,mrglist,rawlist):
+            for t_string in ifile:
+                tree = ConsTree.read_tree(t_string).children[0]
+                FrenchTreeBank.process_root(tree,root_label='TOP')            
+                FrenchTreeBank.strip_features(tree)
+                FrenchTreeBank.strip_decoration(tree)
+                FrenchTreeBank.normalize_numbers(tree)
+            print(tree,file=mrgfile)
+            print(' '.join(tree.tokens()),file=rawfile)
+            ifile.close()
+            mrgfile.close()
+            rawfile.close()
+        
+    
 class PennTreebank:
     """
     That's a namespace for processing penn treebank sources.
@@ -450,8 +531,10 @@ class PennTreebank:
 if __name__ == '__main__':
     #Generates Penn TB with classical setup
     #PennTreebank.generate_standard_split('/data/Corpus/ptb/treebank_3/parsed/mrg/wsj','/home/bcrabbe/parsing_as_LM/rnng')
-    PennTreebank.generate_standard_split('/Users/bcrabbe/Desktop/ptb/treebank_3/parsed/mrg/wsj','/Users/bcrabbe/parsing_as_LM/rnng')
+    #PennTreebank.generate_standard_split('/Users/bcrabbe/Desktop/ptb/treebank_3/parsed/mrg/wsj','/Users/bcrabbe/parsing_as_LM/rnng')
 
-    c = PennTreebank.count_categories('ptb_train.mrg')
-    for cat,count in c.items():
-        print('%s :: %d'%(cat,count))
+    FrenchTreebank.generate_standard_split('/data/Corpus/FRENCH_SPMRL/gold/ptb','/Users/bcrabbe/parsing_as_LM/rnng')
+    
+    #c = PennTreebank.count_categories('ptb_train.mrg')
+    #for cat,count in c.items():
+    #    print('%s :: %d'%(cat,count))

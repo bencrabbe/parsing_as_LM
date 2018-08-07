@@ -9,9 +9,7 @@ import pandas as pda
 import getopt
 import json
 
-#from collections   import Counter
 from random        import shuffle
-#from functools     import reduce
 from constree      import *
 from lexicons      import *
 from proc_monitors import *
@@ -1156,10 +1154,11 @@ if __name__ == '__main__':
     brown_file  = ''
     model_name  = ''
     config_file = ''
+    beam_size   = 400
     stats       = False
     
     try:
-        opts, args = getopt.getopt(sys.argv[1:],"ht:d:p:m:b:c:s")
+        opts, args = getopt.getopt(sys.argv[1:],"ht:d:p:m:b:c:sB:")
     except getopt.GetoptError:
         print('Ooops, wrong command line arguments')
         print('for training...')
@@ -1181,6 +1180,8 @@ if __name__ == '__main__':
             model_name = arg
         elif opt in ['-b','--brown']:
             brown_file = arg
+        elif opt in ['-B','--Beam-size']:
+            beam_size  = int(arg)
         elif opt in ['-s','--stats']:
             stats = True
 
@@ -1207,10 +1208,10 @@ if __name__ == '__main__':
         
         parser = RNNGparser.load_model(model_name)
         test_stream   = open(test_file)
-        test_out = open(model_name+".test.mrg",'w')
-        sstream  = open(model_name+'.stats.tsv','w') if stats else None
-        evalb_flag = test_file.endswith('mrg')
-        parser.parse_corpus(test_stream,test_out,stats_stream=sstream,K=400,evalb_mode=evalb_flag)
+        test_out      = open(model_name+".test.mrg",'w')
+        sstream       = open(model_name+'.stats.tsv','w') if stats else None
+        evalb_flag    = test_file.endswith('mrg')
+        parser.parse_corpus(test_stream,test_out,stats_stream=sstream,K=beam_size,evalb_mode=evalb_flag)
         test_out.close()
         test_stream.close()
         if stats:
