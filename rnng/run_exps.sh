@@ -35,7 +35,6 @@ make_lmconfig(){
     echo "num_epochs     = 25" >> $CNAME
 }
 
-
 train_rnng(){
    # $1 = stack embedding size , $2 = lstm memory size $3 = word embedding size $4 = dropout
    NAME="brown-$1-$2-$3-250"  #250 stands for the number of clusters

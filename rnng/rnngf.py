@@ -1202,7 +1202,8 @@ if __name__ == '__main__':
         test_stream   = open(test_file)
         test_out = open(model_name+".test.mrg",'w')
         sstream  = open('ptb_stats.csv','w') if stats else None
-        parser.parse_corpus(test_stream,test_out,stats_stream=sstream,K=400,evalb_mode=True)
+        evalb_flag = test_file.endswith('mrg')
+        parser.parse_corpus(test_stream,test_out,stats_stream=sstream,K=400,evalb_mode=evalb_flag)
         test_out.close()
         test_stream.close()
         if stats:
