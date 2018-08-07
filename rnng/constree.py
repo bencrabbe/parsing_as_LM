@@ -345,10 +345,10 @@ class FrenchTreebank:
         for ifile,mrgfile,rawfile in zip(ilist,mrglist,rawlist):
             for t_string in ifile:
                 tree = ConsTree.read_tree(t_string).children[0]
-                FrenchTreeBank.process_root(tree,root_label='TOP')            
-                FrenchTreeBank.strip_features(tree)
-                FrenchTreeBank.strip_decoration(tree)
-                FrenchTreeBank.normalize_numbers(tree)
+                FrenchTreebank.process_root(tree,root_label='TOP')            
+                FrenchTreebank.strip_features(tree)
+                FrenchTreebank.strip_decoration(tree)
+                FrenchTreebank.normalize_numbers(tree)
             print(tree,file=mrgfile)
             print(' '.join(tree.tokens()),file=rawfile)
             ifile.close()
