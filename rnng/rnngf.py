@@ -1087,37 +1087,44 @@ class RNNGparser:
         N   = 0
         stats_header = True 
         for line in istream:
-                tree               = ConsTree.read_tree(line)
-                wordsXtags         = tree.pos_tags()
-                tokens             = [tagnode.get_child().label for tagnode in wordsXtags]
-                tags               = [tagnode.label for tagnode in wordsXtags]
-                results            = self.predict_beam_generative(tokens,K)
+
+                
+                results = None
+                if evalb_mode:
+                    tree               = ConsTree.read_tree(line)
+                    wordsXtags         = tree.pos_tags()
+                    tokens             = [tagnode.get_child().label for tagnode in wordsXtags]
+                    tags               = [tagnode.label for tagnode in wordsXtags]
+                    results            = self.predict_beam_generative(tokens,K)
+                else:                        
+                    results            = self.predict_beam_generative(line.split(),K)
+                        
                 if results:
                     derivation_set     = []
                     for idx,r in enumerate(results):
                         r_derivation  = RNNGparser.weighted_derivation(r)
                         derivation_set.append(r_derivation)
                         if idx < kbest:
-                           r_tree        = RNNGparser.deriv2tree(r_derivation)
-                           r_tree.expand_unaries()
-                           if evalb_mode:
-                               r_tree.add_gold_tags(tags)
-                           print(r_tree,file=ostream,flush=True)
+                            r_tree        = RNNGparser.deriv2tree(r_derivation)
+                            r_tree.expand_unaries()
+                            if evalb_mode:
+                                r_tree.add_gold_tags(tags)
+                            print(r_tree,file=ostream,flush=True)
                     nll,df = self.aggregate_stats(derivation_set,tokens)
                     NLL += nll
                     N   += len(tokens)
                     if stats_stream:# writes out the stats
                         #hacked up, but pandas built-in output support for csv  currently hangs on my machine (!?)
-                        header = list(df)
                         if stats_header:
+                            header = list(df)
                             print('\t'.join(header),file=stats_stream)
-                        for row in df.values:
-                            print('\t'.join([str(v) for v in row]),file=stats_stream,flush=True)
-                        stats_header = False
-                else:
-                    print('(())')
+                            for row in df.values:
+                                print('\t'.join([str(v) for v in row]),file=stats_stream,flush=True)
+                                stats_header = False
+                        else:
+                            print('(())')
                 
-        print("NLL = %d, PPL = %f"%(NLL,np.exp(NLL/N)),file=sys.stderr)
+                    print("NLL = %d, PPL = %f"%(NLL,np.exp(NLL/N)),file=sys.stderr)
 
 def read_config(filename=None):
 

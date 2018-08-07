@@ -312,7 +312,6 @@ if __name__ == '__main__':
             print('unknown option %s, ignored'%(arg))
             
     if train_file and dev_file and brown_file and model_name:
-        
         istream  = open(train_file)
         train_treebank = [line.split() for line in istream]
         istream.close()
@@ -321,7 +320,6 @@ if __name__ == '__main__':
         dev_treebank = [line.split() for line in istream]
         istream.close()
         
-
         if config_file:
             config = read_config(config_file)
             rnnlm = RNNGlm(brown_file,embedding_size=config['embedding_size'] ,memory_size=config['memory_size'])
