@@ -1118,9 +1118,9 @@ class RNNGparser:
                         if stats_header:
                             header = list(df)
                             print('\t'.join(header),file=stats_stream)
-                            for row in df.values:
-                                print('\t'.join([str(v) for v in row]),file=stats_stream,flush=True)
-                                stats_header = False
+                        for row in df.values:
+                            print('\t'.join([str(v) for v in row]),file=stats_stream,flush=True)
+                        stats_header = False
                 else:
                     print('(())')
         print("NLL = %d, PPL = %f"%(NLL,np.exp(NLL/N)),file=sys.stderr)
@@ -1208,7 +1208,7 @@ if __name__ == '__main__':
         parser = RNNGparser.load_model(model_name)
         test_stream   = open(test_file)
         test_out = open(model_name+".test.mrg",'w')
-        sstream  = open('ptb_stats.csv','w') if stats else None
+        sstream  = open(model_name+'.stats.tsv','w') if stats else None
         evalb_flag = test_file.endswith('mrg')
         parser.parse_corpus(test_stream,test_out,stats_stream=sstream,K=400,evalb_mode=evalb_flag)
         test_out.close()
