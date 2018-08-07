@@ -331,12 +331,12 @@ class FrenchTreebank:
         idev       = open(os.path.join(spmrl_root_dir,'dev','dev.French.gold.ptb'))
         itest      = open(os.path.join(spmrl_root_dir,'test','test.French.gold.ptb'))
         
-        train_file = open(os.path.join(out_data_dir,'ftb_train.mrg'),'w')
-        dev_file   = open(os.path.join(out_data_dir,'ftb_dev.mrg'),'w')
-        test_file  = open(os.path.join(out_data_dir,'ftb_test.mrg'),'w')
-        train_raw  = open(os.path.join(out_data_dir,'ftb_train.raw'),'w')
-        dev_raw    = open(os.path.join(out_data_dir,'ftb_dev.raw'),'w')
-        test_raw   = open(os.path.join(out_data_dir,'ftb_test.raw'),'w')
+        train_file = open(os.path.join(dest_dir,'ftb_train.mrg'),'w')
+        dev_file   = open(os.path.join(dest_dir,'ftb_dev.mrg'),'w')
+        test_file  = open(os.path.join(dest_dir,'ftb_test.mrg'),'w')
+        train_raw  = open(os.path.join(dest_dir,'ftb_train.raw'),'w')
+        dev_raw    = open(os.path.join(dest_dir,'ftb_dev.raw'),'w')
+        test_raw   = open(os.path.join(dest_dir,'ftb_test.raw'),'w')
 
         ilist   = [itrain,idev,itest]
         mrglist = [train_file,dev_file,test_file]
