@@ -533,7 +533,7 @@ if __name__ == '__main__':
     #PennTreebank.generate_standard_split('/data/Corpus/ptb/treebank_3/parsed/mrg/wsj','/home/bcrabbe/parsing_as_LM/rnng')
     #PennTreebank.generate_standard_split('/Users/bcrabbe/Desktop/ptb/treebank_3/parsed/mrg/wsj','/Users/bcrabbe/parsing_as_LM/rnng')
 
-    FrenchTreebank.generate_standard_split('/data/Corpus/FRENCH_SPMRL/gold/ptb','/Users/bcrabbe/parsing_as_LM/rnng')
+    FrenchTreebank.generate_standard_split('/data/Corpus/FRENCH_SPMRL/gold/ptb','/home/bcrabbe/parsing_as_LM/rnng')
     
     #c = PennTreebank.count_categories('ptb_train.mrg')
     #for cat,count in c.items():
