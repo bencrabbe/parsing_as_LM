@@ -1088,7 +1088,6 @@ class RNNGparser:
         stats_header = True 
         for line in istream:
 
-                
                 results = None
                 if evalb_mode:
                     tree               = ConsTree.read_tree(line)
@@ -1096,8 +1095,9 @@ class RNNGparser:
                     tokens             = [tagnode.get_child().label for tagnode in wordsXtags]
                     tags               = [tagnode.label for tagnode in wordsXtags]
                     results            = self.predict_beam_generative(tokens,K)
-                else:                        
-                    results            = self.predict_beam_generative(line.split(),K)
+                else:
+                    tokens             = line.split()
+                    results            = self.predict_beam_generative(tokens,K)
                         
                 if results:
                     derivation_set     = []
