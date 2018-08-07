@@ -285,6 +285,9 @@ class FrenchTreebank:
         """
         That's an inplace destructive method for removing features from FTB preterminals.
         """
+        if ctree.is_leaf():
+            return ctree
+        
         ctree.label = ctree.label.split('##')[0]
         
         for child in ctree.children:
@@ -297,6 +300,9 @@ class FrenchTreebank:
         That's an inplace destructive function removing French Treebank trees internal node label decorations (such as functions etc).
         @param ctree: a ConsTree object.
         """
+        if ctree.is_leaf():
+            return ctree
+        
         ctree.label = ctree.label.split('-')[0]
         for child in ctree.children:
             FrenchTreebank.strip_decoration(child)
