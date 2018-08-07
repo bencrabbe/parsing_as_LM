@@ -299,7 +299,7 @@ class FrenchTreebank:
         """
         ctree.label = ctree.label.split('-')[0]
         for child in ctree.children:
-            FrenchTreebank.strip_features(child)
+            FrenchTreebank.strip_decoration(child)
         return ctree
 
     @staticmethod
@@ -349,8 +349,8 @@ class FrenchTreebank:
                 FrenchTreebank.strip_features(tree)
                 FrenchTreebank.strip_decoration(tree)
                 FrenchTreebank.normalize_numbers(tree)
-            print(tree,file=mrgfile)
-            print(' '.join(tree.tokens()),file=rawfile)
+                print(tree,file=mrgfile)
+                print(' '.join(tree.tokens()),file=rawfile)
             ifile.close()
             mrgfile.close()
             rawfile.close()
