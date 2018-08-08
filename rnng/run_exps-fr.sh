@@ -38,7 +38,7 @@ make_lmconfig(){
 
 train_rnng(){
    # $1 = stack embedding size , $2 = lstm memory size $3 = word embedding size $4 = dropout
-   NAME="brown-$1-$2-$3-200"  #250 stands for the number of clusters
+   NAME="rnng-fr-$1-$2-$3-200"  #250 stands for the number of clusters
    mkdir -p $NAME
    make_config "$NAME/$NAME" $1 $2 $3 $4 
    source activate py36
@@ -48,7 +48,7 @@ train_rnng(){
 
 train_rnnlm(){
     # $1 = embedding size , $2 = lstm memory size $3 = dropout
-    NAME="rnnlm-$1-$2-250"  #250 stands for the number of clusters
+    NAME="rnnlm-fr-$1-$2-250"  #250 stands for the number of clusters
     mkdir -p $NAME
     make_lmconfig "$NAME/$NAME" $1 $2 $3 
     source activate py36
