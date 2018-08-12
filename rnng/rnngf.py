@@ -1022,7 +1022,7 @@ class RNNGparser:
                     prev_prev_action    = elt.prev_element.prev_action
                     if prev_prev_action == RNNGparser.SHIFT: #<=> tests if we currently generate a word
                         next_word.append(elt)
-                    elif s.prev_action ==  RNNGparser.TERMINATE:
+                    elif elt.prev_action ==  RNNGparser.TERMINATE:
                         successes.append(elt)
                     else:
                         self.exec_beam_action(elt,sentence)
