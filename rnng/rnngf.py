@@ -982,7 +982,7 @@ class RNNGparser:
         return successes
 
     def predict_beam_naive(self,sentence,K):
-        """
+        """ 
         Performs generative parsing and returns an ordered list of successful beam elements.
         This is the direct naive generative parsing without fast track. 
         Args:
@@ -1009,19 +1009,25 @@ class RNNGparser:
                     for (action, logprob) in self.predict_action_distrib(configuration,sentence):
                         if elt.prev_action == RNNGparser.SHIFT: #<=> we currently generate a word
                             new_elt = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob)
-                            next_word.append(new_elt)
-                        elif action ==  RNNGparser.TERMINATE:
-                            new_elt = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob)
-                            successes.append(new_elt)
+                            fringe.append(new_elt)
                         else:
                             new_elt = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)
                             fringe.append(new_elt)
+                            
                 fringe.sort(key=lambda x:x.prefix_gprob,reverse=True)
                 fringe = fringe[:K]
-                this_word = fringe 
-                for elt in this_word:
-                    self.exec_beam_action(elt,sentence)
-                            
+                
+                this_word = [ ]
+                for elt in fringe:
+                    prev_prev_action    = elt.prev_element.prev_action
+                    if prev_prev_action == RNNGparser.SHIFT: #<=> tests if we currently generate a word
+                        next_word.append(elt)
+                    elif s.prev_action ==  RNNGparser.TERMINATE:
+                        successes.append(elt)
+                    else:
+                        self.exec_beam_action(elt,sentence)
+                        this_word.append(elt)
+                    
             next_word.sort(key=lambda x:x.prefix_gprob,reverse=True)
             next_word = next_word[:Kw]
             for elt in next_word:
