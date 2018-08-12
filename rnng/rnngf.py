@@ -981,6 +981,58 @@ class RNNGparser:
             successes = successes[:K]
         return successes
 
+    def predict_beam_naive(self,sentence,K):
+        """
+        Performs generative parsing and returns an ordered list of successful beam elements.
+        This is the direct naive generative parsing without fast track. 
+        Args:
+              sentence      (list): list of strings (tokens)
+              K              (int): beam width 
+        Returns:
+             list. List of BeamElements. 
+        """
+        Kw  = int(K/10)
+        
+        dy.renew_cg()
+        
+        init = BeamElement.init_element(self.init_configuration(len(sentence)))
+        beam,successes  = [[init]],[ ]
+        
+        while beam[-1]:
+            
+            this_word = beam[-1]
+            next_word = [ ]            
+            while this_word and len(next_word) < K:
+                fringe = []
+                for elt in this_word:
+                    configuration = elt.configuration
+                    for (action, logprob) in self.predict_action_distrib(configuration,sentence):
+                        if elt.prev_action == RNNGparser.SHIFT: #<=> we currently generate a word
+                            new_elt = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob)
+                            next_word.append(new_elt)
+                        elif action ==  RNNGparser.TERMINATE:
+                            new_elt = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob)
+                            successes.append(new_elt)
+                        else:
+                            new_elt = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)
+                            fringe.append(new_elt)
+                fringe.sort(key=lambda x:x.prefix_gprob,reverse=True)
+                fringe = fringe[:K]
+                this_word = fringe 
+                for elt in this_word:
+                    self.exec_beam_action(elt,sentence)
+                            
+            next_word.sort(key=lambda x:x.prefix_gprob,reverse=True)
+            next_word = next_word[:Kw]
+            for elt in next_word:
+                self.exec_beam_action(elt,sentence)
+            beam.append(next_word)
+            
+        if successes:
+            successes.sort(key=lambda x:x.prefix_gprob,reverse=True)
+            successes = successes[:K]
+        return successes
+
     
     def predict_greedy(self,sentence):
         """
@@ -1092,7 +1144,8 @@ class RNNGparser:
                     wordsXtags         = tree.pos_tags()
                     tokens             = [tagnode.get_child().label for tagnode in wordsXtags]
                     tags               = [tagnode.label for tagnode in wordsXtags]
-                    results            = self.predict_beam_generative(tokens,K)
+                    #results            = self.predict_beam_generative(tokens,K)
+                    results            = self.predict_beam_naive(tokens,K)
                 else:
                     tokens             = line.split()
                     results            = self.predict_beam_generative(tokens,K)
