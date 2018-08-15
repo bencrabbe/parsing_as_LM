@@ -957,7 +957,6 @@ class RNNGparser:
             for (action, logprob) in self.predict_action_distrib(configuration,sentence):
                 new_elt   = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)
                 new_elt.K = round( elt.K * exp(logprob) )
-                print('newK=',new_elt.K)
                 if new_elt.K > 0.0:
                     self.exec_beam_action(new_elt,sentence)    
                     if elt.prev_action == RNNGparser.SHIFT:  #we generate a word
