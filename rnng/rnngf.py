@@ -936,6 +936,7 @@ class RNNGparser:
         init = BeamElement.init_element(self.init_configuration(len(sentence)))
         init.K = K
         nextword,successes = [init], []
+        
         while nextword:
           #select
           beam    = [ ]
@@ -1203,6 +1204,7 @@ class RNNGparser:
                     #results            = self.predict_beam_generative(tokens,K)
                     #results            = self.predict_beam_naive(tokens,K)
                     results            =  self.particle_beam_search(tokens,K)
+                    print("#results",len(results))
                 else:
                     tokens             = line.split()
                     results            = self.predict_beam_generative(tokens,K)
