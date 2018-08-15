@@ -945,6 +945,7 @@ class RNNGparser:
 
           for elt,weight in zip(nextword,weights):
             elt.K = round(K * weight)
+            print(elt.K)
             if elt.K > 0.0:
               beam.append(elt)
           print('#Beam',len(beam),"Z=",Z,"W=",sum(weights))
