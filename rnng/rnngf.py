@@ -957,7 +957,7 @@ class RNNGparser:
             elt = beam.pop()
             configuration = elt.configuration
 
-            preds =  self.predict_action_distrib(configuration,sentence)
+            preds =  list(self.predict_action_distrib(configuration,sentence))
             flag = False
             for (action, logprob) in preds:
                 new_elt   = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)
