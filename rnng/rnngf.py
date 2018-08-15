@@ -948,7 +948,7 @@ class RNNGparser:
             elt.K = round(K * weight)
             if elt.K > 0.0:
               beam.append(elt)
-         if len(beam) == 0 and len(nextword) > 0:
+          if len(beam) == 0 and len(nextword) > 0:
              print('died during selection')
          
           #search
