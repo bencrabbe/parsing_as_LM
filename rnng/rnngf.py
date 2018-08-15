@@ -10,7 +10,7 @@ import getopt
 import json
 
 from random        import shuffle
-from math          import exp,log
+from math          import exp,log,ceil
 from constree      import *
 from lexicons      import *
 from proc_monitors import *
@@ -960,17 +960,25 @@ class RNNGparser:
             preds =  list(self.predict_action_distrib(configuration,sentence))
             flag = False
             for (action, logprob) in preds:
+                
                 new_elt   = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)
-                new_elt.K = round( exp(log(elt.K) + logprob) )
-                if new_elt.K > 0.0:
-                    flag = True
-                    self.exec_beam_action(new_elt,sentence)    
-                    if elt.prev_action == RNNGparser.SHIFT:  #we generate a word
+
+                if elt.prev_action == RNNGparser.SHIFT:  #we generate a word
+                    new_elt.K = ceil( exp(log(elt.K) + logprob) )
+                    if new_elt.K > 0.0:
+                        flag = True 
+                        self.exec_beam_action(new_elt,sentence)    
                         nextword.append(new_elt)
-                    elif action == RNNGparser.TERMINATE:     #parse success
-                        successes.append(new_elt)
-                    else:
-                        beam.append(new_elt)
+                else:
+                    new_elt.K = round( exp(log(elt.K) + logprob) )
+                    if new_elt.K > 0.0:
+                        flag = True 
+                        self.exec_beam_action(new_elt,sentence)    
+                        if action == RNNGparser.TERMINATE:     #parse success
+                            successes.append(new_elt)
+                        else:
+                            beam.append(new_elt)
+                            
             if len(preds) > 0 and not flag:
                 print('died during search, from elt with particles=',elt.K,'(%d)'%len(preds),elt.prev_action == RNNGparser.SHIFT)
         successes.sort(key=lambda x:x.prefix_gprob,reverse=True)
