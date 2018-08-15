@@ -939,18 +939,16 @@ class RNNGparser:
         
         while nextword:
           #select
+          print(sum([elt.K for elt in nextword]))
           beam    = [ ]
           weights = [ exp(elt.prefix_gprob + log(elt.K)) for elt in nextword]
           Z       = sum(weights)
-          print(Z)
           weights = [w/Z for w in weights]
 
           for elt,weight in zip(nextword,weights):
             elt.K = round(K * weight)
             if elt.K > 0.0:
               beam.append(elt)
-          if len(beam) == 0 and len(nextword) > 0:
-             print('died during selection')
          
           #search
           nextword = []
@@ -958,7 +956,8 @@ class RNNGparser:
             elt = beam.pop()
             configuration = elt.configuration
 
-            for (action, logprob) in self.predict_action_distrib(configuration,sentence):                
+            for (action, logprob) in self.predict_action_distrib(configuration,sentence):
+                
                 new_elt   = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)
 
                 if elt.prev_action == RNNGparser.SHIFT:  #we generate a word
