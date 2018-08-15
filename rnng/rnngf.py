@@ -921,6 +921,50 @@ class RNNGparser:
         assert(not stack and flag)
         return root
 
+    def particle_beam_search(self,sentence,K):
+        """
+        Particle filter inspired beam search.
+        Args:
+              sentence      (list): list of strings (tokens)
+              K              (int): the number of particles to use
+        Returns:
+              list. List of BeamElements. 
+        """
+        dy.renew_cg()
+
+        init = BeamElement.init_element(self.init_configuration(len(sentence)))
+        init.K = K
+        nextword,successes = [init], []
+        while nextword:
+          #select
+          beam    = [ ]
+          weights = [ exp(elt.prefix_gprob) * elt.K for elt in nextword]
+          Z       = sum(weights)
+          weights = [w/Z for w in weights]
+
+          for elt,weight in zip(nextword,weights):
+            elt.K = round(K * weight)
+            if elt.K > 0.0:
+              beam.append(elt)
+              
+          #search
+          nextword = []
+          while beam:
+            elt = beam.pop()
+            configuration = elt.configuration
+            for (action, logprob) in self.predict_action_distrib(configuration,sentence):
+                new_elt   = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)
+                new_elt.K = round( elt.K * exp(logprob) )
+                if new_elt.K > 0.0:
+                    self.exec_beam_action(new_elt,sentence)    
+                    if elt.prev_action == RNNGparser.SHIFT:  #we generate a word
+                        nextword.append(new_elt)
+                    elif action == RNNGparser.TERMINATE:     #parse success
+                        successes.append(new_elt)
+                    else:
+                        beam.append(new_elt)
+        return successes
+                        
     def predict_beam_generative(self,sentence,K):
         """
         Performs generative parsing and returns an ordered list of successful beam elements.
@@ -1151,7 +1195,8 @@ class RNNGparser:
                     tokens             = [tagnode.get_child().label for tagnode in wordsXtags]
                     tags               = [tagnode.label for tagnode in wordsXtags]
                     #results            = self.predict_beam_generative(tokens,K)
-                    results            = self.predict_beam_naive(tokens,K)
+                    #results            = self.predict_beam_naive(tokens,K)
+                    results            =  self.particle_beam_search(tokens,K)
                 else:
                     tokens             = line.split()
                     results            = self.predict_beam_generative(tokens,K)
