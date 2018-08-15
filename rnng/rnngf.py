@@ -971,7 +971,7 @@ class RNNGparser:
                         successes.append(new_elt)
                     else:
                         beam.append(new_elt)
-            if preds and not flag:
+            if len(preds) > 0 and not flag:
                 print('died during search, from elt with particles=',elt.K)
         successes.sort(key=lambda x:x.prefix_gprob,reverse=True)
         print('#succ',len(successes))
