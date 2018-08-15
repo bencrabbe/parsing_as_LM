@@ -947,7 +947,7 @@ class RNNGparser:
           #print('#NextWord',len(nextword))
 
           for elt,weight in zip(nextword,weights):
-            elt.K = round(K * weight)
+            elt.K = K * weight
             if elt.K > 0.0:
               beam.append(elt)
               
@@ -1232,7 +1232,7 @@ class RNNGparser:
                             print('\t'.join([str(v) for v in row]),file=stats_stream,flush=True)
                         stats_header = False
                 else:
-                    print('(())')
+                    print('(())',file=ostream,flush=True)
         print("NLL = %d, PPL = %f"%(NLL,np.exp(NLL/N)),file=sys.stderr)
 
 
