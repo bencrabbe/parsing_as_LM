@@ -943,11 +943,10 @@ class RNNGparser:
           Z       = sum(weights)
           weights = [w/Z for w in weights]
 
-          print('#NextWord',len(nextword))
+          #print('#NextWord',len(nextword))
 
           for elt,weight in zip(nextword,weights):
             elt.K = round(K * weight)
-            print(elt.K)
             if elt.K > 0.0:
               beam.append(elt)
               
@@ -965,6 +964,7 @@ class RNNGparser:
                     if elt.prev_action == RNNGparser.SHIFT:  #we generate a word
                         nextword.append(new_elt)
                     elif action == RNNGparser.TERMINATE:     #parse success
+                        print('adding succ')
                         successes.append(new_elt)
                     else:
                         beam.append(new_elt)
