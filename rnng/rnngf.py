@@ -942,6 +942,7 @@ class RNNGparser:
           beam    = [ ]
           weights = [ exp(elt.prefix_gprob + log(elt.K)) for elt in nextword]
           Z       = sum(weights)
+          print(Z)
           weights = [w/Z for w in weights]
 
           for elt,weight in zip(nextword,weights):
@@ -957,30 +958,22 @@ class RNNGparser:
             elt = beam.pop()
             configuration = elt.configuration
 
-            preds =  list(self.predict_action_distrib(configuration,sentence))
-            flag = False
-            for (action, logprob) in preds:
-                
+            for (action, logprob) in self.predict_action_distrib(configuration,sentence):                
                 new_elt   = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)
 
                 if elt.prev_action == RNNGparser.SHIFT:  #we generate a word
                     new_elt.K = ceil( exp(log(elt.K) + logprob) )
                     if new_elt.K > 0.0:
-                        flag = True 
                         self.exec_beam_action(new_elt,sentence)    
                         nextword.append(new_elt)
                 else:
                     new_elt.K = round( exp(log(elt.K) + logprob) )
                     if new_elt.K > 0.0:
-                        flag = True 
                         self.exec_beam_action(new_elt,sentence)    
                         if action == RNNGparser.TERMINATE:     #parse success
                             successes.append(new_elt)
                         else:
                             beam.append(new_elt)
-                            
-            if len(preds) > 0 and not flag:
-                print('died during search, from elt with particles=',elt.K,'(%d)'%len(preds),elt.prev_action == RNNGparser.SHIFT)
         successes.sort(key=lambda x:x.prefix_gprob,reverse=True)
         print('#succ',len(successes))
         return successes
