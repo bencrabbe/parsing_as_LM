@@ -922,7 +922,7 @@ class RNNGparser:
         assert(not stack and flag)
         return root
 
-    def particle_beam_search(self,sentence,K):
+    def particle_beam_search(self,sentence,K=):
         """
         Particle filter inspired beam search.
         Args:
@@ -944,32 +944,37 @@ class RNNGparser:
           Z       = sum(weights)
           weights = [w/Z for w in weights]
 
-          #print('#NextWord',len(nextword))
-
           for elt,weight in zip(nextword,weights):
-            elt.K = K * weight
+            elt.K = round(K * weight)
             if elt.K > 0.0:
               beam.append(elt)
-              
-          print('#Beam',len(beam),"Z=",Z,"W=",sum(weights))
+         if len(beam) == 0 and len(nextword) > 0:
+             print('died during selection')
+         
           #search
           nextword = []
           while beam:
             elt = beam.pop()
             configuration = elt.configuration
-            for (action, logprob) in self.predict_action_distrib(configuration,sentence):
+
+            preds =  self.predict_action_distrib(configuration,sentence)
+            flag = False
+            for (action, logprob) in preds:
                 new_elt   = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)
-                new_elt.K = round( elt.K * exp(logprob) )
+                new_elt.K = round( exp(log(elt.K) + logprob) )
                 if new_elt.K > 0.0:
+                    flag = True
                     self.exec_beam_action(new_elt,sentence)    
                     if elt.prev_action == RNNGparser.SHIFT:  #we generate a word
                         nextword.append(new_elt)
                     elif action == RNNGparser.TERMINATE:     #parse success
-                        print('adding succ')
                         successes.append(new_elt)
                     else:
                         beam.append(new_elt)
+            if preds and not flag:
+                print('died during search')
         successes.sort(key=lambda x:x.prefix_gprob,reverse=True)
+        print('#succ',len(successes))
         return successes
                         
     def predict_beam_generative(self,sentence,K):
@@ -1204,7 +1209,6 @@ class RNNGparser:
                     #results            = self.predict_beam_generative(tokens,K)
                     #results            = self.predict_beam_naive(tokens,K)
                     results            =  self.particle_beam_search(tokens,K)
-                    print("#results",len(results))
                 else:
                     tokens             = line.split()
                     results            = self.predict_beam_generative(tokens,K)
