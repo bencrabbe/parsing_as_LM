@@ -939,7 +939,7 @@ class RNNGparser:
         
         while nextword:
           #select
-          print(sum([elt.K for elt in nextword]))
+          print('before',sum([elt.K for elt in nextword]))
           beam    = [ ]
           weights = [ exp(elt.prefix_gprob + log(elt.K)) for elt in nextword]
           Z       = sum(weights)
@@ -949,7 +949,8 @@ class RNNGparser:
             elt.K = round(K * weight)
             if elt.K > 0.0:
               beam.append(elt)
-         
+
+          print('after',sum([elt.K for elt in nextword]))
           #search
           nextword = []
           while beam:
