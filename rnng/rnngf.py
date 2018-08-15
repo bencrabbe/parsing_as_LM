@@ -943,11 +943,14 @@ class RNNGparser:
           Z       = sum(weights)
           weights = [w/Z for w in weights]
 
+          print('#NextWord',len(nextword))
+
           for elt,weight in zip(nextword,weights):
             elt.K = round(K * weight)
             print(elt.K)
             if elt.K > 0.0:
               beam.append(elt)
+              
           print('#Beam',len(beam),"Z=",Z,"W=",sum(weights))
           #search
           nextword = []
@@ -965,6 +968,7 @@ class RNNGparser:
                         successes.append(new_elt)
                     else:
                         beam.append(new_elt)
+        successes.sort(key=lambda x:x.prefix_gprob,reverse=True)
         return successes
                         
     def predict_beam_generative(self,sentence,K):
