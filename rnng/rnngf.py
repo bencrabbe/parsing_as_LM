@@ -959,9 +959,11 @@ class RNNGparser:
             probs   = [ exp(logprob) for action,logprob in fringe] #useful for deficient prob distrib (avoids dropping some particle mass)     
             Z       = sum(probs)
             weights = [p / Z for p in probs]
+            print(weights)
             for (action,logprob),weight in zip(fringe,weights):
               new_elt = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)
               new_elt.K = round( elt.K * weight )
+              print("k",new_elt.K)
               
               if elt.prev_action == RNNGparser.SHIFT and new_elt.K > 0.0:
                   self.exec_beam_action(new_elt,sentence)    
