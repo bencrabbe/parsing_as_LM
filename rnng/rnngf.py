@@ -966,6 +966,7 @@ class RNNGparser:
             for (action,logprob),weight in zip(fringe,weights):
               new_elt = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)
               new_elt.K = round( elt.K * weight )
+              print(elt.K,weight,elt.K*weight)
               Ks += new_elt.K
               
               if elt.prev_action == RNNGparser.SHIFT and new_elt.K > 0.0:
