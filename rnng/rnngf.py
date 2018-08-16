@@ -961,7 +961,7 @@ class RNNGparser:
             probs   = [ exp(logprob) for action,logprob in fringe]            
             Z       = sum(probs)
             weights = [w / Z for w in weights]
-            print(weights,Z)
+            print('w/Z:',weights,Z)
             Ks = 0
             for (action,logprob),weight in zip(fringe,weights):
               new_elt = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)
