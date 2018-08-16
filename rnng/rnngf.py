@@ -977,7 +977,7 @@ class RNNGparser:
                       successes.append(new_elt)
                   else:
                       beam.append(new_elt)
-            print("Search before",elt.K,'after',Ks)
+            print("Search before",elt.K,'after',Ks,'init particles',elt.K)
 
                       
         successes.sort(key=lambda x:x.prefix_gprob,reverse=True)
