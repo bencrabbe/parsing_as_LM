@@ -944,10 +944,8 @@ class RNNGparser:
           weights = [ exp(elt.prefix_gprob + log(elt.K))**0.5 for elt in nextword]
           Z       = sum(weights)
           weights = [w/Z for w in weights]
-          print(weights)
           for elt,weight in zip(nextword,weights):
             elt.K = round(K * weight) #try round ?
-            print(elt.K)
             if elt.K > 0.0:
               beam.append(elt)
           print("beam width after selection",len(beam),flush=True)
