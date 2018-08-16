@@ -939,24 +939,24 @@ class RNNGparser:
         
         while nextword:
           #select
-          print(len(nextword))
+          print("beam width before selection",len(nextword),flush=True)
           beam    = [ ]
           weights = [ exp(elt.prefix_gprob + log(elt.K)) for elt in nextword]
           Z       = sum(weights)
           weights = [w/Z for w in weights]
 
           for elt,weight in zip(nextword,weights):
-            elt.K = floor(K * weight)
+            elt.K = round(K * weight) #try round ?
             if elt.K > 0.0:
               beam.append(elt)
-
+          print("beam width after selection",len(beam),flush=True)
           #search
           nextword = []
           while beam:
             elt = beam.pop()
             configuration = elt.configuration
             fringe  = list(self.predict_action_distrib(configuration,sentence))
-            probs   = [ exp(logprob) for action,logprob in fringe]            
+            probs   = [ exp(logprob) for action,logprob in fringe] #useful for deficient prob distrib (avoids dropping some particle mass)     
             Z       = sum(probs)
             weights = [p / Z for p in probs]
             for (action,logprob),weight in zip(fringe,weights):
