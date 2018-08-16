@@ -10,7 +10,7 @@ import getopt
 import json
 
 from random        import shuffle
-from math          import exp,log,ceil
+from math          import exp,log,floor
 from constree      import *
 from lexicons      import *
 from proc_monitors import *
