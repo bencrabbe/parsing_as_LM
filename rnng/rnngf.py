@@ -922,12 +922,15 @@ class RNNGparser:
         assert(not stack and flag)
         return root
 
-    def particle_beam_search(self,sentence,K=10000000):
+    def particle_beam_search(self,sentence,K=10000000,alpha=0.8):
         """
         Particle filter inspired beam search.
         Args:
               sentence      (list): list of strings (tokens)
+        Kwargs:
               K              (int): the number of particles to use
+              alpha        (float): the smoothing constant exponentiating the selection step \in [0,1].
+                                    the closer to 0,the more uniform the weight distrib, the closer to 1, the more peaked the weight distrib.
         Returns:
               list. List of BeamElements. 
         """
@@ -939,16 +942,16 @@ class RNNGparser:
         
         while nextword:
           #select
-          print("beam width before selection",len(nextword),flush=True)
+          #print("beam width before selection",len(nextword),flush=True)
           beam    = [ ]
-          weights = [ exp(elt.prefix_gprob + log(elt.K))**0.5 for elt in nextword]
+          weights = [ exp(elt.prefix_gprob + log(elt.K))**alpha for elt in nextword]
           Z       = sum(weights)
           weights = [w/Z for w in weights]
           for elt,weight in zip(nextword,weights):
             elt.K = round(K * weight) #try round ?
             if elt.K > 0.0:
               beam.append(elt)
-          print("beam width after selection",len(beam),flush=True)
+          #print("beam width after selection",len(beam),flush=True)
           #search
           nextword = []
           while beam:
