@@ -961,10 +961,12 @@ class RNNGparser:
             Z       = sum(probs)
             weights = [w/Z for w in weights]
 
+            Ks = 0
             for (action,logprob),weight in zip(fringe,weights):
               
               new_elt = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)
               new_elt.K = round( elt.K * weight )
+              Ks += new_elt.K
               
               if elt.prev_action == RNNGparser.SHIFT and new_elt.K > 0.0:
                   self.exec_beam_action(new_elt,sentence)    
@@ -975,6 +977,9 @@ class RNNGparser:
                       successes.append(new_elt)
                   else:
                       beam.append(new_elt)
+            print("Search before",elt.K,'after',Ks)
+
+                      
         successes.sort(key=lambda x:x.prefix_gprob,reverse=True)
         print('#succ',len(successes))
         return successes
