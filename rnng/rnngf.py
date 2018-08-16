@@ -970,7 +970,7 @@ class RNNGparser:
                     new_elt.K = round( elt.K * weight ) 
                     if new_elt.K > 0.0:
                         self.exec_beam_action(new_elt,sentence)    
-                        if action == RNNGparser.TERMINATE:     #parse success
+                        if new_elt.prev_action == RNNGparser.TERMINATE:     #parse success
                             successes.append(new_elt)
                         else:
                             beam.append(new_elt)
