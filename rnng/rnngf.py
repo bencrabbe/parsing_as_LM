@@ -959,9 +959,9 @@ class RNNGparser:
             configuration = elt.configuration
             fringe  = self.predict_action_distrib(configuration,sentence)
             probs   = [ exp(logprob) for action,logprob in fringe]            
-            Z       = sum(probs)
-            weights = [w / Z for w in weights]
-            print('w/Z:',weights,Z)
+            pZ       = sum(probs)
+            weights = [p / Z for p in probs]
+            print('p/Z:',weights,Z)
             Ks = 0
             for (action,logprob),weight in zip(fringe,weights):
               new_elt = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)
