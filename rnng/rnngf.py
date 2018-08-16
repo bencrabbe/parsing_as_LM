@@ -960,11 +960,10 @@ class RNNGparser:
             fringe  = self.predict_action_distrib(configuration,sentence)
             probs   = [ exp(logprob) for action,logprob in fringe]            
             Z       = sum(probs)
-            weights = [w/Z for w in weights]
-
+            weights = [w / Z for w in weights]
+            print(weights,Z)
             Ks = 0
             for (action,logprob),weight in zip(fringe,weights):
-              print(weight)
               new_elt = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)
               new_elt.K = round( elt.K * weight )
               Ks += new_elt.K
