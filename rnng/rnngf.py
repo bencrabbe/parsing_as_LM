@@ -941,7 +941,7 @@ class RNNGparser:
           #select
           print("beam width before selection",len(nextword),flush=True)
           beam    = [ ]
-          weights = [ exp(elt.prefix_gprob + log(elt.K)) for elt in nextword]
+          weights = [ exp((elt.prefix_gprob + log(elt.K))**0.5) for elt in nextword]
           Z       = sum(weights)
           weights = [w/Z for w in weights]
           print(weights)
@@ -957,7 +957,7 @@ class RNNGparser:
             elt = beam.pop()
             configuration = elt.configuration
             fringe  = list(self.predict_action_distrib(configuration,sentence))
-            probs   = [ exp(logprob)**0.5 for action,logprob in fringe] #useful for deficient prob distrib (avoids dropping some particle mass)     
+            probs   = [ exp(logprob) for action,logprob in fringe] #useful for deficient prob distrib (avoids dropping some particle mass)     
             Z       = sum(probs)
             weights = [p / Z for p in probs]
             for (action,logprob),weight in zip(fringe,weights):
