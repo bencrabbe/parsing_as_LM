@@ -944,9 +944,10 @@ class RNNGparser:
           weights = [ exp(elt.prefix_gprob + log(elt.K)) for elt in nextword]
           Z       = sum(weights)
           weights = [w/Z for w in weights]
-
+          print(weights)
           for elt,weight in zip(nextword,weights):
             elt.K = round(K * weight) #try round ?
+            print(elt.K)
             if elt.K > 0.0:
               beam.append(elt)
           print("beam width after selection",len(beam),flush=True)
@@ -959,11 +960,9 @@ class RNNGparser:
             probs   = [ exp(logprob) for action,logprob in fringe] #useful for deficient prob distrib (avoids dropping some particle mass)     
             Z       = sum(probs)
             weights = [p / Z for p in probs]
-            print(weights)
             for (action,logprob),weight in zip(fringe,weights):
               new_elt = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)
               new_elt.K = round( elt.K * weight )
-              print("k",new_elt.K)
               
               if elt.prev_action == RNNGparser.SHIFT and new_elt.K > 0.0:
                   self.exec_beam_action(new_elt,sentence)    
