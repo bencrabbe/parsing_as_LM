@@ -939,8 +939,6 @@ class RNNGparser:
         
         while nextword:
           #select
-          print("#Next word ",len(nextword))
-          print('select before mass',sum([elt.K for elt in nextword]))
           beam    = [ ]
           weights = [ exp(elt.prefix_gprob + log(elt.K)) for elt in nextword]
           Z       = sum(weights)
@@ -951,7 +949,6 @@ class RNNGparser:
             if elt.K > 0.0:
               beam.append(elt)
 
-          print('select after mass',sum([elt.K for elt in nextword]))
           #search
           nextword = []
           while beam:
@@ -960,14 +957,10 @@ class RNNGparser:
             fringe  = list(self.predict_action_distrib(configuration,sentence))
             probs   = [ exp(logprob) for action,logprob in fringe]            
             Z       = sum(probs)
-            weights = list([p / Z for p in probs])
-            print('p/Z:',weights,Z)
-            Ks = 0
+            weights = [p / Z for p in probs]
             for (action,logprob),weight in zip(fringe,weights):
               new_elt = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)
               new_elt.K = round( elt.K * weight )
-              print('*',elt.K,weight,elt.K*weight)
-              Ks += new_elt.K
               
               if elt.prev_action == RNNGparser.SHIFT and new_elt.K > 0.0:
                   self.exec_beam_action(new_elt,sentence)    
@@ -978,7 +971,6 @@ class RNNGparser:
                       successes.append(new_elt)
                   else:
                       beam.append(new_elt)
-            print("Search before",elt.K,'after',Ks,'init particles',elt.K)
 
                       
         successes.sort(key=lambda x:x.prefix_gprob,reverse=True)
