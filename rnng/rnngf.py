@@ -960,7 +960,7 @@ class RNNGparser:
             probs  = [ exp(elt.prefix_gprob) for elt in fringe]
             Z      = sum(probs)
             weights = [w/Z for w in weights]
-            for new_elt,weight in zip(fringe,weights)
+            for new_elt,weight in zip(fringe,weights):
                 if elt.prev_action == RNNGparser.SHIFT:  #we generate a word
                     new_elt.K = round( elt.K * weight )
                     if new_elt.K > 0.0:
