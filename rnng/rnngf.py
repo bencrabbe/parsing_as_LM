@@ -959,7 +959,7 @@ class RNNGparser:
             configuration = elt.configuration
             fringe  = self.predict_action_distrib(configuration,sentence)
             probs   = [ exp(logprob) for action,logprob in fringe]            
-            pZ       = sum(probs)
+            Z       = sum(probs)
             weights = [p / Z for p in probs]
             print('p/Z:',weights,Z)
             Ks = 0
