@@ -956,24 +956,25 @@ class RNNGparser:
           while beam:
             elt = beam.pop()
             configuration = elt.configuration
-            fringe = [BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)  for (action, logprob) in self.predict_action_distrib(configuration,sentence)]
-            probs  = [ exp(elt.prefix_gprob) for elt in fringe]
-            Z      = sum(probs)
+            fringe  = self.predict_action_distrib(configuration,sentence)
+            probs   = [ exp(logprob) for action,logprob in fringe]            
+            Z       = sum(probs)
             weights = [w/Z for w in weights]
-            for new_elt,weight in zip(fringe,weights):
-                if elt.prev_action == RNNGparser.SHIFT:  #we generate a word
-                    new_elt.K = round( elt.K * weight )
-                    if new_elt.K > 0.0:
-                        self.exec_beam_action(new_elt,sentence)    
-                        nextword.append(new_elt)
-                else:
-                    new_elt.K = round( elt.K * weight ) 
-                    if new_elt.K > 0.0:
-                        self.exec_beam_action(new_elt,sentence)    
-                        if new_elt.prev_action == RNNGparser.TERMINATE:     #parse success
-                            successes.append(new_elt)
-                        else:
-                            beam.append(new_elt)
+
+            for (action,logprob),weight in zip(fringe,weights):
+              
+              new_elt = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)
+              new_elt.K = round( elt.K * weight )
+              
+              if elt.prev_action == RNNGparser.SHIFT and new_elt.K > 0.0:
+                  self.exec_beam_action(new_elt,sentence)    
+                  nextword.append(new_elt)
+              elif new_elt.K > 0.0:
+                  self.exec_beam_action(new_elt,sentence)    
+                  if new_elt.prev_action == RNNGparser.TERMINATE:     #parse success
+                      successes.append(new_elt)
+                  else:
+                      beam.append(new_elt)
         successes.sort(key=lambda x:x.prefix_gprob,reverse=True)
         print('#succ',len(successes))
         return successes
