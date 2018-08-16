@@ -957,7 +957,7 @@ class RNNGparser:
             elt = beam.pop()
             configuration = elt.configuration
             fringe  = list(self.predict_action_distrib(configuration,sentence))
-            probs   = [ exp(logprob) for action,logprob in fringe] #useful for deficient prob distrib (avoids dropping some particle mass)     
+            probs   = [ exp(logprob)**0.5 for action,logprob in fringe] #useful for deficient prob distrib (avoids dropping some particle mass)     
             Z       = sum(probs)
             weights = [p / Z for p in probs]
             for (action,logprob),weight in zip(fringe,weights):
