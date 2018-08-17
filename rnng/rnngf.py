@@ -925,7 +925,7 @@ class RNNGparser:
         assert(not stack and flag)
         return root
 
-    def particle_beam_search(self,sentence,K=10000,alpha=0.4):
+    def particle_beam_search(self,sentence,K=10000,alpha=0.6):
         """
         Particle filter inspired beam search.
         Args:
@@ -941,7 +941,7 @@ class RNNGparser:
 
         init = BeamElement.init_element(self.init_configuration(len(sentence)))
         init.K = K
-        nextword,beam, successes = [init], [] , []
+        nextword,beam, successes = [init], [ ] , [ ]
         
         while nextword:
           #select
@@ -963,9 +963,10 @@ class RNNGparser:
             elt = beam.pop()
             configuration = elt.configuration
             fringe  = list(self.predict_action_distrib(configuration,sentence))
-            probs   = [ exp(logprob) for action,logprob in fringe] #useful for deficient prob distrib (avoids dropping some particle mass)     
+            probs   = [ exp(logprob) for action,logprob in fringe]                   #useful for deficient prob distrib (avoids dropping some particle mass)     
             Z       = sum(probs)
             weights = [p / Z for p in probs]
+            
             for (action,logprob),weight in zip(fringe,weights):
               
               new_elt = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)
