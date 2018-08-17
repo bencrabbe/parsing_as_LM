@@ -941,12 +941,13 @@ class RNNGparser:
 
         init = BeamElement.init_element(self.init_configuration(len(sentence)))
         init.K = K
-        nextword,successes = [init], []
+        nextword,beam, successes = [init], [] , []
         
         while nextword:
           #select
+
           #print("beam width before selection",len(nextword),flush=True)
-          beam    = [ ]
+          beam.clear()
           weights = [ exp(elt.prefix_gprob + log(elt.K))**alpha for elt in nextword]
           Z       = sum(weights)
           weights = [w/Z for w in weights]
@@ -955,8 +956,9 @@ class RNNGparser:
             if elt.K > 0.0:
               beam.append(elt)
           #print("beam width after selection",len(beam),flush=True)
+
           #search
-          nextword = []
+          nextword.clear()
           while beam:
             elt = beam.pop()
             configuration = elt.configuration
@@ -965,6 +967,7 @@ class RNNGparser:
             Z       = sum(probs)
             weights = [p / Z for p in probs]
             for (action,logprob),weight in zip(fringe,weights):
+              
               new_elt = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)
               new_elt.K = round( elt.K * weight )
               
