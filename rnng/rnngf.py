@@ -60,6 +60,9 @@ class BeamElement:
     """
     This class is a place holder for elements in the beam.
     """
+
+    __slots__ = ['prev_element', 'prev_action','prefix_gprob','prefix_dprob','configuration','K']
+    
     def __init__(self,prev_element,prev_action,prefix_gprob,prefix_dprob):
         """
         Args:
@@ -922,7 +925,7 @@ class RNNGparser:
         assert(not stack and flag)
         return root
 
-    def particle_beam_search(self,sentence,K=10000000,alpha=0.2):
+    def particle_beam_search(self,sentence,K=10000,alpha=0.4):
         """
         Particle filter inspired beam search.
         Args:
