@@ -922,7 +922,7 @@ class RNNGparser:
         assert(not stack and flag)
         return root
 
-    def particle_beam_search(self,sentence,K=10000000,alpha=0.4):
+    def particle_beam_search(self,sentence,K=10000000,alpha=0.2):
         """
         Particle filter inspired beam search.
         Args:
@@ -948,7 +948,7 @@ class RNNGparser:
           Z       = sum(weights)
           weights = [w/Z for w in weights]
           for elt,weight in zip(nextword,weights):
-            elt.K = round(K * weight) #try round ?
+            elt.K = round(K * weight)
             if elt.K > 0.0:
               beam.append(elt)
           #print("beam width after selection",len(beam),flush=True)
