@@ -56,11 +56,11 @@ train_rnnlm(){
      python rnnglmf.py -m $NAME/$NAME -p prince/prince.en.txt -s >>  "nohup.$NAME.out") &
 } 
 
-train_rnnlm 250 300 0.5
-train_rnnlm 250 200 0.5
-train_rnnlm 250 150 0.5
+#train_rnnlm 250 300 0.5
+#train_rnnlm 250 200 0.5
+#train_rnnlm 250 150 0.5
 
 
 #train_rnng 350 250 300 0.3
 #train_rnng 250 300 200 0.3
-#train_rnng 250 200 200 0.3
+train_rnng 250 200 200 0.3
