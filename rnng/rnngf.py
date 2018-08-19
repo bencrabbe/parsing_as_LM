@@ -439,7 +439,7 @@ class RNNGparser:
                 print('oracle unsound <close>',ref_tree)
             configuration = self.close_action(configuration)
             configuration = self.close_nonterminal(configuration,ref_tree.label)            
-            derivation.append([RNNGparser.CLOSE,ref_tree.label])
+            derivation.extend([RNNGparser.CLOSE,ref_tree.label])
             
         if is_root:
              derivation.append(RNNGparser.TERMINATE)
@@ -561,7 +561,6 @@ class RNNGparser:
             a dynet expression. The loss (NLL) for this action
         """
         S,B,n,stack_state,lab_state = configuration
-        print(ref_action)
         if lab_state == RNNGparser.WORD_LABEL :
             ref_idx  = self.lexicon.index(ref_action)
             nll =  self.word_softmax.neg_log_softmax(self.ifdropout(dy.rectify(stack_state.output())),ref_idx)
