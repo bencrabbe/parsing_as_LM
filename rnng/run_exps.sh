@@ -42,10 +42,8 @@ train_rnng(){
    mkdir -p $NAME
    make_config "$NAME/$NAME" $1 $2 $3 $4 
    source activate py36
-   #(nohup python rnngf.py -m $NAME/$NAME -t ptb_train.mrg -d ptb_dev.mrg -b ptb-250.brown -c "$NAME/$NAME.conf" -p ptb_test.mrg -s > "nohup.$NAME.out" ; \
-   # python rnngf.py -m $NAME/$NAME -p prince/prince.en.txt -s >>
-   # "nohup.$NAME.out") &
-   python rnngf.py -m $NAME/$NAME -t ptb_train.mrg -d ptb_dev.mrg -b ptb-250.brown -c "$NAME/$NAME.conf"
+   (nohup python rnngf.py -m $NAME/$NAME -t ptb_train.mrg -d ptb_dev.mrg -b ptb-250.brown -c "$NAME/$NAME.conf" -p ptb_test.mrg -s > "nohup.$NAME.out" ; \
+   python rnngf.py -m $NAME/$NAME -p prince/prince.en.txt -s >> "nohup.$NAME.out") &
 }
 
 train_rnnlm(){
@@ -63,6 +61,6 @@ train_rnnlm(){
 #train_rnnlm 250 150 0.5
 
 
-#train_rnng 350 250 300 0.3
-#train_rnng 250 300 200 0.3
+train_rnng 250 300 300 0.3
+train_rnng 250 300 200 0.3
 train_rnng 250 200 200 0.3
