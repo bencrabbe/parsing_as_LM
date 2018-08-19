@@ -561,7 +561,7 @@ class RNNGparser:
             a dynet expression. The loss (NLL) for this action
         """
         S,B,n,stack_state,lab_state = configuration
-
+        print(ref_action)
         if lab_state == RNNGparser.WORD_LABEL :
             ref_idx  = self.lexicon.index(ref_action)
             nll =  self.word_softmax.neg_log_softmax(self.ifdropout(dy.rectify(stack_state.output())),ref_idx)
