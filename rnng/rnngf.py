@@ -1300,7 +1300,7 @@ def read_config(filename=None):
     params['batch_size']      = int(config['learning']['batch_size'])     if 'batch_size' in config['learning'] else 20
 
     return params
-        
+         
 if __name__ == '__main__':
 
 
