@@ -1,7 +1,7 @@
 #!/bin/sh
 
 MKL_NUM_THREADS=6
-NUM_EPOCHS=20
+NUM_EPOCHS=25
 
 make_config(){
     
