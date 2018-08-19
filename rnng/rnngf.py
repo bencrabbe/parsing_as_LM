@@ -96,6 +96,7 @@ class BeamElement:
             bool. True if the element is root of the beam
         """
         return self.prev_element is None or self.prev_action is None
+
     
 class RNNGparser:
     """
@@ -109,7 +110,8 @@ class RNNGparser:
     
     #labelling states
     WORD_LABEL      = '@w'
-    NT_LABEL        = '@n'
+    NT_OLABEL       = '@o'
+    NT_CLABEL       = '@c'
     NO_LABEL        = '@-'
     
     #special tokens
@@ -325,9 +327,21 @@ class RNNGparser:
            tuple. A configuration resulting from opening the constituent
         """
         S,B,n,stack_state,lab_state = configuration
-        return (S,B,n,stack_state,RNNGparser.NT_LABEL)
+        return (S,B,n,stack_state,RNNGparser.NT_OLABEL)
 
-    def label_nonterminal(self,configuration,Xlabel):
+    def close_action(self,configuration):
+        """
+        The Close action commits the parser to close a constituent without doing it immediately
+        Arguments:
+           configuration (tuple): a configuration frow where to perform open
+        Returns:
+           tuple. A configuration resulting from closing the constituent
+        """
+        S,B,n,stack_state,lab_state = configuration
+        return (S,B,n,stack_state,RNNGparser.NT_CLABEL)
+
+    
+    def open_nonterminal(self,configuration,Xlabel):
         """
         The nonterminal labelling action. This adds an open nonterminal on the stack under the stack top (left corner style inference)
         
@@ -343,9 +357,9 @@ class RNNGparser:
         e = self.nonterminals_embeddings[self.nonterminals.index(Xlabel)]
         return (S[:-1] + [StackSymbol(Xlabel,StackSymbol.PREDICTED,e),stack_top],B,n+1,stack_state.add_input(e),RNNGparser.NO_LABEL)
 
-    def close_action(self,configuration):
+    def close_nonterminal(self,configuration,Xlabel):
         """
-        This is the RNNG CLOSE action.
+        This actually executes the RNNG CLOSE action.
         Arguments:
             configuration (tuple) : a configuration where to perform the closure
         Returns:
@@ -414,7 +428,7 @@ class RNNGparser:
             if not self.actions.index(RNNGparser.OPEN) in self.allowed_structural_actions(configuration):
                 print('oracle unsound <open>',ref_tree)
             configuration = self.open_action(configuration)
-            configuration = self.label_nonterminal(configuration,ref_tree.label)
+            configuration = self.open_nonterminal(configuration,ref_tree.label)
             derivation.extend([RNNGparser.OPEN,ref_tree.label])
             
             for child in ref_tree.children[1:]:
@@ -424,7 +438,8 @@ class RNNGparser:
             if not self.actions.index(RNNGparser.CLOSE) in self.allowed_structural_actions(configuration):
                 print('oracle unsound <close>',ref_tree)
             configuration = self.close_action(configuration)
-            derivation.append(RNNGparser.CLOSE)
+            configuration = self.close_nonterminal(configuration,ref_tree.label)            
+            derivation.append([RNNGparser.CLOSE,ref_tree.label])
             
         if is_root:
              derivation.append(RNNGparser.TERMINATE)
@@ -513,9 +528,17 @@ class RNNGparser:
             next_word     = (sentence[B[0]])
             next_word_idx = self.lexicon.index(next_word)
             return [(next_word,-self.word_softmax.neg_log_softmax(dy.rectify(stack_state.output()),next_word_idx).value())]
-        elif lab_state == RNNGparser.NT_LABEL :
+        elif lab_state == RNNGparser.NT_OLABEL :
             logprobs = dy.log_softmax(self.nonterminals_W  * dy.rectify(stack_state.output())  + self.nonterminals_b).value()
             return zip(self.nonterminals.i2words,logprobs)
+        elif lab_state == RNNGparser.NT_CLABEL :
+            ridx = 1
+            while S[-ridx].status !=  StackSymbol.PREDICTED:
+                ridx += 1
+            ntlabel     =  S[-ridx].symbol
+            ntlabel_idx =  self.nonterminals.index(ntlabel)
+            logp = dy.pick(dy.log_softmax(self.nonterminals_W  * dy.rectify(stack_state.output())  + self.nonterminals_b),ntlabel_idx).value()
+            return [(ntlabel,logp)]        
         elif lab_state == RNNGparser.NO_LABEL :
             restr = self.allowed_structural_actions(configuration)
             if restr:
@@ -542,9 +565,12 @@ class RNNGparser:
         if lab_state == RNNGparser.WORD_LABEL :
             ref_idx  = self.lexicon.index(ref_action)
             nll =  self.word_softmax.neg_log_softmax(self.ifdropout(dy.rectify(stack_state.output())),ref_idx)
-        elif lab_state == RNNGparser.NT_LABEL :
+        elif lab_state == RNNGparser.NT_OLABEL :
             ref_idx  = self.nonterminals.index(ref_action)
             nll = dy.pickneglogsoftmax(self.nonterminals_W  * self.ifdropout(dy.rectify(stack_state.output()))  + self.nonterminals_b,ref_idx)
+        elif lab_state == RNNGparser.NT_CLABEL :
+            ref_idx =  self.nonterminals.index(ref_action)
+            nll = dy.pickneglogsoftmax(self.nonterminals_W  * dy.rectify(stack_state.output())  + self.nonterminals_b, ref_idx)
         elif lab_state == RNNGparser.NO_LABEL :
             ref_idx = self.actions.index(ref_action)
             restr   = self.allowed_structural_actions(configuration)
@@ -603,8 +629,10 @@ class RNNGparser:
                 if lab_state == RNNGparser.WORD_LABEL:
                     configuration = self.generate_word(configuration,sentence)
                     lexical_NLL.append(nll)
-                elif lab_state == RNNGparser.NT_LABEL:
-                    configuration = self.label_nonterminal(configuration,ref_action)
+                elif lab_state == RNNGparser.NT_OLABEL:
+                    configuration = self.open_nonterminal(configuration,ref_action)
+                elif lab_state == RNNGparser.NT_CLABEL:
+                    configuration = self.close_nonterminal(configuration,ref_action)
                 elif ref_action == RNNGparser.CLOSE:
                     configuration = self.close_action(configuration)
                 elif ref_action == RNNGparser.OPEN:
@@ -753,8 +781,10 @@ class RNNGparser:
                         
             if lab_state == RNNGparser.WORD_LABEL:
                 beam_elt.configuration = self.generate_word(configuration,sentence)
-            elif lab_state == RNNGparser.NT_LABEL:
-                beam_elt.configuration = self.label_nonterminal(configuration,beam_elt.prev_action)
+            elif lab_state == RNNGparser.NT_OLABEL:
+                beam_elt.configuration = self.open_nonterminal(configuration,beam_elt.prev_action)
+            elif lab_state == RNNGparser.NT_CLABEL:
+                beam_elt.configuration = self.close_nonterminal(configuration,beam_elt.prev_action)
             elif beam_elt.prev_action == RNNGparser.CLOSE:
                 beam_elt.configuration = self.close_action(configuration)
             elif beam_elt.prev_action == RNNGparser.OPEN:
@@ -941,7 +971,7 @@ class RNNGparser:
 
         init = BeamElement.init_element(self.init_configuration(len(sentence)))
         init.K = K
-        nextword,beam, successes = [init], [ ] , [ ]
+        nextword,beam,successes = [init], [ ] , [ ]
         
         while nextword:
           #select
