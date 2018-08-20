@@ -331,39 +331,12 @@ class RNNGparser:
 
     def close_action(self,configuration):
         """
-        The Close action commits the parser to close a constituent without doing it immediately
+        This actually executes the RNNG CLOSE action.
+        The close action also commits the parser to score the closed constituent label at next step
         Arguments:
            configuration (tuple): a configuration frow where to perform open
         Returns:
            tuple. A configuration resulting from closing the constituent
-        """
-        S,B,n,stack_state,lab_state = configuration
-        return (S,B,n,stack_state,RNNGparser.NT_CLABEL)
-
-    
-    def open_nonterminal(self,configuration,Xlabel):
-        """
-        The nonterminal labelling action. This adds an open nonterminal on the stack under the stack top (left corner style inference)
-        
-        Arguments:
-            configuration (tuple) : a configuration where to perform the labelling
-            Xlabel        (string): the nonterminal label
-        Returns:
-            tuple. A configuration resulting from the labelling
-        """
-        S,B,n,stack_state,lab_state = configuration
-        
-        stack_top = S[-1]
-        e = self.nonterminals_embeddings[self.nonterminals.index(Xlabel)]
-        return (S[:-1] + [StackSymbol(Xlabel,StackSymbol.PREDICTED,e),stack_top],B,n+1,stack_state.add_input(e),RNNGparser.NO_LABEL)
-
-    def close_nonterminal(self,configuration,Xlabel):
-        """
-        This actually executes the RNNG CLOSE action.
-        Arguments:
-            configuration (tuple) : a configuration where to perform the closure
-        Returns:
-            tuple. A configuration resulting from the closure.
         """
         S,B,n,stack_state,lab_state = configuration
 
@@ -393,8 +366,38 @@ class RNNGparser:
         newS[-1] = newS[-1].complete()
         newS[-1].embedding = tree_embedding
         
-        return (newS,B,n-1,stack_state.add_input(tree_embedding),RNNGparser.NO_LABEL)
+        return (newS,B,n-1,stack_state.add_input(tree_embedding),RNNGparser.NT_CLABEL)
 
+        
+
+    
+    def open_nonterminal(self,configuration,Xlabel):
+        """
+        The nonterminal labelling action. This adds an open nonterminal on the stack under the stack top (left corner style inference)
+        
+        Arguments:
+            configuration (tuple) : a configuration where to perform the labelling
+            Xlabel        (string): the nonterminal label
+        Returns:
+            tuple. A configuration resulting from the labelling
+        """
+        S,B,n,stack_state,lab_state = configuration
+        
+        stack_top = S[-1]
+        e = self.nonterminals_embeddings[self.nonterminals.index(Xlabel)]
+        return (S[:-1] + [StackSymbol(Xlabel,StackSymbol.PREDICTED,e),stack_top],B,n+1,stack_state.add_input(e),RNNGparser.NO_LABEL)
+
+    def close_nonterminal(self,configuration,Xlabel):
+        """
+        This is essentially a No Op.
+
+        Arguments:
+            configuration (tuple) : a configuration where to perform the closure
+        Returns:
+            tuple. A configuration resulting from the closure.
+        """
+        S,B,n,stack_state,lab_state = configuration
+        return (S,B,n,stack_state,RNNGparser.NO_LABEL)
     
     def static_inorder_oracle(self,ref_tree,sentence,configuration=None):
         """
@@ -535,10 +538,7 @@ class RNNGparser:
             logprobs = dy.log_softmax(self.nonterminals_OW  * dy.rectify(stack_state.output())  + self.nonterminals_Ob).value()
             return zip(self.nonterminals.i2words,logprobs)
         elif lab_state == RNNGparser.NT_CLABEL :
-            ridx = 1
-            while S[-ridx].status !=  StackSymbol.PREDICTED:
-                ridx += 1
-            ntlabel     =  S[-ridx].symbol
+            ntlabel     =  S[-1].symbol
             ntlabel_idx =  self.nonterminals.index(ntlabel)
             logp = dy.pick(dy.log_softmax(self.nonterminals_CW  * dy.rectify(stack_state.output())  + self.nonterminals_Cb),ntlabel_idx).value()
             return [(ntlabel,logp)]        
