@@ -327,7 +327,7 @@ class RNNGparser:
            tuple. A configuration resulting from opening the constituent
         """
         S,B,n,stack_state,lab_state = configuration
-        return (S,B,n,stack_state,RNNGparser.NT_OLABEL)
+        return (S,B,n,stack_state,RNNGparser.NT_LABEL)
 
     def close_action(self,configuration):
         """
@@ -532,7 +532,7 @@ class RNNGparser:
             next_word     = (sentence[B[0]])
             next_word_idx = self.lexicon.index(next_word)
             return [(next_word,-self.word_softmax.neg_log_softmax(dy.rectify(stack_state.output()),next_word_idx).value())]
-        elif lab_state == RNNGparser.NT_OLABEL :
+        elif lab_state == RNNGparser.NT_LABEL :
             logprobs = dy.log_softmax(self.nonterminals_W  * dy.rectify(stack_state.output())  + self.nonterminals_b).value()
             return zip(self.nonterminals.i2words,logprobs)
         #elif lab_state == RNNGparser.NT_CLABEL :
