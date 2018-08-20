@@ -488,8 +488,11 @@ class RNNGparser:
 
         self.word_softmax             = dy.ClassFactoredSoftmaxBuilder(self.stack_hidden_size,self.brown_file,self.lexicon.words2i,self.model,bias=True)
 
-        self.nonterminals_W           = self.model.add_parameters((self.nonterminals.size(),self.stack_hidden_size))   
-        self.nonterminals_b           = self.model.add_parameters((self.nonterminals.size()))
+        self.nonterminals_OW          = self.model.add_parameters((self.nonterminals.size(),self.stack_hidden_size))   
+        self.nonterminals_Ob          = self.model.add_parameters((self.nonterminals.size()))
+
+        self.nonterminals_CW          = self.model.add_parameters((self.nonterminals.size(),self.stack_hidden_size))   
+        self.nonterminals_Cb          = self.model.add_parameters((self.nonterminals.size()))
 
         #stack_lstm
         self.rnn                      = dy.LSTMBuilder(2,self.stack_embedding_size, self.stack_hidden_size,self.model)          
@@ -529,7 +532,7 @@ class RNNGparser:
             next_word_idx = self.lexicon.index(next_word)
             return [(next_word,-self.word_softmax.neg_log_softmax(dy.rectify(stack_state.output()),next_word_idx).value())]
         elif lab_state == RNNGparser.NT_OLABEL :
-            logprobs = dy.log_softmax(self.nonterminals_W  * dy.rectify(stack_state.output())  + self.nonterminals_b).value()
+            logprobs = dy.log_softmax(self.nonterminals_OW  * dy.rectify(stack_state.output())  + self.nonterminals_Ob).value()
             return zip(self.nonterminals.i2words,logprobs)
         elif lab_state == RNNGparser.NT_CLABEL :
             ridx = 1
@@ -537,7 +540,7 @@ class RNNGparser:
                 ridx += 1
             ntlabel     =  S[-ridx].symbol
             ntlabel_idx =  self.nonterminals.index(ntlabel)
-            logp = dy.pick(dy.log_softmax(self.nonterminals_W  * dy.rectify(stack_state.output())  + self.nonterminals_b),ntlabel_idx).value()
+            logp = dy.pick(dy.log_softmax(self.nonterminals_CW  * dy.rectify(stack_state.output())  + self.nonterminals_Cb),ntlabel_idx).value()
             return [(ntlabel,logp)]        
         elif lab_state == RNNGparser.NO_LABEL :
             restr = self.allowed_structural_actions(configuration)
@@ -566,10 +569,10 @@ class RNNGparser:
             nll =  self.word_softmax.neg_log_softmax(self.ifdropout(dy.rectify(stack_state.output())),ref_idx)
         elif lab_state == RNNGparser.NT_OLABEL :
             ref_idx  = self.nonterminals.index(ref_action)
-            nll = dy.pickneglogsoftmax(self.nonterminals_W  * self.ifdropout(dy.rectify(stack_state.output()))  + self.nonterminals_b,ref_idx)
+            nll = dy.pickneglogsoftmax(self.nonterminals_OW  * self.ifdropout(dy.rectify(stack_state.output()))  + self.nonterminals_Ob,ref_idx)
         elif lab_state == RNNGparser.NT_CLABEL :
             ref_idx =  self.nonterminals.index(ref_action)
-            nll = dy.pickneglogsoftmax(self.nonterminals_W  * dy.rectify(stack_state.output())  + self.nonterminals_b, ref_idx)
+            nll = dy.pickneglogsoftmax(self.nonterminals_CW  * dy.rectify(stack_state.output())  + self.nonterminals_Cb, ref_idx)
         elif lab_state == RNNGparser.NO_LABEL :
             ref_idx = self.actions.index(ref_action)
             restr   = self.allowed_structural_actions(configuration)
@@ -1220,7 +1223,7 @@ class RNNGparser:
             successes = successes[:K]
         return successes
 
-    def parse_corpus(self,istream,ostream,stats_stream=None,K=10,sample_search=True,kbest=1,evalb_mode=False):
+    def parse_corpus(self,istream,ostream,stats_stream=None,K=10,kbest=1,evalb_mode=False):
         """
         Parses a corpus and prints out the trees in a file.
         Args:
@@ -1230,7 +1233,6 @@ class RNNGparser:
            stats_stream (string): the stream where to dump stats
            K               (int): the size of the beam
            kbest           (int): the number of parses outputted per sentence (<= K)
-           sample_search  (bool): uses sampling based search (or K-argmax beam pruning if false)
            evalb_mode     (bool): take an ptb bracketed .mrg file as input and reinserts the pos tags as a post processing step. evalb requires pos tags
         """        
         self.dropout = 0.0
@@ -1250,7 +1252,8 @@ class RNNGparser:
                     results            =  self.particle_beam_search(tokens,K)
                 else:
                     tokens             = line.split()
-                    results            = self.predict_beam_generative(tokens,K)
+                    results            =  self.particle_beam_search(tokens,K)
+                    #results            = self.predict_beam_generative(tokens,K)
                         
                 if results:
                     derivation_set     = []
