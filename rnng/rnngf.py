@@ -153,7 +153,7 @@ class RNNGparser:
         
         Args:
              treebank       (list) : a list of trees where to extract the words from
-             vocab_thresh   (int)  : the count threshold above which vocabulary is known to the parser
+             vocab_thresh   (int)  : the count threshold above which the vocabulary is known to the parser
         Returns:
              SymbolLexicon. The bijective encoding
         """
