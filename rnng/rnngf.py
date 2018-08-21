@@ -1221,17 +1221,30 @@ class RNNGparser:
         tokens             = [tagnode.get_child().label for tagnode in wordsXtags]
         tags               = [tagnode.label for tagnode in wordsXtags]
         results            =  self.particle_beam_search(tokens,K)
-        fmax = 0
+        fmax,idx_max = 0,-1
         rmax = None
-        for r in results:
+        for idx,r in enumerate(results):
             r_derivation   = RNNGparser.weighted_derivation(r)
             r_tree         = RNNGparser.deriv2tree(r_derivation)
             r_tree.expand_unaries()
             r_tree.add_gold_tags(tags)
             _,_,F = tree.compare(r_tree)
             if F > fmax:
-                fmax = F
-                rmax = r
+                fmax    = F
+                rmax    = r
+                idx_max = idx
+                
+        print("Best tree")
+        r_derivation   = RNNGparser.weighted_derivation(results[0])
+        r_tree         = RNNGparser.deriv2tree(r_derivation)
+        r_tree.expand_unaries()
+        r_tree.add_gold_tags(tags)
+        print(rtree)
+        print()
+        print('Ref tree at ',idx_max)
+        print(tree)
+        print()
+        print('=============================')
         return [rmax]
     
     def parse_corpus(self,istream,ostream,stats_stream=None,K=10,kbest=1,evalb_mode=False):
