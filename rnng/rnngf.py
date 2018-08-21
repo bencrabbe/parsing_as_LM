@@ -1217,13 +1217,13 @@ class RNNGparser:
         """
         Parses a sentence in gold oracle mode.
         """
-         wordsXtags         = tree.pos_tags()
-         tokens             = [tagnode.get_child().label for tagnode in wordsXtags]
-         tags               = [tagnode.label for tagnode in wordsXtags]
-         results            =  self.particle_beam_search(tokens,K)
-         fmax = 0
-         rmax = None
-         for r_derivation in results:
+        wordsXtags         = tree.pos_tags()
+        tokens             = [tagnode.get_child().label for tagnode in wordsXtags]
+        tags               = [tagnode.label for tagnode in wordsXtags]
+        results            =  self.particle_beam_search(tokens,K)
+        fmax = 0
+        rmax = None
+        for r_derivation in results:
              r_tree         = RNNGparser.deriv2tree(r_derivation)
              r_tree.expand_unaries()
              r_tree.add_gold_tags(tags)
@@ -1231,7 +1231,7 @@ class RNNGparser:
              if F > fmax:
                  fmax = F
                  rmax = r_derivation
-         return [rmax]
+        return [rmax]
     
     def parse_corpus(self,istream,ostream,stats_stream=None,K=10,kbest=1,evalb_mode=False):
         """
