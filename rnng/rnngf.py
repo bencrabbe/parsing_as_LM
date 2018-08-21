@@ -1221,7 +1221,7 @@ class RNNGparser:
         tokens             = [tagnode.get_child().label for tagnode in wordsXtags]
         tags               = [tagnode.label for tagnode in wordsXtags]
         results            =  self.particle_beam_search(tokens,K)
-        fmax,idx_max = 0,-1
+        fmax,idx_ref = 0,-1
         rmax = None
         for idx,r in enumerate(results):
             r_derivation   = RNNGparser.weighted_derivation(r)
@@ -1232,7 +1232,8 @@ class RNNGparser:
             if F > fmax:
                 fmax    = F
                 rmax    = r
-                idx_max = idx
+                if F == 1.0:
+                    idx_ref = idx
                 
         print("Best tree")
         r_derivation   = RNNGparser.weighted_derivation(results[0])
@@ -1241,7 +1242,7 @@ class RNNGparser:
         r_tree.add_gold_tags(tags)
         print(r_tree)
         print()
-        print('Ref tree at ',idx_max)
+        print('Ref tree at ',idx_ref)
         print(tree)
         print()
         print('=============================',flush=True)
