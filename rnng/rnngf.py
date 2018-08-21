@@ -1239,12 +1239,12 @@ class RNNGparser:
         r_tree         = RNNGparser.deriv2tree(r_derivation)
         r_tree.expand_unaries()
         r_tree.add_gold_tags(tags)
-        print(rtree)
+        print(r_tree)
         print()
         print('Ref tree at ',idx_max)
         print(tree)
         print()
-        print('=============================')
+        print('=============================',flush=True)
         return [rmax]
     
     def parse_corpus(self,istream,ostream,stats_stream=None,K=10,kbest=1,evalb_mode=False):
