@@ -1223,14 +1223,15 @@ class RNNGparser:
         results            =  self.particle_beam_search(tokens,K)
         fmax = 0
         rmax = None
-        for r_derivation in results:
-             r_tree         = RNNGparser.deriv2tree(r_derivation)
-             r_tree.expand_unaries()
-             r_tree.add_gold_tags(tags)
-             _,_,F = tree.compare(r_tree)
-             if F > fmax:
-                 fmax = F
-                 rmax = r_derivation
+        for r in results:
+            r_derivation  = RNNGparser.weighted_derivation(r)
+            r_tree         = RNNGparser.deriv2tree(r_derivation)
+            r_tree.expand_unaries()
+            r_tree.add_gold_tags(tags)
+            _,_,F = tree.compare(r_tree)
+            if F > fmax:
+                fmax = F
+                rmax = r_derivation
         return [rmax]
     
     def parse_corpus(self,istream,ostream,stats_stream=None,K=10,kbest=1,evalb_mode=False):
