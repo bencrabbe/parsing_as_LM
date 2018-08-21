@@ -111,7 +111,6 @@ class RNNGparser:
     #labelling states
     WORD_LABEL      = '@w'
     NT_LABEL        = '@o'
-    #NT_CLABEL       = '@c'
     NO_LABEL        = '@-'
     
     #special tokens
@@ -562,16 +561,13 @@ class RNNGparser:
             a dynet expression. The loss (NLL) for this action
         """
         S,B,n,stack_state,lab_state = configuration
-        if lab_state == RNNGparser.WORD_LABEL :
+        if lab_state == RNNGparser.WORD_LABEL:
             ref_idx  = self.lexicon.index(ref_action)
             nll =  self.word_softmax.neg_log_softmax(self.ifdropout(dy.rectify(stack_state.output())),ref_idx)
-        elif lab_state == RNNGparser.NT_LABEL :
+        elif lab_state == RNNGparser.NT_LABEL:
             ref_idx  = self.nonterminals.index(ref_action)
             nll = dy.pickneglogsoftmax(self.nonterminals_W  * self.ifdropout(dy.rectify(stack_state.output()))  + self.nonterminals_b,ref_idx)
-        #elif lab_state == RNNGparser.NT_CLABEL :
-        #    ref_idx =  self.nonterminals.index(ref_action)
-        #    nll = dy.pickneglogsoftmax(self.nonterminals_CW  * dy.rectify(stack_state.output())  + self.nonterminals_Cb, ref_idx)
-        elif lab_state == RNNGparser.NO_LABEL :
+        elif lab_state == RNNGparser.NO_LABEL:
             ref_idx = self.actions.index(ref_action)
             restr   = self.allowed_structural_actions(configuration)
             assert(ref_idx in restr)
@@ -1216,6 +1212,27 @@ class RNNGparser:
             successes = successes[:K]
         return successes
 
+
+    def oracle_mode(self,tree,K):
+        """
+        Parses a sentence in gold oracle mode.
+        """
+         wordsXtags         = tree.pos_tags()
+         tokens             = [tagnode.get_child().label for tagnode in wordsXtags]
+         tags               = [tagnode.label for tagnode in wordsXtags]
+         results            =  self.particle_beam_search(tokens,K)
+         fmax = 0
+         rmax = None
+         for r_derivation in results:
+             r_tree         = RNNGparser.deriv2tree(r_derivation)
+             r_tree.expand_unaries()
+             r_tree.add_gold_tags(tags)
+             _,_,F = tree.compare(r_tree)
+             if F > fmax:
+                 fmax = F
+                 rmax = r_derivation
+         return [rmax]
+    
     def parse_corpus(self,istream,ostream,stats_stream=None,K=10,kbest=1,evalb_mode=False):
         """
         Parses a corpus and prints out the trees in a file.
@@ -1237,12 +1254,13 @@ class RNNGparser:
                 results = None
                 if evalb_mode:
                     tree               = ConsTree.read_tree(line)
-                    wordsXtags         = tree.pos_tags()
-                    tokens             = [tagnode.get_child().label for tagnode in wordsXtags]
-                    tags               = [tagnode.label for tagnode in wordsXtags]
+                    #wordsXtags         = tree.pos_tags()
+                    #tokens             = [tagnode.get_child().label for tagnode in wordsXtags]
+                    #tags               = [tagnode.label for tagnode in wordsXtags]
                     #results            = self.predict_beam_generative(tokens,K)
                     #results            = self.predict_beam_naive(tokens,K)
-                    results            =  self.particle_beam_search(tokens,K)
+                    #results            =  self.particle_beam_search(tokens,K)
+                    results = self.oracle_mode(tree,K)
                 else:
                     tokens             = line.split()
                     results            =  self.particle_beam_search(tokens,K)
