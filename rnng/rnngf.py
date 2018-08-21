@@ -1255,9 +1255,9 @@ class RNNGparser:
                 results = None
                 if evalb_mode:
                     tree               = ConsTree.read_tree(line)
-                    #wordsXtags         = tree.pos_tags()
-                    #tokens             = [tagnode.get_child().label for tagnode in wordsXtags]
-                    #tags               = [tagnode.label for tagnode in wordsXtags]
+                    wordsXtags         = tree.pos_tags()
+                    tokens             = [tagnode.get_child().label for tagnode in wordsXtags]
+                    tags               = [tagnode.label for tagnode in wordsXtags]
                     #results            = self.predict_beam_generative(tokens,K)
                     #results            = self.predict_beam_naive(tokens,K)
                     #results            =  self.particle_beam_search(tokens,K)
