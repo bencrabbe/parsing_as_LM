@@ -1244,7 +1244,7 @@ class RNNGparser:
         print(r_tree, 'P = ', results[0].prefix_gprob,"L = ",len(r_derivation))
         print()
         print('Ref tree at ',idx_ref)
-        print(tree, 'P = ','?' if idx_ref < 0 else results[idx_ref].prefix_gprob, 'L = ', '?' if idx_ref < 0 else len(RNNGparser.weighted_derivation(results[0])))
+        print(tree, 'P = ','?' if idx_ref < 0 else results[idx_ref].prefix_gprob, 'L = ', '?' if idx_ref < 0 else len(RNNGparser.weighted_derivation(results[idx_ref])))
         print()
         print('=============================',flush=True)
         return [rmax]
