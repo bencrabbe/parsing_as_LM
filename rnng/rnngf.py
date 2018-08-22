@@ -1221,7 +1221,7 @@ class RNNGparser:
         tokens             = [tagnode.get_child().label for tagnode in wordsXtags]
         tags               = [tagnode.label for tagnode in wordsXtags]
         #results            =  self.particle_beam_search(tokens,K)
-        results            = predict_beam_generative(tokens,K)
+        results            = self.predict_beam_generative(tokens,K)
         fmax,idx_ref = 0,-1
         rmax = None
         for idx,r in enumerate(results):
