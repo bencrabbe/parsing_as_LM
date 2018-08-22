@@ -1,7 +1,7 @@
 #!/bin/sh
 
 MKL_NUM_THREADS=6
-NUM_EPOCHS=25
+NUM_EPOCHS=40
 
 make_config(){
     
@@ -19,7 +19,7 @@ make_config(){
     echo "[learning]"                  >> $CNAME
     echo "num_epochs    = $NUM_EPOCHS" >> $CNAME
     echo "batch_size    = 32"          >> $CNAME
-    echo "learning_rate = 0.5"         >> $CNAME
+    echo "learning_rate = 0.3"         >> $CNAME
     echo "dropout       = $5"          >> $CNAME
 }
 
@@ -61,6 +61,6 @@ train_rnnlm(){
 #train_rnnlm 250 150 0.5
 
 
-train_rnng 300 300 250 0.3
-train_rnng 250 300 200 0.3
+train_rnng 300 500 250 0.3
+train_rnng 250 100 200 0.3
 train_rnng 250 200 200 0.3
