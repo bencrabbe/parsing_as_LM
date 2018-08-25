@@ -21,6 +21,7 @@ make_config(){
     echo "dropout       = $4"          >> $CNAME
 }
 
+
 make_lmconfig(){
     # $1 NAME $2 = embedding size , $3 = lstm memory size $4 = dropout
     CNAME="$1.conf"
@@ -33,6 +34,7 @@ make_lmconfig(){
     echo "learning_rate  = 0.3">> $CNAME
     echo "num_epochs     = 25" >> $CNAME
 }
+
 
 train_rnng(){
    # $1 = word embedding size $2 = lstm memory size $3 = dropout
@@ -59,7 +61,4 @@ train_rnnlm(){
 #train_rnnlm 250 150 0.5
 
 
-train_rnng 250 200 200 0.3
-#train_rnng 300 250 250 0.1
-#train_rnng 350 250 300 0.3
-#train_rnng 350 200 300 0.3
+train_rnng 250 200 0.5
