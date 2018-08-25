@@ -18,8 +18,8 @@ make_config(){
     echo >> $CNAME
     echo "[learning]"                  >> $CNAME
     echo "num_epochs    = $NUM_EPOCHS" >> $CNAME
-    echo "batch_size    = 32"          >> $CNAME
-    echo "learning_rate = 0.5"         >> $CNAME
+    echo "batch_size    = 1"          >> $CNAME
+    echo "learning_rate = 0.1"         >> $CNAME
     echo "dropout       = $5"          >> $CNAME
 }
 
