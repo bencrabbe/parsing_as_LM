@@ -119,7 +119,6 @@ class RNNGparser:
 
     def __init__(self,brown_clusters,
                       vocab_thresh=1,\
-                      stack_embedding_size=100,
                       stack_memory_size=100,
                       word_embedding_size=100,
                       char_embedding_size=50,
@@ -135,11 +134,9 @@ class RNNGparser:
            char_embedding_size  (int)  : size of char lstm input 
            char_memory_size     (int)  : size of char lstm hidden layer
         """
-
-        assert(char_embedding_size + word_embedding_size == stack_embedding_size)
         self.brown_file           = brown_clusters
         self.vocab_thresh         = vocab_thresh
-        self.stack_embedding_size = stack_embedding_size
+        self.stack_embedding_size = char_embedding_size + word_embedding_size
         self.stack_hidden_size    = stack_memory_size
         self.word_embedding_size  = word_embedding_size
         self.char_embedding_size  = char_embedding_size
@@ -228,7 +225,6 @@ class RNNGparser:
         hyperparams = json.loads(open(model_name+'.json').read())
         parser = RNNGparser(hyperparams['brown_file'],
                             vocab_thresh=hyperparams['vocab_thresh'],\
-                            stack_embedding_size=hyperparams['stack_embedding_size'],\
                             stack_memory_size=hyperparams['stack_hidden_size'],\
                             word_embedding_size=hyperparams['word_embedding_size'],\
                             char_embedding_size=hyperparams['char_embedding_size'],\
@@ -251,7 +247,6 @@ class RNNGparser:
         """        
         hyperparams = { 'brown_file':self.brown_file,\
                         'vocab_thresh':self.vocab_thresh,\
-                        'stack_embedding_size':self.stack_embedding_size,\
                         'stack_hidden_size':self.stack_hidden_size,\
                         'word_embedding_size':self.word_embedding_size,\
                         'char_memory_size':self.char_memory_size,\
@@ -441,7 +436,6 @@ class RNNGparser:
             if not self.actions.index(RNNGparser.CLOSE) in self.allowed_structural_actions(configuration):
                 print('oracle unsound <close>',ref_tree)
             configuration = self.close_action(configuration)
-            #configuration = self.close_nonterminal(configuration,ref_tree.label)            
             derivation.append(RNNGparser.CLOSE)
             
         if is_root:
@@ -1375,12 +1369,11 @@ if __name__ == '__main__':
         if config_file:
             config = read_config(config_file)
             parser = RNNGparser(brown_file,\
-                                stack_embedding_size=config['stack_embedding_size'],\
                                 stack_memory_size=config['stack_hidden_size'],\
                                 word_embedding_size=config['word_embedding_size'])                               
             parser.train_model(train_stream,dev_stream,model_name,epochs=config['num_epochs'],lr=config['learning_rate'],batch_size=config['batch_size'],dropout=config['dropout'])
         else:
-            parser = RNNGparser(brown_file,stack_embedding_size=300,stack_memory_size=200,word_embedding_size=250)
+            parser = RNNGparser(brown_file,stack_memory_size=200,word_embedding_size=250)
             parser.train_model(train_stream,dev_stream,model_name,epochs=20,lr=0.5,batch_size=32)
         train_stream.close()
         dev_stream.close()
