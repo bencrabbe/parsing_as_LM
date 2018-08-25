@@ -18,8 +18,8 @@ make_config(){
     echo >> $CNAME
     echo "[learning]"                  >> $CNAME
     echo "num_epochs    = $NUM_EPOCHS" >> $CNAME
-    echo "batch_size    = 1"          >> $CNAME
-    echo "learning_rate = 0.1"         >> $CNAME
+    echo "batch_size    = 32"          >> $CNAME
+    echo "learning_rate = 0.5"         >> $CNAME
     echo "dropout       = $5"          >> $CNAME
 }
 
@@ -61,6 +61,7 @@ train_rnnlm(){
 #train_rnnlm 250 150 0.5
 
 
-train_rnng 300 250 250 0.3
+train_rnng 250 200 200 0.3
+#train_rnng 300 250 250 0.1
 #train_rnng 350 250 300 0.3
 #train_rnng 350 200 300 0.3

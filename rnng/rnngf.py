@@ -156,16 +156,19 @@ class RNNGparser:
         Returns:
              SymbolLexicon. The bijective encoding
         """
-        known_vocabulary = get_known_vocabulary([tree.tokens() for tree in treebank],vocab_threshold=1)
+        
+        known_vocabulary = []
+        charset = set([])
+        for tree in treebank:
+            tokens = tree.tokens()
+            for word in tokens:
+                charset.update(list(word))
+            known_vocabulary.extend(tokens)
+        known_vocabulary = get_known_vocabulary(known_vocabulary,vocab_threshold=1)
         known_vocabulary.add(RNNGparser.START_TOKEN)
         self.brown_file  = normalize_brown_file(self.brown_file,known_vocabulary,self.brown_file+'.unk',UNK_SYMBOL=RNNGparser.UNKNOWN_TOKEN)
         self.lexicon     = SymbolLexicon( list(known_vocabulary),unk_word=RNNGparser.UNKNOWN_TOKEN)
-
-        charset = set([])
-        for word in known_vocabulary:
-            charset.update(list(word))
-        self.charset =  SymbolLexicon(list(charset))
-        
+        self.charset     = SymbolLexicon(list(charset))
         return self.lexicon
 
     
@@ -534,11 +537,6 @@ class RNNGparser:
         elif lab_state == RNNGparser.NT_LABEL :
             logprobs = dy.log_softmax(self.nonterminals_W  * dy.rectify(stack_state.output())  + self.nonterminals_b).value()
             return zip(self.nonterminals.i2words,logprobs)
-        #elif lab_state == RNNGparser.NT_CLABEL :
-        #    ntlabel     =  S[-1].symbol
-        #    ntlabel_idx =  self.nonterminals.index(ntlabel)
-        #    logp = dy.pick(dy.log_softmax(self.nonterminals_CW  * dy.rectify(stack_state.output())  + self.nonterminals_Cb),ntlabel_idx).value()
-        #    return [(ntlabel,logp)]        
         elif lab_state == RNNGparser.NO_LABEL :
             restr = self.allowed_structural_actions(configuration)
             if restr:
