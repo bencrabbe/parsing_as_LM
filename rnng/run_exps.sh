@@ -14,8 +14,8 @@ make_config(){
     echo "char_hidden_size"    = 50  >> $CNAME
 
     echo >> $CNAME
-    echo "[learning]"                  >> $CNAME
-    echo "num_epochs    = 25"          >> $CNAME
+    echo "[learning]&"                  >> $CNAME
+    echo "num_epochs    = 40"          >> $CNAME
     echo "batch_size    = 1"           >> $CNAME
     echo "learning_rate = 0.1"         >> $CNAME
     echo "dropout       = $4"          >> $CNAME
@@ -56,9 +56,9 @@ train_rnnlm(){
      python rnnglmf.py -m $NAME/$NAME -p prince/prince.en.txt -s >>  "nohup.$NAME.out") &
 } 
 
-#train_rnnlm 250 300 0.5
-#train_rnnlm 250 200 0.5
-#train_rnnlm 250 150 0.5
+train_rnnlm 250 300 0.5
+train_rnnlm 250 200 0.5
+train_rnnlm 250 150 0.5
 
 
-train_rnng 250 200 0.1
+train_rnng 250 300 0.3
