@@ -17,7 +17,7 @@ make_config(){
     echo "[learning]&"                  >> $CNAME
     echo "num_epochs    = 40"          >> $CNAME
     echo "batch_size    = 1"           >> $CNAME
-    echo "learning_rate = 0.1"         >> $CNAME
+    echo "learning_rate = 0.05"         >> $CNAME
     echo "dropout       = $4"          >> $CNAME
 }
 
@@ -32,7 +32,7 @@ make_lmconfig(){
     echo "[learning]"          >> $CNAME
     echo "dropout        = $4" >> $CNAME
     echo "learning_rate  = 0.3">> $CNAME
-    echo "num_epochs     = 25" >> $CNAME
+    echo "num_epochs     = 35" >> $CNAME
 }
 
 
@@ -56,9 +56,8 @@ train_rnnlm(){
     # python rnnglmf.py -m $NAME/$NAME -p prince/prince.en.txt -s >>  "nohup.$NAME.out") &
 } 
 
-train_rnnlm 250 300 0.5
-train_rnnlm 250 200 0.5
-train_rnnlm 250 150 0.5
+#train_rnnlm 250 300 0.5
+#train_rnnlm 250 200 0.5
+#train_rnnlm 250 150 0.5
 
-
-train_rnng 250 300 0.3
+train_rnng 250 250 0.3
