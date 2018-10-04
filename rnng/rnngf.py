@@ -17,7 +17,6 @@ from proc_monitors import *
 from rnng_params   import *
 from char_rnn      import *
 
-
 class StackSymbol:
     """
     A convenience class for stack symbols
