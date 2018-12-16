@@ -36,17 +36,17 @@ make_lmconfig(){
 }
 
 
-train_rnng(){
+train_rnng( ){
    # $1 = word embedding size $2 = lstm memory size $3 = dropout
    NAME="rnng-$1-$2-$3" 
    mkdir -p $NAME
    make_config "$NAME/$NAME" $1 $2 $3 
    source activate py36
-   nohup python rnngf.py -m $NAME/$NAME -t ptb_train.mrg -d ptb_dev.mrg -b ptb-250.brown -c "$NAME/$NAME.conf" -p ptb_test.mrg -s -B 10000 > "nohup.$NAME.out"  &
+   nohup python rnngf.py -m $NAME/$NAME -t ptb_train.mrg -d ptb_dev.mrg -b ptb-250.brown -c "$NAME/$NAME.conf" -p ptb_test.mrg -s -B 5000 > "nohup.$NAME.out"  &
    #python rnngf.py -m $NAME/$NAME -p prince/prince.en.txt -s >> "nohup.$NAME.out") &
 }
 
-train_rnnlm(){
+train_rnnlm( ){
     # $1 = embedding size , $2 = lstm memory size $3 = dropout
     NAME="rnnlm-$1-$2-250"  #250 stands for the number of clusters
     mkdir -p $NAME

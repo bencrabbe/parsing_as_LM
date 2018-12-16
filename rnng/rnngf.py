@@ -1264,14 +1264,14 @@ class RNNGparser:
                     wordsXtags         = tree.pos_tags()
                     tokens             = [tagnode.get_child().label for tagnode in wordsXtags]
                     tags               = [tagnode.label for tagnode in wordsXtags]
-                    #results            = self.predict_beam_generative(tokens,K)
+                    results            = self.predict_beam_generative(tokens,K)
                     #results            = self.predict_beam_naive(tokens,K)
-                    results            =  self.particle_beam_search(tokens,K)
+                    #results            =  self.particle_beam_search(tokens,K)
                     #results = self.oracle_mode(tree,K)
                 else:
                     tokens             = line.split()
-                    results            =  self.particle_beam_search(tokens,K)
-                    #results            = self.predict_beam_generative(tokens,K)
+                    #results            =  self.particle_beam_search(tokens,K)
+                    results            = self.predict_beam_generative(tokens,K)
                         
                 if results:
                     derivation_set     = []
