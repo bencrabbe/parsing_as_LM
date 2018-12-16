@@ -34,7 +34,7 @@ How to test a model
 Then : 
 
 ```
-python -m mymodel -p prince.raw -s -B 400
+python rnngf.py -m mymodel -p prince.raw -s -B 400
 ```
 
 parses the `prince.raw` file with a beam of size 400 and ouptuts stats relevant for analysis. Parsing is slow and benefits from MKL multithreading.
