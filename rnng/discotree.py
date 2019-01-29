@@ -240,7 +240,20 @@ class DiscoTree:
                 max_index = max(max_index,node.right_corner())    
         return result
     
-    #TRANSFORMS 
+    #TRANSFORMS
+    def strip_tags(self):
+        """
+        In place (destructive) removal of pos tags
+        """
+        def gen_child(node):
+            if len(node.children) == 1 and node.children[0].is_leaf():
+                return node.children[0]
+            return node
+                
+        self.children = [gen_child(child) for child in self.children]
+        for child in self.children:
+            child.strip_tags()
+    
     def close_unaries(self,dummy_annotation='@'):
         """
         In place (destructive) unary closure of unary branches

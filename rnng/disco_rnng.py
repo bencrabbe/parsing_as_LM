@@ -6,7 +6,7 @@ from collections import namedtuple
 from lexicons  import *
 from discotree import *
 from proc_monitors import *
-from rnng_params   import *
+from rnng_params import *
 
 class StackSymbol:
     """
@@ -99,6 +99,9 @@ class DiscoRNNGparser:
         self.cond_nonterminals_embeddings   = self.cond_model.add_lookup_parameters((self.nonterminals.size(),self.stack_embedding_size)) 
         self.cond_word_embeddings           = self.cond_model.add_lookup_parameters((self.lexicon.size(),self.word_embedding_size)) 
 
+        self.cond_structural_W             = self.cond_model.add_parameters((self.actions.size(),self.stack_hidden_size))         
+        self.cond_structural_b             = self.cond_model.add_parameters((self.actions.size()))
+        
         #self.word_softmax              = dy.ClassFactoredSoftmaxBuilder(self.stack_hidden_size,self.brown_file,self.lexicon.words2i,self.cond_model,bias=True)
 
         self.cond_nonterminals_W            = self.cond_model.add_parameters((self.nonterminals.size(),self.stack_hidden_size))   
@@ -121,18 +124,21 @@ class DiscoRNNGparser:
         self.gen_nonterminals_embeddings   = self.gen_model.add_lookup_parameters((self.nonterminals.size(),self.stack_embedding_size)) 
         self.gen_word_embeddings           = self.gen_model.add_lookup_parameters((self.lexicon.size(),self.word_embedding_size)) 
 
-        #self.word_softmax              = dy.ClassFactoredSoftmaxBuilder(self.stack_hidden_size,self.brown_file,self.lexicon.words2i,self.cond_model,bias=True)
+        self.gen_structural_W              = self.model.add_parameters((self.actions.size(),self.stack_hidden_size))         
+        self.gen_structural_b              = self.model.add_parameters((self.actions.size()))
+        
+        self.word_softmax                  = dy.ClassFactoredSoftmaxBuilder(self.stack_hidden_size,self.brown_file,self.lexicon.words2i,self.cond_model,bias=True)
 
         self.gen_nonterminals_W            = self.gen_model.add_parameters((self.nonterminals.size(),self.stack_hidden_size))   
         self.gen_nonterminals_b            = self.gen_model.add_parameters((self.nonterminals.size()))
 
         #stack_lstm
-        self.gen_rnn                      = dy.LSTMBuilder(2,self.stack_embedding_size, self.stack_hidden_size,self.gen_model)          
+        self.gen_rnn                       = dy.LSTMBuilder(2,self.stack_embedding_size, self.stack_hidden_size,self.gen_model)          
  
-        self.gen_tree_fwd                 = dy.LSTMBuilder(1,self.stack_embedding_size, self.stack_hidden_size,self.gen_model)        
-        self.gen_tree_bwd                 = dy.LSTMBuilder(1,self.stack_embedding_size, self.stack_hidden_size,self.gen_model)        
-        self.gen_tree_W                   = self.gen_model.add_parameters((self.stack_embedding_size,self.stack_hidden_size*2))
-        self.gen_tree_b                   = self.gen_model.add_parameters((self.stack_embedding_size))
+        self.gen_tree_fwd                  = dy.LSTMBuilder(1,self.stack_embedding_size, self.stack_hidden_size,self.gen_model)        
+        self.gen_tree_bwd                  = dy.LSTMBuilder(1,self.stack_embedding_size, self.stack_hidden_size,self.gen_model)        
+        self.gen_tree_W                    = self.gen_model.add_parameters((self.stack_embedding_size,self.stack_hidden_size*2))
+        self.gen_tree_b                    = self.gen_model.add_parameters((self.stack_embedding_size))
     
     #TRANSITION SYSTEM AND ORACLE
     def init_configuration(self,N):
@@ -371,7 +377,7 @@ class DiscoRNNGparser:
                 #print(ref_root.range,stack_elt.range)
                 if stack_elt.predicted and local:
                     break
-                if not local :
+                if not local:
                     #print('move',stack_elt.symbol)
                     #assert(stack_idx > 0) -> nope. there exists cases where this assertion does not hold (!)
                     configuration = self.move_action(configuration,stack_idx)
@@ -496,22 +502,22 @@ class DiscoRNNGparser:
         Returns:
            a list. Indexes of the allowed actions
         """
-        #TODO handle for MOVE actions
+        #TODO account MOVE actions
         S,B,n,stack_state,lab_state = configuration 
         MASK = np.array([True] * self.actions.size())
         
-        if not S or (len(S) >= 2 and S[-2].status == StackSymbol.PREDICTED):
-            #last condition prevents unaries and takes into account the reordering of open
+        if not B:
+            #last condition prevents unaries
             MASK *= self.open_mask
         if B or n != 0 or len(S) > 1:
             MASK *= self.terminate_mask
         if not B or (S and n == 0):
             MASK *= self.shift_mask
-        if not S or n < 1 or (len(S) >=2 and S[-2].status == StackSymbol.PREDICTED and S[-1].symbol in self.nonterminals):
-            # last condition prevents unaries and takes into account the reordering of open;
-            # exceptional unaries are allowed on top of terminals symbols only
+        if not S or n < 1 or (len(S) >=1 and S[-1].predicted and S[-1].symbol in self.nonterminals):
+            # Last condition prevents unaries
+            # Exceptional unaries are allowed on top of terminals symbols only
                 MASK *= self.close_mask
-
+ 
         allowed_idxes = [idx for idx, mask_val in enumerate(MASK) if mask_val]
         return allowed_idxes
 
@@ -568,7 +574,7 @@ class DiscoRNNGparser:
         S,B,n,stack_state,lab_state = configuration
         if lab_state == DiscoRNNGparser.WORD_LABEL:
             #in the discriminative case the word is given and has nll = 0
-            nll = 0
+            nll = dy.scalarInput(0.0)
             #TODO : in the generative case
             #ref_idx  = self.lexicon.index(ref_action)
             #nll =  self.word_softmax.neg_log_softmax(self.ifdropout(dy.rectify(stack_state.output())),ref_idx)
@@ -579,7 +585,6 @@ class DiscoRNNGparser:
             ref_idx = self.actions.index(ref_action)
             restr   = self.allowed_structural_actions(configuration)
             assert(ref_idx in restr)
-            #HERE
             nll = -dy.pick(dy.log_softmax(self.cond_structural_W  * self.ifdropout(dy.rectify(stack_state.output()))  + self.cond_structural_b,restr),ref_idx)
         else:
             print('error in evaluation')
@@ -612,10 +617,10 @@ class DiscoRNNGparser:
             
         for ref_tree in ref_trees:
 
-            print(ref_tree)
+            #print(ref_tree)
             sentence = ref_tree.words()
             derivation,last_config = self.static_oracle(ref_tree,ref_tree,sentence)
-            print(derivation)
+            #print(derivation)
                         
             runstats['lexN']  += len(sentence)
             runstats['N']  += len(derivation)
@@ -670,6 +675,7 @@ class DiscoRNNGparser:
         train_treebank = [ ]
         for line in train_stream:
             t = DiscoTree.read_tree(line)
+            t.strip_tags()
             t.close_unaries()
             train_treebank.append(t)
             break #just 1 tree for now 
@@ -677,6 +683,7 @@ class DiscoRNNGparser:
         dev_treebank = []
         for line in dev_stream:
             t = DiscoTree.read_tree(line)
+            t.strip_tags()
             t.close_unaries()
             dev_treebank.append(t)
             break #just 1 tree for now 
@@ -721,7 +728,8 @@ class DiscoRNNGparser:
             print('[Validation] Epoch %d, NLL = %f, lex-NLL = %f, PPL = %f, lex-PPL = %f'%(e,NLL,lex_NLL, np.exp(NLL/N),np.exp(lex_NLL/lexN)),flush=True)
             print()
             if NLL < min_nll:
-                self.save_model(modelname)
+                pass
+                #self.save_model(modelname)
 
         
         
@@ -734,7 +742,7 @@ if __name__ == '__main__':
 
     tstream = open('negra/train.mrg')
     dstream = open('negra/dev.mrg')
-    p.train_model(tstream,tstream,'test')
+    p.train_model(tstream,tstream,'test',lr=1.0)
     tstream.close()
     dstream.close()
 
