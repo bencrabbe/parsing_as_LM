@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 
 import dynet as dy
+from collections import namedtuple
 
 from lexicons  import *
 from discotree import *
-from collections import namedtuple
-
+from proc_monitors import *
+from rnng_params   import *
 
 class StackSymbol:
     """
@@ -117,7 +118,7 @@ class DiscoRNNGparser:
         self.gen_model                     = dy.ParameterCollection()
         
         self.gen_nonterminals_embeddings   = self.gen_model.add_lookup_parameters((self.nonterminals.size(),self.stack_embedding_size)) 
-        self.gen_word_embeddings          = self.gen_model.add_lookup_parameters((self.lexicon.size(),self.word_embedding_size)) 
+        self.gen_word_embeddings           = self.gen_model.add_lookup_parameters((self.lexicon.size(),self.word_embedding_size)) 
 
         #self.word_softmax              = dy.ClassFactoredSoftmaxBuilder(self.stack_hidden_size,self.brown_file,self.lexicon.words2i,self.cond_model,bias=True)
 
@@ -199,10 +200,9 @@ class DiscoRNNGparser:
         """
         S,B,n,stack_state,lab_state = configuration
 
-        stack_top   = S[-1]
         embedding   = self.cond_nonterminals_embeddings[self.nonterminals.index(label)]
         stack_state = stack_state.add_input(embedding)
-        return (S[:-1] + [StackSymbol(label,embedding,predicted=True,sym_range=[B[0]])],B,n + 1,stack_state,DiscoRNNGparser.NO_LABEL) 
+        return (S + [StackSymbol(label,embedding,predicted=True,sym_range=[B[0]])],B,n + 1,stack_state,DiscoRNNGparser.NO_LABEL) 
     
     def close_action(self,configuration): 
         """
@@ -237,20 +237,20 @@ class DiscoRNNGparser:
 
         #computes the tree embedding of the completed stuff
         fwd_state = self.cond_tree_fwd.initial_state()  
-        fwd_state = fwd_state.add_input(self.cond_nonterminals_embeddings[self.nonterminals.index(newS[-1].symbol)])
+        fwd_state = fwd_state.add_input(self.cond_nonterminals_embeddings[self.nonterminals.index(completeNT.symbol)])
         for SYM in reversed(closed_symbols):
             fwd_state = fwd_state.add_input(SYM.embedding)
             
         bwd_state = self.cond_tree_bwd.initial_state()  
-        bwd_state = bwd_state.add_input(self.nonterminals_embeddings[self.nonterminals.index(newS[-1].symbol)])
+        bwd_state = bwd_state.add_input(self.cond_nonterminals_embeddings[self.nonterminals.index(completeNT.symbol)])
         for SYM in closed_symbols:
             bwd_state = bwd_state.add_input(SYM.embedding)
 
         tree_h         = dy.concatenate([self.ifdropout(fwd_state.output()),self.ifdropout(bwd_state.output())])
         tree_embedding = dy.rectify(self.cond_tree_W * tree_h + self.cond_tree_b)
-
+        
         completeNT.complete()
-        completeNT.range = complete_range if with_range else None
+        completeNT.range = complete_range 
         completeNT.embedding = tree_embedding
         newS.append(completeNT)
         stack_state = stack_state.add_input(tree_embedding)
@@ -325,7 +325,7 @@ class DiscoRNNGparser:
 
         if ref_root.is_leaf(): 
             configuration = self.shift_action(configuration)
-            configuration = self.generate_word(configuration,sentence,with_range=True)
+            configuration = self.generate_word(configuration,sentence)
             #print(print_config(configuration))
             S,B,n,stack_state,lab_state = configuration
             sh_word                     = sentence[S[-1].symbol]
@@ -337,7 +337,7 @@ class DiscoRNNGparser:
             act_list = []
             if not occurs_predicted(ref_root,configuration):
                 configuration = self.open_action(configuration) 
-                configuration = self.open_nonterminal(configuration,ref_root.label,with_range=True)
+                configuration = self.open_nonterminal(configuration,ref_root.label)
                 #print('OPENING',ref_root.label)
                 #print(print_config(configuration))
                 act_list.extend([DiscoRNNGparser.OPEN,ref_root.label])
@@ -355,7 +355,7 @@ class DiscoRNNGparser:
                             #print('anc',ancestor.label)
                             if ancestor is not child:
                                 configuration = self.open_action(configuration) 
-                                configuration = self.open_nonterminal(configuration,ancestor.label,with_range=True)
+                                configuration = self.open_nonterminal(configuration,ancestor.label)
                                 #print(print_config(configuration))
                                 act_list.extend([DiscoRNNGparser.OPEN,ancestor.label]) 
 
@@ -379,7 +379,7 @@ class DiscoRNNGparser:
 
             #D. Close
             #print("CLOSE",ref_root.label)  
-            configuration = self.close_action(configuration,with_range=True)
+            configuration = self.close_action(configuration)
             #print(print_config(configuration))
             act_list.append(DiscoRNNGparser.CLOSE)
             return (act_list,configuration)
@@ -539,26 +539,100 @@ class DiscoRNNGparser:
             a dynet expression. The loss (NLL) for this action
         """
         S,B,n,stack_state,lab_state = configuration
-        if lab_state == RNNGparser.WORD_LABEL:
+        if lab_state == DiscoRNNGparser.WORD_LABEL:
             #in the discriminative case the word is given and has nll = 0
             nll = 0
             #TODO : in the generative case
             #ref_idx  = self.lexicon.index(ref_action)
             #nll =  self.word_softmax.neg_log_softmax(self.ifdropout(dy.rectify(stack_state.output())),ref_idx)
-        elif lab_state == RNNGparser.NT_LABEL:
+        elif lab_state == DiscoRNNGparser.NT_LABEL:
             ref_idx  = self.nonterminals.index(ref_action)
             nll = dy.pickneglogsoftmax(self.cond_nonterminals_W  * self.ifdropout(dy.rectify(stack_state.output()))  + self.cond_nonterminals_b,ref_idx)
-        elif lab_state == RNNGparser.NO_LABEL:
+        elif lab_state == DiscoRNNGparser.NO_LABEL:
             ref_idx = self.actions.index(ref_action)
             restr   = self.allowed_structural_actions(configuration)
             assert(ref_idx in restr)
+            #HERE
             nll = -dy.pick(dy.log_softmax(self.cond_structural_W  * self.ifdropout(dy.rectify(stack_state.output()))  + self.cond_structural_b,restr),ref_idx)
         else:
             print('error in evaluation')
         return nll
 
+    def eval_sentences(self,ref_tree_list,backprop=True):
+        """
+        Evaluates the model predictions against the reference data.
+        and optionally performs backpropagation. 
+        The function either takes a single tree or a batch of trees (as list) for evaluation.
         
-    def train_model(self,train_stream,dev_stream):
+        Args:
+          ref_tree_list    (ConsTree) or (list): a list of reference tree or a single tree.
+        Kwargs:
+          backprop                       (bool): a flag telling if we perform backprop
+        Returns:
+          RuntimeStats. the model NLL, the word only NLL, the size of the derivations, the number of predicted words on this batch
+        """
+        dropout = self.dropout
+        if not backprop:
+            self.dropout = 0.0
+        
+        ref_trees = [ref_tree_list] if type(ref_tree_list) != list else ref_tree_list
+
+        all_NLL     = [] #collects the local losses in the batch
+        lexical_NLL = [] #collects the local losses in the batch (for word prediction only)
+    
+        runstats = RuntimeStats('NLL','lexNLL','N','lexN')
+        runstats.push_row()
+            
+        for ref_tree in ref_trees:
+
+            print(ref_tree)
+            sentence = ref_tree.words()
+            derivation,last_config = self.static_oracle(ref_tree,ref_tree,sentence)
+            print(derivation)
+                        
+            runstats['lexN']  += len(sentence)
+            runstats['N']  += len(derivation)
+    
+            configuration = self.init_configuration( len(sentence) )
+            
+            for ref_action in derivation:
+             
+                S,B,n,stack_state,lab_state = configuration
+
+                nll =  self.eval_action_distrib(configuration,sentence,ref_action)
+                all_NLL.append( nll )
+                if lab_state == DiscoRNNGparser.WORD_LABEL:
+                    configuration = self.generate_word(configuration,sentence)
+                    lexical_NLL.append(nll)
+                elif lab_state == DiscoRNNGparser.NT_LABEL:
+                    configuration = self.open_nonterminal(configuration,ref_action)
+                elif ref_action == DiscoRNNGparser.CLOSE:
+                    configuration = self.close_action(configuration)
+                elif ref_action == DiscoRNNGparser.OPEN:
+                    configuration = self.open_action(configuration)
+                elif ref_action == DiscoRNNGparser.SHIFT:
+                    configuration = self.shift_action(configuration)
+                elif ref_action == DiscoRNNGparser.MOVE:
+                    pass
+                 
+        loss     = dy.esum(all_NLL)
+        lex_loss = dy.esum(lexical_NLL)
+        
+        runstats['NLL']   += loss.value()
+        runstats['lexNLL'] = lex_loss.value()
+        
+        if backprop:
+            loss.backward()
+            try:
+                self.trainer.update()
+            except RuntimeError:
+                print('\nGradient exploded, batch update aborted...')
+        else:
+            self.dropout = dropout
+            
+        return runstats
+                
+    def train_model(self,train_stream,dev_stream,modelname,lr=0.1,epochs=20,batch_size=1,dropout=0.3):
         """
         Estimates the parameters of a model from a treebank.
         Args:
@@ -571,40 +645,57 @@ class DiscoRNNGparser:
             t = DiscoTree.read_tree(line)
             t.close_unaries()
             train_treebank.append(t)
-
+            break #just 1 tree for now 
+            
         dev_treebank = []
         for line in dev_stream:
             t = DiscoTree.read_tree(line)
             t.close_unaries()
             dev_treebank.append(t)
+            break #just 1 tree for now 
 
         self.code_lexicon(train_treebank)
         self.code_nonterminals(train_treebank,dev_treebank)
+        self.code_struct_actions()
+        self.allocate_conditional_params()
+
+        #Training
+        self.dropout = dropout
+        self.trainer = dy.SimpleSGDTrainer(self.cond_model,learning_rate=lr)
+        min_nll      = np.inf
+
+        ntrain_sentences = len(train_treebank)
+        ndev_sentences   = len(dev_treebank)
+
+        train_stats = RuntimeStats('NLL','lexNLL','N','lexN')
+        valid_stats = RuntimeStats('NLL','lexNLL','N','lexN')
         
-        print(self.lexicon)
-        print(self.nonterminals)
-        print(self.code_struct_actions())
-        
-        # nerrs = 0
-        # for line in train_treebank:
+        for e in range(epochs):
 
+            train_stats.push_row()
+            bbegin = 0
+            while bbegin < ntrain_sentences:
+                bend = min(ntrain_sentences,bbegin+batch_size)
+                train_stats += self.eval_sentences(train_treebank[bbegin:bend],backprop=True)
+                sys.stdout.write('\r===> processed %d training trees'%(bend))
+                bbegin = bend
 
-        #     ref_tree  = DiscoTree.read_tree(line)
-        #     ref_tree.close_unaries()
+            NLL,lex_NLL,N,lexN = train_stats.peek()            
+            print('\n[Training]   Epoch %d, NLL = %f, lex-NLL = %f, PPL = %f, lex-PPL = %f'%(e,NLL,lex_NLL,np.exp(NLL/N),np.exp(lex_NLL/lexN)),flush=True)
 
-        #     deriv,config  = self.static_oracle(ref_tree,ref_tree,ref_tree.words())
-        #     pred_tree     = self.deriv2tree(deriv)
-        #     pred_tree.expand_unaries()
-        #     ref_tree.expand_unaries()
-        #     p,r,f = ref_tree.compare(pred_tree)
-        #     print(f)
-        #     if f < 1.0:
-        #        print(line)
-        #        print(ref_tree,'gap degree',ref_tree.gap_degree())
-        #        print(pred_tree)
-        #        nerrs +=1
-        #        exit(0)
-        # print('#errs',nerrs)
+            valid_stats.push_row()
+            bbegin = 0
+            while bbegin < ndev_sentences:
+                bend = min(ndev_sentences,bbegin+batch_size)
+                valid_stats += self.eval_sentences(dev_treebank[bbegin:bend],backprop=False)
+                bbegin = bend
+ 
+            NLL,lex_NLL,N,lexN = valid_stats.peek()    
+            print('[Validation] Epoch %d, NLL = %f, lex-NLL = %f, PPL = %f, lex-PPL = %f'%(e,NLL,lex_NLL, np.exp(NLL/N),np.exp(lex_NLL/lexN)),flush=True)
+            print()
+            if NLL < min_nll:
+                self.save_model(modelname)
+
         
         
 
@@ -616,7 +707,7 @@ if __name__ == '__main__':
 
     tstream = open('negra/train.mrg')
     dstream = open('negra/dev.mrg')
-    p.train_model(tstream,dstream)
+    p.train_model(tstream,tstream,'test')
     tstream.close()
     dstream.close()
 
