@@ -70,6 +70,7 @@ class DiscoRNNGparser:
     SHIFT           = '<S>'
     OPEN            = '<O>'
     CLOSE           = '<C>'
+    TERMINATE       = '<T>'
     MOVE            = '<M>' 
 
     #labelling states
@@ -470,24 +471,50 @@ class DiscoRNNGparser:
         Returns:
             SymbolLexicon. The bijective encoding
         """
-        self.actions         = SymbolLexicon([DiscoRNNGparser.SHIFT,DiscoRNNGparser.OPEN,DiscoRNNGparser.CLOSE,DiscoRNNGparser.MOVE])
+        self.actions         = SymbolLexicon([DiscoRNNGparser.SHIFT,DiscoRNNGparser.OPEN,DiscoRNNGparser.CLOSE,DiscoRNNGparser.TERMINATE,DiscoRNNGparser.MOVE])
 
         #Allocates masks
-        self.open_mask       = np.array([True]*4)
-        self.shift_mask      = np.array([True]*4)
-        self.close_mask      = np.array([True]*4)
-        self.move_mask       = np.array([True]*4)
+        self.open_mask       = np.array([True]*5)
+        self.shift_mask      = np.array([True]*5)
+        self.close_mask      = np.array([True]*5)
+        self.move_mask       = np.array([True]*5)
+        self.terminate_mask       = np.array([True]*5)
 
         self.open_mask[self.actions.index(DiscoRNNGparser.OPEN)]           = False
         self.shift_mask[self.actions.index(DiscoRNNGparser.SHIFT)]         = False
         self.close_mask[self.actions.index(DiscoRNNGparser.CLOSE)]         = False
+        self.terminate_mask[self.actions.index(DiscoRNNGparser.TERMINATE)] = False
         self.move_mask[self.actions.index(DiscoRNNGparser.MOVE)]           = False
 
         return self.actions
 
     def allowed_structural_actions(self,configuration):
-        #TODO
-        return True
+        """
+        Returns the list of structural actions allowed given this configuration.
+        Arguments:
+           configuration          (tuple) : a configuration
+        Returns:
+           a list. Indexes of the allowed actions
+        """
+        #TODO handle for MOVE actions
+        S,B,n,stack_state,lab_state = configuration 
+        MASK = np.array([True] * self.actions.size())
+        
+        if not S or (len(S) >= 2 and S[-2].status == StackSymbol.PREDICTED):
+            #last condition prevents unaries and takes into account the reordering of open
+            MASK *= self.open_mask
+        if B or n != 0 or len(S) > 1:
+            MASK *= self.terminate_mask
+        if not B or (S and n == 0):
+            MASK *= self.shift_mask
+        if not S or n < 1 or (len(S) >=2 and S[-2].status == StackSymbol.PREDICTED and S[-1].symbol in self.nonterminals):
+            # last condition prevents unaries and takes into account the reordering of open;
+            # exceptional unaries are allowed on top of terminals symbols only
+                MASK *= self.close_mask
+
+        allowed_idxes = [idx for idx, mask_val in enumerate(MASK) if mask_val]
+        return allowed_idxes
+
 
     
     def ifdropout(self,expression):
