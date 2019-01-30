@@ -549,9 +549,10 @@ class DiscoRNNGparser:
                 stack_scores.append( self.cond_move * H )
             else:
                 stack_scores.append( self.gen_move * H )
-                
             if stack_elt.predicted and not stack_elt.has_to_move : #check this condition:up to where can we move ?
                 break
+            local_state = local_state.prev() 
+
         return dy.concatenate(stack_scores) if stack_scores else stack_scores
 
 
@@ -624,7 +625,6 @@ class DiscoRNNGparser:
             a dynet expression. The loss (NLL) for this action
         """
         S,B,n,stack_state,lab_state = configuration
-        #print(stack_state.output().npvalue())
         if lab_state == DiscoRNNGparser.WORD_LABEL:
             if conditional:
                 #in the discriminative case the word is given and has nll = 0
@@ -646,8 +646,8 @@ class DiscoRNNGparser:
                 pass
             
         elif lab_state == DiscoRNNGparser.NO_LABEL:
-            #TODO (for predict_action_disrib)
             if conditional:
+                print(ref_action)
                 ref_idx          = self.actions.size() + ref_action if type(ref_action) == int else self.actions.index(ref_action)
                 restr_mask       = self.allowed_structural_actions(configuration)
 
@@ -657,6 +657,9 @@ class DiscoRNNGparser:
                 hidden_input     = dy.concatenate([stack_state.output(),word_encodings[word_idx]])
                 static_scores    = self.cond_structural_W  * self.ifdropout(dy.rectify(hidden_input))  + self.cond_structural_b
                 move_scores      = self.dynamic_move_matrix(S,stack_state,buffer_embedding,conditional)
+                if type(ref_action) == int and move_scores:
+                    print('move',ref_action)
+                    print(move_scores.npvalue())
                 all_scores        = dy.concatenate([static_scores,move_scores]) if move_scores else static_scores
                 nll              = -dy.pick(dy.log_softmax(all_scores,restr_mask),ref_idx)
             else:
@@ -698,6 +701,10 @@ class DiscoRNNGparser:
               
             S,B,n,stack_state,lab_state = configuration                
 
+            if ref_action ==  DiscoRNNGparser.MOVE: #skips the move
+                prev_action == ref_action
+                continue
+            
             nll =  self.eval_action_distrib(configuration,sentence,word_encodings,ref_action,True)
             all_NLL.append( nll )
             
@@ -784,7 +791,6 @@ class DiscoRNNGparser:
             t.close_unaries()
             train_treebank.append(t)
             print(t)
-            break
             idx += 1  #just 10 trees for now 
             if idx > 10:
                 break
