@@ -89,7 +89,6 @@ class DiscoRNNGparser:
         self.word_embedding_size  = stack_embedding_size
         self.stack_hidden_size    = stack_hidden_size
 
-
     def allocate_conditional_params(self):
         """ 
         This allocates memory for the conditional model parameters
@@ -99,12 +98,12 @@ class DiscoRNNGparser:
         self.cond_nonterminals_embeddings   = self.cond_model.add_lookup_parameters((self.nonterminals.size(),self.stack_embedding_size)) 
         self.cond_word_embeddings           = self.cond_model.add_lookup_parameters((self.lexicon.size(),self.word_embedding_size)) 
 
-        self.cond_structural_W             = self.cond_model.add_parameters((self.actions.size(),self.stack_hidden_size))         
+        self.cond_structural_W             = self.cond_model.add_parameters((self.actions.size(),self.stack_hidden_size+self.stack_embedding_size))         
         self.cond_structural_b             = self.cond_model.add_parameters((self.actions.size()))
         
-        #self.word_softmax              = dy.ClassFactoredSoftmaxBuilder(self.stack_hidden_size,self.brown_file,self.lexicon.words2i,self.cond_model,bias=True)
+        #self.word_softmax                 = dy.ClassFactoredSoftmaxBuilder(self.stack_hidden_size,self.brown_file,self.lexicon.words2i,self.cond_model,bias=True)
 
-        self.cond_nonterminals_W            = self.cond_model.add_parameters((self.nonterminals.size(),self.stack_hidden_size))   
+        self.cond_nonterminals_W            = self.cond_model.add_parameters((self.nonterminals.size(),self.stack_hidden_size+self.stack_embedding_size))   
         self.cond_nonterminals_b            = self.cond_model.add_parameters((self.nonterminals.size()))
 
         #stack_lstm
@@ -115,6 +114,9 @@ class DiscoRNNGparser:
         self.cond_tree_W                   = self.cond_model.add_parameters((self.stack_embedding_size,self.stack_hidden_size*2))
         self.cond_tree_b                   = self.cond_model.add_parameters((self.stack_embedding_size))
 
+        #specific to the cond model
+        self.lexer_rnn_bwd                 = dy.LSTMBuilder(1,self.stack_embedding_size, self.word_embedding_size,self.cond_model)   
+        
     def allocate_generative_params(self):
         """ 
         This allocates memory for the generative model parameters
@@ -183,6 +185,7 @@ class DiscoRNNGparser:
         shifted     = sentence[B[0]]
         embedding   = self.cond_word_embeddings[self.lexicon.index(shifted)]
         stack_state = stack_state.add_input(embedding)
+        #print('added shift embedding',shifted,embedding.npvalue())
         return (S + [StackSymbol(B[0],embedding,predicted=False,sym_range=[B[0]])],B[1:],n,stack_state,DiscoRNNGparser.NO_LABEL)
  
     def open_action(self,configuration):
@@ -209,6 +212,7 @@ class DiscoRNNGparser:
 
         embedding   = self.cond_nonterminals_embeddings[self.nonterminals.index(label)]
         stack_state = stack_state.add_input(embedding)
+        #print('added nt embedding',label,embedding.npvalue())
         return (S + [StackSymbol(label,embedding,predicted=True,sym_range=[B[0]])],B,n + 1,stack_state,DiscoRNNGparser.NO_LABEL) 
     
     def close_action(self,configuration): 
@@ -238,8 +242,7 @@ class DiscoRNNGparser:
                 if symbol.range:
                     complete_range = complete_range | set(symbol.range)
 
-        stack_state = stack_state.prev()
-        
+        stack_state = stack_state.prev()      
         completeNT = newS.pop()  
 
         #computes the tree embedding of the completed stuff
@@ -255,9 +258,10 @@ class DiscoRNNGparser:
 
         tree_h         = dy.concatenate([self.ifdropout(fwd_state.output()),self.ifdropout(bwd_state.output())])
         tree_embedding = dy.rectify(self.cond_tree_W * tree_h + self.cond_tree_b)
+        #tree_embedding  = self.cond_nonterminals_embeddings[self.nonterminals.index(completeNT.symbol)]
         
         completeNT.complete()
-        completeNT.range = complete_range 
+        completeNT.range     = complete_range 
         completeNT.embedding = tree_embedding
         newS.append(completeNT)
         stack_state = stack_state.add_input(tree_embedding)
@@ -266,7 +270,7 @@ class DiscoRNNGparser:
         newS.extend(reversed(moved_symbols))
         for SYM in reversed(moved_symbols):
              stack_state = stack_state.add_input(SYM.embedding)
-            
+             
         return (newS,B,n-1,stack_state,DiscoRNNGparser.NO_LABEL)
 
         
@@ -447,7 +451,7 @@ class DiscoRNNGparser:
         for tree in treebank:
             known_vocabulary.extend( tree.words() )
             
-        known_vocabulary = get_known_vocabulary(known_vocabulary,vocab_threshold=1)
+        known_vocabulary = get_known_vocabulary(known_vocabulary,vocab_threshold=-1)#change this
         known_vocabulary.add(DiscoRNNGparser.START_TOKEN)
         self.brown_file  = normalize_brown_file(self.brown_file,known_vocabulary,self.brown_file+'.unk',UNK_SYMBOL=DiscoRNNGparser.UNKNOWN_TOKEN)
         self.lexicon     = SymbolLexicon( list(known_vocabulary),unk_word=DiscoRNNGparser.UNKNOWN_TOKEN)
@@ -484,7 +488,7 @@ class DiscoRNNGparser:
         self.shift_mask      = np.array([True]*5)
         self.close_mask      = np.array([True]*5)
         self.move_mask       = np.array([True]*5)
-        self.terminate_mask       = np.array([True]*5)
+        self.terminate_mask  = np.array([True]*5)
 
         self.open_mask[self.actions.index(DiscoRNNGparser.OPEN)]           = False
         self.shift_mask[self.actions.index(DiscoRNNGparser.SHIFT)]         = False
@@ -502,7 +506,8 @@ class DiscoRNNGparser:
         Returns:
            a list. Indexes of the allowed actions
         """
-        #TODO account MOVE actions
+        #TODO add account MOVE actions
+        
         S,B,n,stack_state,lab_state = configuration 
         MASK = np.array([True] * self.actions.size())
         
@@ -521,21 +526,20 @@ class DiscoRNNGparser:
         allowed_idxes = [idx for idx, mask_val in enumerate(MASK) if mask_val]
         return allowed_idxes
 
-
-    
     def ifdropout(self,expression):
         """
         Applies dropout to a dynet expression only if dropout > 0.0.
         """
         return dy.dropout(expression,self.dropout) if self.dropout > 0.0 else expression
-
     
-    def predict_action_distrib(self,configuration,sentence):
+    def predict_action_distrib(self,configuration,sentence,word_encodings,conditional):
         """
         Predicts the log distribution for next actions from the current configuration.
         Args:
           configuration           (tuple): the current configuration
           sentence                 (list): a list of string, the tokens
+          word_encodings           (list): a list of embeddings for the tokens. None in case of generative inference
+          conditional              (bool): flag stating whether to perform conditional or generative inference
         Returns:
             a list of couples (action, log probability). The list is empty if the parser is trapped (aka no action is possible).
             currently returns a zip generator.
@@ -544,48 +548,76 @@ class DiscoRNNGparser:
 
         if lab_state == DiscoRNNGparser.WORD_LABEL:
             next_word     = (sentence[B[0]])
-            return [(next_word,0)] # in the discriminative case words are given and have prob = 1.0
+            if conditional:
+                return [(next_word,0)] # in the discriminative case words are given and have prob = 1.0
+            else:
+                pass 
             # TODO in the generative case...
             #next_word_idx = self.lexicon.index(next_word)
             #return [(next_word,-self.word_softmax.neg_log_softmax(dy.rectify(stack_state.output()),next_word_idx).value())]
         elif lab_state == DiscoRNNGparser.NT_LABEL :
-            logprobs = dy.log_softmax(self.cond_nonterminals_W  * dy.rectify(stack_state.output())  + self.cond_nonterminals_b).value()
-            return zip(self.nonterminals.i2words,logprobs)
+            if conditional:
+                word_idx = B[0] if B else -1
+                H =  dy.concatenate([stack_state.output(),word_encodings[word_idx]])
+                logprobs = dy.log_softmax(self.cond_nonterminals_W  * dy.rectify(H)  + self.cond_nonterminals_b).value()
+                return zip(self.nonterminals.i2words,logprobs)
+            else:
+                pass
         elif lab_state == DiscoRNNGparser.NO_LABEL :
             #Here we need to add the dynamic stuff...
-            restr = self.allowed_structural_actions(configuration)
-            if restr:
-                logprobs =  dy.log_softmax(self.cond_structural_W  * dy.rectify(stack_state.output())  + self.cond_structural_b,restr).value()
-                return [ (self.actions.wordform(action_idx),logprob) for action_idx,logprob in zip(range(self.actions.size()),logprobs) if action_idx in restr]
+            if conditional:
+                restr = self.allowed_structural_actions(configuration)
+                if restr:
+                    word_idx = B[0] if B else -1
+                    H =  dy.concatenate([stack_state.output(),word_encodings[word_idx]])
+                    logprobs =  dy.log_softmax(self.cond_structural_W  * dy.rectify(H)  + self.cond_structural_b,restr).value()
+                    return [ (self.actions.wordform(action_idx),logprob) for action_idx,logprob in zip(range(self.actions.size()),logprobs) if action_idx in restr]
         #parser trapped...
-        return []
+        return [ ]
     
-    def eval_action_distrib(self,configuration,sentence,ref_action):
+    def eval_action_distrib(self,configuration,sentence,word_encodings,ref_action,conditional):
         """
         Evaluates the model predictions against the reference data.
         Args:
           configuration   (tuple): the current configuration
           sentence         (list): a list of string, the tokens
+          word_encodings   (list): a list of embeddings for the tokens. None in case of generative inference
           ref_action     (string): the reference action.
-          
-        Returns:
+          conditional              (bool): flag stating whether to perform conditional or generative inference
+        Returns: 
             a dynet expression. The loss (NLL) for this action
         """
         S,B,n,stack_state,lab_state = configuration
+        #print(stack_state.output().npvalue())
         if lab_state == DiscoRNNGparser.WORD_LABEL:
-            #in the discriminative case the word is given and has nll = 0
-            nll = dy.scalarInput(0.0)
+            if conditional:
+                #in the discriminative case the word is given and has nll = 0
+                nll = dy.scalarInput(0.0)  
+            else:
+                pass
             #TODO : in the generative case
             #ref_idx  = self.lexicon.index(ref_action)
             #nll =  self.word_softmax.neg_log_softmax(self.ifdropout(dy.rectify(stack_state.output())),ref_idx)
         elif lab_state == DiscoRNNGparser.NT_LABEL:
-            ref_idx  = self.nonterminals.index(ref_action)
-            nll = dy.pickneglogsoftmax(self.cond_nonterminals_W  * self.ifdropout(dy.rectify(stack_state.output()))  + self.cond_nonterminals_b,ref_idx)
+            #print('stack out',stack_state.output().npvalue())
+            if conditional:
+                ref_idx  = self.nonterminals.index(ref_action)
+                word_idx = B[0] if B else -1
+                H =  dy.concatenate([stack_state.output(),word_encodings[word_idx]])
+                nll = dy.pickneglogsoftmax(self.cond_nonterminals_W  * self.ifdropout(dy.rectify(H))  + self.cond_nonterminals_b,ref_idx)
+            else:
+                pass
         elif lab_state == DiscoRNNGparser.NO_LABEL:
-            ref_idx = self.actions.index(ref_action)
-            restr   = self.allowed_structural_actions(configuration)
-            assert(ref_idx in restr)
-            nll = -dy.pick(dy.log_softmax(self.cond_structural_W  * self.ifdropout(dy.rectify(stack_state.output()))  + self.cond_structural_b,restr),ref_idx)
+            #print('stack out',stack_state.output().npvalue())
+            if conditional:
+                ref_idx = self.actions.index(ref_action)
+                restr   = self.allowed_structural_actions(configuration)
+                assert(ref_idx in restr)
+                word_idx = B[0] if B else -1
+                H =  dy.concatenate([stack_state.output(),word_encodings[word_idx]])
+                nll = -dy.pick(dy.log_softmax(self.cond_structural_W  * self.ifdropout(dy.rectify(H))  + self.cond_structural_b,restr),ref_idx)
+            else:
+                pass
         else:
             print('error in evaluation')
         return nll
@@ -613,12 +645,22 @@ class DiscoRNNGparser:
         lexical_NLL = [] #collects the local losses in the batch (for word prediction only)
     
         runstats = RuntimeStats('NLL','lexNLL','N','lexN')
-        runstats.push_row()
-            
-        for ref_tree in ref_trees:
+        runstats.push_row() 
 
-            #print(ref_tree)
+        dy.renew_cg()
+        
+        for ref_tree in ref_trees: 
+
             sentence = ref_tree.words()
+ 
+            #encode lookahead (conditional case only)
+            lex_state       = self.lexer_rnn_bwd.initial_state()
+            start_embedding = self.cond_word_embeddings[ self.lexicon.index(DiscoRNNGparser.START_TOKEN) ]
+            lex_state       = lex_state.add_input(start_embedding)
+            word_embeddings = [self.cond_word_embeddings[self.lexicon.index(w)] for w in reversed(sentence) ]
+            word_encodings  = lex_state.transduce(word_embeddings)
+            word_encodings.reverse()  
+             
             derivation,last_config = self.static_oracle(ref_tree,ref_tree,sentence)
             #print(derivation)
                         
@@ -629,9 +671,12 @@ class DiscoRNNGparser:
             
             for ref_action in derivation:
              
-                S,B,n,stack_state,lab_state = configuration
+                S,B,n,stack_state,lab_state = configuration                
+                nll =  self.eval_action_distrib(configuration,sentence,word_encodings,ref_action,True)
+                #for action, prob in self.predict_action_distrib(configuration,sentence,word_encodings,True):
+                #    print('Ref',ref_action,'pred',action,np.exp(prob))
 
-                nll =  self.eval_action_distrib(configuration,sentence,ref_action)
+                #print()
                 all_NLL.append( nll )
                 if lab_state == DiscoRNNGparser.WORD_LABEL:
                     configuration = self.generate_word(configuration,sentence)
@@ -678,16 +723,17 @@ class DiscoRNNGparser:
             t.strip_tags()
             t.close_unaries()
             train_treebank.append(t)
+            print(t)
             break #just 1 tree for now 
             
-        dev_treebank = []
-        for line in dev_stream:
-            t = DiscoTree.read_tree(line)
-            t.strip_tags()
-            t.close_unaries()
-            dev_treebank.append(t)
-            break #just 1 tree for now 
-
+        #dev_treebank = []
+        #for line in dev_stream:
+        #    t = DiscoTree.read_tree(line)
+        #    t.strip_tags()
+        #    t.close_unaries()
+        #    dev_treebank.append(t)
+        dev_treebank = train_treebank   #just 1 tree for now 
+            
         self.code_lexicon(train_treebank)
         self.code_nonterminals(train_treebank,dev_treebank)
         self.code_struct_actions()
@@ -730,19 +776,14 @@ class DiscoRNNGparser:
             if NLL < min_nll:
                 pass
                 #self.save_model(modelname)
-
-        
-        
-
-    
         
 if __name__ == '__main__':
 
     p = DiscoRNNGparser(brown_file='kk.brown')
 
-    tstream = open('negra/train.mrg')
+    tstream = open('negra/test.mrg')
     dstream = open('negra/dev.mrg')
-    p.train_model(tstream,tstream,'test',lr=1.0)
+    p.train_model(tstream,tstream,'test',lr=0.1,epochs=100,dropout=0.0)
     tstream.close()
     dstream.close()
 
