@@ -77,7 +77,6 @@ class DiscoRNNGparser:
     WORD_LABEL      = '@w'
     NT_LABEL        = '@n'
     NO_LABEL        = '@'
-    MOVE_LABEL      = '@m'
 
 
     #special tokens
@@ -290,7 +289,7 @@ class DiscoRNNGparser:
         """
         S,B,n,stack_state,lab_state = configuration
         S[-stack_idx-1].schedule_movement(True)
-        return (S,B,n,stack_state,DiscoRNNGparser.MOVE_LABEL)
+        return (S,B,n,stack_state,DiscoRNNGparser.NO_LABEL)
 
     
     def static_oracle(self,ref_root,global_root,sentence,configuration=None):
@@ -490,7 +489,7 @@ class DiscoRNNGparser:
         #The last slots are implicitly allocated to move actions
         self.actions         = SymbolLexicon([DiscoRNNGparser.SHIFT,DiscoRNNGparser.OPEN,DiscoRNNGparser.CLOSE,DiscoRNNGparser.TERMINATE])
         return self.actions
-
+ 
     def allowed_structural_actions(self,configuration): 
         """
         Returns the list of structural actions allowed given this configuration.
@@ -501,13 +500,12 @@ class DiscoRNNGparser:
         """
         S,B,n,stack_state,lab_state = configuration
         
-        #upper bound on num moves
-        nmoves = 0
+        mov_mask = []
         for idx,stack_elt in enumerate(reversed(S)):
+            mov_mask.append(not stack_elt.has_to_move)
             if stack_elt.predicted and not stack_elt.has_to_move:
-                nmoves = idx+1 
                 break
-        MASK = np.array([True]*self.actions.size()+[False]*nmoves)  if n < 1 else  np.array([True]*self.actions.size()+[True]*nmoves) 
+        MASK = np.array([True]*self.actions.size()+[False]*len(mov_mask))  if n < 1 else  np.array([True]*self.actions.size()+mov_mask) 
         if not B:
             #last condition prevents unaries
             MASK[self.actions.index(DiscoRNNGparser.OPEN)] = False  
@@ -595,7 +593,7 @@ class DiscoRNNGparser:
             if conditional:
                 ref_idx          = self.actions.size() + ref_action if type(ref_action) == int else self.actions.index(ref_action)
                 restr_mask       = self.allowed_structural_actions(configuration)
-
+                
                 if restr_mask:
                     word_idx         = B[0] if B else -1
                     buffer_embedding = word_encodings[word_idx] 
@@ -625,6 +623,7 @@ class DiscoRNNGparser:
             a dynet expression. The loss (NLL) for this action
         """
         S,B,n,stack_state,lab_state = configuration
+
         if lab_state == DiscoRNNGparser.WORD_LABEL:
             if conditional:
                 #in the discriminative case the word is given and has nll = 0
@@ -647,7 +646,6 @@ class DiscoRNNGparser:
             
         elif lab_state == DiscoRNNGparser.NO_LABEL:
             if conditional:
-                print(ref_action)
                 ref_idx          = self.actions.size() + ref_action if type(ref_action) == int else self.actions.index(ref_action)
                 restr_mask       = self.allowed_structural_actions(configuration)
 
@@ -657,9 +655,6 @@ class DiscoRNNGparser:
                 hidden_input     = dy.concatenate([stack_state.output(),word_encodings[word_idx]])
                 static_scores    = self.cond_structural_W  * self.ifdropout(dy.rectify(hidden_input))  + self.cond_structural_b
                 move_scores      = self.dynamic_move_matrix(S,stack_state,buffer_embedding,conditional)
-                if type(ref_action) == int and move_scores:
-                    print('move',ref_action)
-                    print(move_scores.npvalue())
                 all_scores        = dy.concatenate([static_scores,move_scores]) if move_scores else static_scores
                 nll              = -dy.pick(dy.log_softmax(all_scores,restr_mask),ref_idx)
             else:
@@ -667,7 +662,6 @@ class DiscoRNNGparser:
         else:
             print('error in evaluation')
         return nll
-
 
     def eval_derivation(self,ref_derivation,sentence,word_encodings,backprop=True):
         """
@@ -698,11 +692,10 @@ class DiscoRNNGparser:
         configuration = self.init_configuration( len(sentence) )
         prev_action = None
         for ref_action in ref_derivation:
-              
             S,B,n,stack_state,lab_state = configuration                
 
             if ref_action ==  DiscoRNNGparser.MOVE: #skips the move
-                prev_action == ref_action
+                prev_action = ref_action
                 continue
             
             nll =  self.eval_action_distrib(configuration,sentence,word_encodings,ref_action,True)
@@ -714,7 +707,7 @@ class DiscoRNNGparser:
             elif lab_state == DiscoRNNGparser.NT_LABEL:
                 configuration = self.open_nonterminal(configuration,ref_action)
             elif prev_action == DiscoRNNGparser.MOVE:
-                configuration = self.move(configuration,int(ref_action))
+                configuration = self.move_action(configuration,int(ref_action))
             elif ref_action == DiscoRNNGparser.CLOSE:
                 configuration = self.close_action(configuration)
             elif ref_action == DiscoRNNGparser.OPEN:
