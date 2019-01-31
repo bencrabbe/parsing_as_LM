@@ -8,6 +8,48 @@ from discotree import *
 from proc_monitors import *
 from rnng_params import *
 
+
+#GENERIC TODO : MOVE should be reframed as an atomic action rather than as a couple (ACT,IDX) in the derivation sequences
+class BeamElement:
+    """
+    This class is a place holder for elements in the beam.
+    """
+
+    __slots__ = ['prev_element', 'prev_action','prefix_score','configuration']
+    
+    def __init__(self,prev_element,prev_action,prefix_score):
+        """
+        Args: 
+             prev_element (BeamElement) : the previous element or None
+             prev_action       (string) : the action generating this element or None
+             prefix_score       (float) : prefix logprobability
+        """
+        self.prev_element  = prev_element
+        self.prev_action   = prev_action
+        self.prefix_score  = prefix_score
+        self.configuration = None
+
+    @staticmethod
+    def init_element(configuration):
+        """
+        Generates the beam initial (root) element
+        Args:
+           configuration (tuple): the parser init config
+        Returns:
+           BeamElement to be used at init
+        """
+        b = BeamElement(None,None,0.0)
+        b.configuration = configuration
+        return b
+    
+    def is_initial_element(self):
+        """
+        Returns:
+            bool. True if the element is root of the beam
+        """
+        return self.prev_element is None or self.prev_action is None
+
+
 class StackSymbol:
     """
     A convenience class for symbols on the stack.
@@ -334,7 +376,7 @@ class DiscoRNNGparser:
             #return False
         
         if configuration is None:                       #init
-            N = len(ref_root.words())
+            N = len(ref_root.words()) 
             configuration = self.init_configuration(N)   
             #print( print_config(configuration) )
 
@@ -414,7 +456,6 @@ class DiscoRNNGparser:
         inc_index   = 0
         prev_action = None
         for action in derivation:
-            
             if prev_action   == DiscoRNNGparser.SHIFT:
                 stack.append( StackElt(symbol=DiscoTree(action,child_index = inc_index), predicted=False,has_to_move=False) )
                 inc_index += 1
@@ -568,7 +609,7 @@ class DiscoRNNGparser:
             currently returns a zip generator.
         """
         def code2action(act_idx): 
-            return [self.MOVE,act_idx-self.actions.size()]  if type(act_idx) == int else  self.actions.wordform(action_idx)
+            return (self.MOVE,act_idx-self.actions.size())  if act_idx >= self.actions.size() else  self.actions.wordform(act_idx)
      
         S,B,n,stack_state,lab_state = configuration
 
@@ -591,7 +632,7 @@ class DiscoRNNGparser:
                 pass
         elif lab_state == DiscoRNNGparser.NO_LABEL :
             if conditional:
-                ref_idx          = self.actions.size() + ref_action if type(ref_action) == int else self.actions.index(ref_action)
+                
                 restr_mask       = self.allowed_structural_actions(configuration)
                 
                 if restr_mask:
@@ -603,7 +644,7 @@ class DiscoRNNGparser:
                     move_scores      = self.dynamic_move_matrix(S,stack_state,buffer_embedding,conditional)
                     all_scores        = dy.concatenate([static_scores,move_scores]) if move_scores else static_scores
                     logprobs         = dy.log_softmax(all_scores,restr_mask).value()
-                    return [ (code2action(action_idx),logprob) for action_idx,logprob in zip(range(self.actions.size()),logprobs) if action_idx in restr]
+                    return [ (code2action(action_idx),logprob) for action_idx,logprob in zip(range(self.actions.size()),logprobs) if action_idx in restr_mask]
             else:
                 pass #add generative stuff here
                 
@@ -645,6 +686,7 @@ class DiscoRNNGparser:
                 pass
             
         elif lab_state == DiscoRNNGparser.NO_LABEL:
+            
             if conditional:
                 ref_idx          = self.actions.size() + ref_action if type(ref_action) == int else self.actions.index(ref_action)
                 restr_mask       = self.allowed_structural_actions(configuration)
@@ -659,7 +701,7 @@ class DiscoRNNGparser:
                 nll              = -dy.pick(dy.log_softmax(all_scores,restr_mask),ref_idx)
             else:
                 pass
-        else:
+        else: 
             print('error in evaluation')
         return nll
 
@@ -734,7 +776,23 @@ class DiscoRNNGparser:
             self.dropout = dropout
             
         return runstats
-    
+
+    def encode_words(self,sentence):
+        """
+        Runs a backward LSTM on the input sentence.
+        Used by the conditional model to get a lookahead
+        Args:
+           sentence (list): a list of strings
+        Returns list. A list of dynet expressions (the encoded words)
+        """
+        lex_state       = self.lexer_rnn_bwd.initial_state()
+        start_embedding = self.cond_word_embeddings[ self.lexicon.index(DiscoRNNGparser.START_TOKEN) ]
+        lex_state       = lex_state.add_input(start_embedding)
+        word_embeddings = [self.cond_word_embeddings[self.lexicon.index(w)] for w in reversed(sentence) ]
+        word_encodings  = lex_state.transduce(word_embeddings)
+        word_encodings.reverse()
+        return word_encodings
+
     def eval_sentence(self,ref_tree,conditional,backprop=True):
         #add an option for training the generative here
         """
@@ -752,22 +810,161 @@ class DiscoRNNGparser:
         dy.renew_cg()
         
         sentence = ref_tree.words()
-
+ 
         if conditional:
-            #encode lookahead 
-            lex_state       = self.lexer_rnn_bwd.initial_state()
-            start_embedding = self.cond_word_embeddings[ self.lexicon.index(DiscoRNNGparser.START_TOKEN) ]
-            lex_state       = lex_state.add_input(start_embedding)
-            word_embeddings = [self.cond_word_embeddings[self.lexicon.index(w)] for w in reversed(sentence) ]
-            word_encodings  = lex_state.transduce(word_embeddings)
-            word_encodings.reverse()  
-             
+            word_encodings = self.encode_words(sentence)
             derivation,last_config = self.static_oracle(ref_tree,ref_tree,sentence)
             return self.eval_derivation(derivation,sentence,word_encodings,backprop)
         else:
             pass
             #add stuff for training the generative model here
+
+    @staticmethod
+    def prune_beam(beam,K):
+        """
+        Prunes the beam to the top K elements using the *discriminative* probability (performs a K-Argmax).
+        Inplace destructive operation on the beam.
+        Args:
+             beam  (list) : a beam data structure
+             K       (int): the number of elts to keep in the Beam
+        Returns:
+             The beam object
+        """
+        beam.sort(key=lambda x:x.prefix_score,reverse=True)
+        beam = beam[:K]
+        return beam
+
+    
+    def exec_beam_action(self,beam_elt,sentence):
+        """
+        Generates the element's configuration and assigns it internally.
+        Args:
+             beam_elt  (BeamElement): a BeamElement missing its configuration
+             sentence         (list): a list of strings, the tokens.
+        """
         
+        if  beam_elt.is_initial_element():
+            beam_elt.configuration = self.init_configuration(len(sentence))
+        else:
+            configuration = beam_elt.prev_element.configuration
+            S,B,n,stack_state,lab_state = configuration
+            
+            if lab_state == DiscoRNNGparser.WORD_LABEL:
+                beam_elt.configuration = self.generate_word(configuration,sentence)
+            elif lab_state == DiscoRNNGparser.NT_LABEL:
+                beam_elt.configuration = self.open_nonterminal(configuration,beam_elt.prev_action)
+            elif type(beam_elt.prev_action) == tuple :
+                move_label,mov_idx = beam_elt.prev_action
+                beam_elt.configuration = self.move_action(configuration,mov_idx) 
+            elif beam_elt.prev_action == DiscoRNNGparser.CLOSE:
+                beam_elt.configuration = self.close_action(configuration)
+            elif beam_elt.prev_action == DiscoRNNGparser.OPEN:
+                beam_elt.configuration = self.open_action(configuration)
+            elif beam_elt.prev_action == DiscoRNNGparser.SHIFT:
+                beam_elt.configuration = self.shift_action(configuration)
+            elif beam_elt.prev_action == DiscoRNNGparser.TERMINATE:
+                beam_elt.configuration = configuration
+            else:
+                print('oops')
+        
+    def predict_beam(self,sentence,K):
+        """
+        Performs parsing and returns an ordered list of successful beam elements.
+        The default search strategy amounts to sample the search space with discriminative probs and to rank the succesful states with generative probs.
+        The alternative search strategy amounts to explore the search space with a conventional K-argmax pruning method (on disc probs) and to rank the results with generative probs.
+        Args: 
+              sentence      (list): list of strings (tokens)
+              K              (int): beam width
+        Returns:
+             list. List of BeamElements.
+        """
+        dy.renew_cg()
+
+        word_encodings = self.encode_words(sentence)
+        
+        init = BeamElement.init_element(self.init_configuration(len(sentence)))
+        beam,successes  = [init],[ ]
+
+        while beam :
+            beam = DiscoRNNGparser.prune_beam(beam,K) #pruning
+            for elt in beam:
+                self.exec_beam_action(elt,sentence) #lazily builds configs
+                
+            next_preds = [ ] 
+            for elt in beam: 
+                configuration = elt.configuration
+                S,B,n,stack_state,lab_state = configuration
+                if lab_state == DiscoRNNGparser.WORD_LABEL:
+                    for (action, logprob) in self.predict_action_distrib(configuration,sentence,word_encodings,True):                    
+                        next_preds.append(BeamElement(elt,action,elt.prefix_score+logprob))
+                elif lab_state == DiscoRNNGparser.NT_LABEL:
+                    for (action, logprob) in self.predict_action_distrib(configuration,sentence,word_encodings,True):                    
+                        next_preds.append(BeamElement(elt,action,elt.prefix_score+logprob))
+                else:
+                    for (action, logprob) in self.predict_action_distrib(configuration,sentence,word_encodings,True):
+                        if action == DiscoRNNGparser.TERMINATE:
+                            successes.append(BeamElement(elt,action,elt.prefix_score+logprob)) #really add these terminate probs to the prefix ?
+                        else:
+                            next_preds.append(BeamElement(elt,action,elt.prefix_score+logprob))
+            beam = next_preds 
+        if successes:
+            successes.sort(key=lambda x:x.prefix_score,reverse=True)
+            successes = successes[:K]
+        return successes
+    
+    @staticmethod
+    def weighted_derivation(success_elt):
+        """
+        Generates a weighted derivation as a list (Action,logprob)_0 ... (Action,logprob)_m. from a successful beam element
+        Args:
+            success_elt (BeamElement): a terminated beam element
+        Returns:
+            list. A derivation is a list of couples (string,float)
+        """
+        D = []
+        current = success_elt
+        while not current.is_initial_element():
+            if type(current.prev_action) == tuple:
+                D.append((DiscoRNNGparser.MOVE,current.prefix_score))
+                D.append((current.prev_action,current.prefix_score))
+            else:
+                D.append((current.prev_action,current.prefix_score))
+            current = current.prev_element
+        D.reverse()  
+        return D
+
+    def parse_corpus(self,istream,ostream=sys.stdout,stats_stream=None,K=5,kbest=1):
+        """
+        Parses a corpus and prints out the trees in a file.
+        Args: 
+           istream  (stream): the stream where to read the data from
+           ostream  (stream): the stream where to write the data to
+        Kwargs: 
+           stats_stream (string): the stream where to dump stats
+           K               (int): the size of the beam
+           kbest           (int): the number of parses hypotheses outputted per sentence (<= K)
+        """        
+        self.dropout = 0.0
+        NLL = 0
+        N   = 0
+        stats_header = True 
+        for line in istream:
+            
+            tree = DiscoTree.read_tree(line)
+            tokens = tree.words()
+            results            = self.predict_beam(tokens,K)
+            if results:
+                for idx,r in enumerate(results):
+                    r_derivation  = DiscoRNNGparser.weighted_derivation(r)
+                    print(r_derivation)
+                    if idx < kbest:
+                        r_tree        = self.deriv2tree([action for action,prob in r_derivation])
+                        r_tree.expand_unaries()
+                        print(r_tree,file=ostream,flush=True)
+            else:
+                print('(())',file=ostream,flush=True)
+            break #parses 1st tree right now
+
     def train_model(self,train_stream,dev_stream,modelname,lr=0.1,epochs=20,batch_size=1,dropout=0.3):
         """
         Estimates the parameters of a model from a treebank.
@@ -784,6 +981,7 @@ class DiscoRNNGparser:
             t.close_unaries()
             train_treebank.append(t)
             print(t)
+            break
             idx += 1  #just 10 trees for now 
             if idx > 10:
                 break
@@ -839,12 +1037,15 @@ if __name__ == '__main__':
 
     tstream = open('negra/test.mrg')
     dstream = open('negra/dev.mrg')
-    p.train_model(tstream,tstream,'test',lr=0.1,epochs=100,dropout=0.0)
+    p.train_model(tstream,tstream,'test',lr=0.25,epochs=100,dropout=0.0)
     tstream.close()
     dstream.close()
 
+    pstream = open('negra/test.mrg') 
+    p.parse_corpus(pstream,K=3)
+    pstream.close()
     exit(0)
-    
+
     t = DiscoTree.read_tree('(S (NP 0=John) (VP (VB 1=eats) (NP (DT 2=an) (NN 3=apple))) (PONCT 4=.))')
     print(t)
     wordlist = t.words()
