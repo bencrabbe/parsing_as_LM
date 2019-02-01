@@ -464,7 +464,6 @@ class DiscoRNNGparser:
                 stack.append( StackElt(symbol=action, predicted=True,has_to_move=False) ) 
                 
             elif prev_action == DiscoRNNGparser.MOVE: #sets the move on the stack
-
                 sym,pred,mov = stack[ -int(action)-1 ]
                 stack[ -int(action)-1 ] = StackElt(symbol=sym,predicted=pred,has_to_move=True)
                 
@@ -540,7 +539,10 @@ class DiscoRNNGparser:
            a list. Indexes of the allowed actions
         """
         S,B,n,stack_state,lab_state = configuration
-        
+
+        def code2action(act_idx): 
+            return (self.MOVE,act_idx-self.actions.size())  if act_idx >= self.actions.size() else  self.actions.wordform(act_idx)
+     
         mov_mask = []
         for idx,stack_elt in enumerate(reversed(S)):
             mov_mask.append(not stack_elt.has_to_move)
@@ -622,10 +624,10 @@ class DiscoRNNGparser:
             # TODO in the generative case...
             #next_word_idx = self.lexicon.index(next_word)
             #return [(next_word,-self.word_softmax.neg_log_softmax(dy.rectify(stack_state.output()),next_word_idx).value())]
-        elif lab_state == DiscoRNNGparser.NT_LABEL :
+        elif lab_state == DiscoRNNGparser.NT_LABEL:
             if conditional:
                 word_idx = B[0] if B else -1
-                H =  dy.concatenate([stack_state.output(),word_encodings[word_idx]])
+                H = dy.concatenate([stack_state.output(),word_encodings[word_idx]])
                 logprobs = dy.log_softmax(self.cond_nonterminals_W  * dy.rectify(H)  + self.cond_nonterminals_b).value()
                 return zip(self.nonterminals.i2words,logprobs)
             else:
@@ -642,10 +644,10 @@ class DiscoRNNGparser:
                     hidden_input     = dy.concatenate([stack_state.output(),word_encodings[word_idx]])
                     static_scores    = self.cond_structural_W  * self.ifdropout(dy.rectify(hidden_input))  + self.cond_structural_b
                     move_scores      = self.dynamic_move_matrix(S,stack_state,buffer_embedding,conditional)
-                    all_scores        = dy.concatenate([static_scores,move_scores]) if move_scores else static_scores
-                    logprobs         = dy.log_softmax(all_scores,restr_mask).value()
-                    return [ (code2action(action_idx),logprob) for action_idx,logprob in zip(range(self.actions.size()),logprobs) if action_idx in restr_mask]
-            else:
+                    all_scores       = dy.concatenate([static_scores,move_scores]) if move_scores else static_scores
+                    logprobs         = dy.log_softmax(all_scores,restr_mask).value()                     
+                    return [ (code2action(action_idx),logprob) for action_idx,logprob in enumerate(logprobs) if action_idx in restr_mask]
+            else: 
                 pass #add generative stuff here
                 
         return [ ]
@@ -925,8 +927,9 @@ class DiscoRNNGparser:
         current = success_elt
         while not current.is_initial_element():
             if type(current.prev_action) == tuple:
-                D.append((DiscoRNNGparser.MOVE,current.prefix_score))
-                D.append((current.prev_action,current.prefix_score))
+                mov_code,mov_idx = current.prev_action
+                D.append((mov_idx,current.prefix_score))
+                D.append((mov_code,current.prefix_score))
             else:
                 D.append((current.prev_action,current.prefix_score))
             current = current.prev_element
@@ -956,11 +959,9 @@ class DiscoRNNGparser:
             if results:
                 for idx,r in enumerate(results):
                     r_derivation  = DiscoRNNGparser.weighted_derivation(r)
-                    print(r_derivation)
                     if idx < kbest:
                         r_tree        = self.deriv2tree([action for action,prob in r_derivation])
                         r_tree.expand_unaries()
-                        print(r_tree,file=ostream,flush=True)
             else:
                 print('(())',file=ostream,flush=True)
             break #parses 1st tree right now
@@ -1042,7 +1043,7 @@ if __name__ == '__main__':
     dstream.close()
 
     pstream = open('negra/test.mrg') 
-    p.parse_corpus(pstream,K=3)
+    p.parse_corpus(pstream,K=1)
     pstream.close()
     exit(0)
 
