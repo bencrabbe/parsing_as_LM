@@ -962,6 +962,7 @@ class DiscoRNNGparser:
                     if idx < kbest:
                         r_tree        = self.deriv2tree([action for action,prob in r_derivation])
                         r_tree.expand_unaries()
+                        print(r_tree)
             else:
                 print('(())',file=ostream,flush=True)
             break #parses 1st tree right now
