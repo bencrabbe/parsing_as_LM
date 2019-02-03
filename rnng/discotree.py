@@ -189,7 +189,7 @@ class DiscoTree:
             res.extend(child.max_nodes(i,j))
         return res
 
-    #TRAVERSALS
+    #TRAVERSALS 
     def tokens(self,global_root=None,max_index=-1):
         """
         KwArgs:
@@ -219,9 +219,9 @@ class DiscoTree:
         toks = self.tokens()
         return [t.label for t in toks]
 
-    def collect_nonterminals(self,global_root = None,max_index=-1): 
+    def collect_nonterminals(self): 
         """ 
-        Performs a left corner traversal of the tree and returns the
+        Performs a traversal of the tree and returns the
         nonterminals labels according to this node ordering.
 
         Returns:
@@ -229,15 +229,10 @@ class DiscoTree:
         """
         if self.is_leaf():
             return [ ]
-        if not global_root:
-            global_root = self
-
+        
         result = [ self.label ]
-            
-        for node in self.covered_nodes(global_root):
-            if node.right_corner() > max_index:
-                result.extend( node.collect_nonterminals(global_root,max_index) )
-                max_index = max(max_index,node.right_corner())    
+        for child in self.children:
+            result.extend(child.collect_nonterminals())
         return result
     
     #TRANSFORMS

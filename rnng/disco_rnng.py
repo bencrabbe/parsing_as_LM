@@ -67,6 +67,9 @@ class StackSymbol:
         self.range = sym_range
         self.has_to_move                              = False
 
+    def is_terminal(self):
+        return not self.predicted and len(self.range) == 1
+        
     def copy(self): 
         """
         Returns:
@@ -83,16 +86,18 @@ class StackSymbol:
         Args:
             flag (bool) : flags the symbol for movement (True) or stops movement (False) 
         """
-        #TODO : check whether a full copy wouldn't be safer here
-        self.has_to_move = flag
+        symcopy = self.copy()
+        symcopy.has_to_move = flag
+        return symcopy
 
     def complete(self):
         """
         Internal method, setting the symbol as completed
         """
-        #TODO : check whether a full copy wouldn't be safer here
-        self.predicted = False
-        
+        symcopy = self.copy()
+        symcopy.predicted = False
+        return symcopy
+
     def __str__(self):
         s =  '*%s'%(self.symbol,) if self.predicted else '%s*'%(self.symbol,)
         if self.has_to_move:
@@ -256,10 +261,8 @@ class DiscoRNNGparser:
             tuple. A configuration resulting from the labelling
         """
         S,B,n,stack_state,lab_state = configuration
-
         embedding   = self.cond_nonterminals_embeddings[self.nonterminals.index(label)]
         stack_state = stack_state.add_input(embedding)
-        #print('added nt embedding',label,embedding.npvalue())
         return (S + [StackSymbol(label,embedding,predicted=True,sym_range=[B[0]])],B,n + 1,stack_state,DiscoRNNGparser.NO_LABEL) 
     
     def close_action(self,configuration): 
@@ -282,7 +285,7 @@ class DiscoRNNGparser:
             symbol = newS.pop() 
 
             if symbol.has_to_move:
-                symbol.schedule_movement(False)
+                symbol = symbol.schedule_movement(False)
                 moved_symbols.append(symbol)
             else:
                 closed_symbols.append(symbol)
@@ -306,7 +309,7 @@ class DiscoRNNGparser:
         tree_h         = dy.concatenate([self.ifdropout(fwd_state.output()),self.ifdropout(bwd_state.output())])
         tree_embedding = dy.rectify(self.cond_tree_W * tree_h + self.cond_tree_b)
         
-        completeNT.complete()
+        completeNT = completeNT.complete()
         completeNT.range     = complete_range 
         completeNT.embedding = tree_embedding
         newS.append(completeNT)
@@ -314,10 +317,12 @@ class DiscoRNNGparser:
         
         #updates the stack state when putting back the moved elements
         newS.extend(reversed(moved_symbols))
+        new_n = n-1
         for SYM in reversed(moved_symbols):
-             stack_state = stack_state.add_input(SYM.embedding)
-             
-        return (newS,B,n-1,stack_state,DiscoRNNGparser.NO_LABEL)
+            stack_state = stack_state.add_input(SYM.embedding)
+            if SYM.predicted:
+                new_n += 1
+        return (newS,B,new_n,stack_state,DiscoRNNGparser.NO_LABEL)
 
         
     def move_action(self,configuration,stack_idx):
@@ -330,10 +335,12 @@ class DiscoRNNGparser:
            Tuple. A configuration resulting from moving the constituent
         """
         S,B,n,stack_state,lab_state = configuration
-        S[-stack_idx-1].schedule_movement(True)
-        return (S,B,n,stack_state,DiscoRNNGparser.NO_LABEL)
+        newS = S[:]
+        moved_elt =  newS[-stack_idx-1]
+        newS[-stack_idx-1] = moved_elt.schedule_movement(True)
+        new_n = n-1 if moved_elt.predicted else n
+        return (newS,B,new_n,stack_state,DiscoRNNGparser.NO_LABEL)
 
-    
     def static_oracle(self,ref_root,global_root,sentence,configuration=None):
         """
         Generates a list of configurations and returns a list of actions to exec given a ref tree
@@ -539,31 +546,42 @@ class DiscoRNNGparser:
            a list. Indexes of the allowed actions
         """
         S,B,n,stack_state,lab_state = configuration
-
-        def code2action(act_idx): 
-            return (self.MOVE,act_idx-self.actions.size())  if act_idx >= self.actions.size() else  self.actions.wordform(act_idx)
-     
-        mov_mask = []
+        #Analyze stack top
+        children             = []
+        children_terminals   = 0
         for idx,stack_elt in enumerate(reversed(S)):
-            mov_mask.append(not stack_elt.has_to_move)
+            children.append((not stack_elt.predicted) and (not stack_elt.has_to_move))
+            children_terminals += (stack_elt.is_terminal() and (not stack_elt.has_to_move))
             if stack_elt.predicted and not stack_elt.has_to_move:
                 break
-        MASK = np.array([True]*self.actions.size()+[False]*len(mov_mask))  if n < 1 else  np.array([True]*self.actions.size()+mov_mask) 
-        if not B:
-            #last condition prevents unaries
-            MASK[self.actions.index(DiscoRNNGparser.OPEN)] = False  
-        if B or n != 0 or len(S) > 1:
-            MASK[self.actions.index(DiscoRNNGparser.TERMINATE)] = False  
-        if not B or (S and n == 0):
-            MASK[self.actions.index(DiscoRNNGparser.SHIFT)] = False  
-        if not S or n < 1 or (len(S) >=1 and S[-1].predicted and S[-1].symbol in self.nonterminals):
-            # Last condition prevents unaries
-            # Exceptional unaries are allowed on top of terminals symbols only
-            MASK[self.actions.index(DiscoRNNGparser.CLOSE)] = False  
+        if children:         #! last element is predicted ! 
+            children[-1] = False 
+ 
+        allowed_static= [False] * self.actions.size() 
+        
+        if B and n <= 2*len(B):
+            allowed_static[self.actions.index(DiscoRNNGparser.OPEN)]      = True  
+        if (B and n >= 1):
+            allowed_static[self.actions.index(DiscoRNNGparser.SHIFT)]     = True  
+        if not B and n == 0 and len(S) == 1:
+            allowed_static[self.actions.index(DiscoRNNGparser.TERMINATE)] = True
 
-        allowed_idxes = [idx for idx, mask_val in enumerate(MASK) if mask_val]
+        sum_children = sum(children)
+        if (n >= 2 and sum_children >= 2) or (n >=2 and sum_children == 1 and children_terminals == 1) or (n==1 and not B) :
+            allowed_static[self.actions.index(DiscoRNNGparser.CLOSE)]     = True  
+
+        if n >= 1:
+            allowed_dynamic = children
+            if n >= 2:
+                allowed_dynamic[-1] = True
+        else:
+            allowed_dynamic = [False]*len(children)
+        
+            
+        allowed_idxes = [idx for idx, mask_val in enumerate(allowed_static+allowed_dynamic) if mask_val]
         return allowed_idxes
 
+    
     def ifdropout(self,expression):
         """
         Applies dropout to a dynet expression only if dropout > 0.0.
@@ -665,6 +683,9 @@ class DiscoRNNGparser:
         Returns: 
             a dynet expression. The loss (NLL) for this action
         """
+        def code2action(act_idx): 
+            return (self.MOVE,act_idx-self.actions.size())  if act_idx >= self.actions.size() else  self.actions.wordform(act_idx)
+        
         S,B,n,stack_state,lab_state = configuration
 
         if lab_state == DiscoRNNGparser.WORD_LABEL:
@@ -693,6 +714,11 @@ class DiscoRNNGparser:
                 ref_idx          = self.actions.size() + ref_action if type(ref_action) == int else self.actions.index(ref_action)
                 restr_mask       = self.allowed_structural_actions(configuration)
 
+                #print(print_config(configuration))
+                #print('ref',ref_action)
+                #print('allowed',[code2action(r) for r in restr_mask])
+                #print()
+                
                 word_idx         = B[0] if B else -1
                 buffer_embedding = word_encodings[word_idx] 
 
@@ -856,13 +882,17 @@ class DiscoRNNGparser:
             elif lab_state == DiscoRNNGparser.NT_LABEL:
                 beam_elt.configuration = self.open_nonterminal(configuration,beam_elt.prev_action)
             elif type(beam_elt.prev_action) == tuple :
+                print('exec move')
                 move_label,mov_idx = beam_elt.prev_action
                 beam_elt.configuration = self.move_action(configuration,mov_idx) 
             elif beam_elt.prev_action == DiscoRNNGparser.CLOSE:
+                print('exec close')
                 beam_elt.configuration = self.close_action(configuration)
             elif beam_elt.prev_action == DiscoRNNGparser.OPEN:
+                print('exec open')
                 beam_elt.configuration = self.open_action(configuration)
             elif beam_elt.prev_action == DiscoRNNGparser.SHIFT:
+                print('exec shift')
                 beam_elt.configuration = self.shift_action(configuration)
             elif beam_elt.prev_action == DiscoRNNGparser.TERMINATE:
                 beam_elt.configuration = configuration
@@ -891,19 +921,23 @@ class DiscoRNNGparser:
             beam = DiscoRNNGparser.prune_beam(beam,K) #pruning
             for elt in beam:
                 self.exec_beam_action(elt,sentence) #lazily builds configs
-                
+            print('--------------')    
             next_preds = [ ] 
-            for elt in beam: 
+            for elt in beam:
+                print()
                 configuration = elt.configuration
                 S,B,n,stack_state,lab_state = configuration
                 if lab_state == DiscoRNNGparser.WORD_LABEL:
-                    for (action, logprob) in self.predict_action_distrib(configuration,sentence,word_encodings,True):                    
+                    for (action, logprob) in self.predict_action_distrib(configuration,sentence,word_encodings,True):
+                        print(print_config(configuration),action,logprob)
                         next_preds.append(BeamElement(elt,action,elt.prefix_score+logprob))
                 elif lab_state == DiscoRNNGparser.NT_LABEL:
-                    for (action, logprob) in self.predict_action_distrib(configuration,sentence,word_encodings,True):                    
+                    for (action, logprob) in self.predict_action_distrib(configuration,sentence,word_encodings,True):
+                        print(print_config(configuration),action,logprob)
                         next_preds.append(BeamElement(elt,action,elt.prefix_score+logprob))
                 else:
                     for (action, logprob) in self.predict_action_distrib(configuration,sentence,word_encodings,True):
+                        print(print_config(configuration),action,logprob)
                         if action == DiscoRNNGparser.TERMINATE:
                             successes.append(BeamElement(elt,action,elt.prefix_score+logprob)) #really add these terminate probs to the prefix ?
                         else:
@@ -962,7 +996,7 @@ class DiscoRNNGparser:
                     if idx < kbest:
                         r_tree        = self.deriv2tree([action for action,prob in r_derivation])
                         r_tree.expand_unaries()
-                        print(r_tree)
+                        print(r_tree,r_derivation[-1][1])
             else:
                 print('(())',file=ostream,flush=True)
             break #parses 1st tree right now
@@ -1036,7 +1070,6 @@ class DiscoRNNGparser:
 if __name__ == '__main__':
 
     p = DiscoRNNGparser(brown_file='kk.brown')
-
     tstream = open('negra/test.mrg')
     dstream = open('negra/dev.mrg')
     p.train_model(tstream,tstream,'test',lr=0.25,epochs=100,dropout=0.0)
@@ -1044,8 +1077,8 @@ if __name__ == '__main__':
     dstream.close()
 
     pstream = open('negra/test.mrg') 
-    p.parse_corpus(pstream,K=1)
-    pstream.close()
+    p.parse_corpus(pstream,K=5,kbest=5)
+    pstream.close( )
     exit(0)
 
     t = DiscoTree.read_tree('(S (NP 0=John) (VP (VB 1=eats) (NP (DT 2=an) (NN 3=apple))) (PONCT 4=.))')
@@ -1070,7 +1103,7 @@ if __name__ == '__main__':
 
     D,C = p.static_oracle(t,t,wordlist)
     print(D)
-    print(p.deriv2tree(D))
+    print(p.deriv2tree(D)) 
     print() 
 
     
@@ -1078,8 +1111,8 @@ if __name__ == '__main__':
     print(t2,'gap_degree',t2.gap_degree())
     wordlist = t2.words()
     print(wordlist)
-    print()
- 
+    print() 
+
     D,C = p.static_oracle(t2,t2,wordlist)
     print(D)
     print(p.deriv2tree(D))
