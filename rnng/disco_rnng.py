@@ -967,7 +967,6 @@ class DiscoRNNGparser:
                         print(r_tree,r_derivation[-1][1])
             else:
                 print('(())',file=ostream,flush=True)
-            break
 
     def train_model(self,train_stream,dev_stream,modelname,lr=0.1,epochs=20,batch_size=1,dropout=0.3):
         """
@@ -983,7 +982,6 @@ class DiscoRNNGparser:
             t.strip_tags()
             t.close_unaries()
             train_treebank.append(t)
-            break
             
         dev_treebank = []
         for line in dev_stream:
@@ -991,7 +989,6 @@ class DiscoRNNGparser:
             t.strip_tags()
             t.close_unaries()
             dev_treebank.append(t)
-            break
         
         self.code_lexicon(train_treebank)
         self.code_nonterminals(train_treebank,dev_treebank)
