@@ -359,38 +359,25 @@ class DiscoRNNGparser:
             lc_idx = ref_node.left_corner() 
             for node in reversed(S): 
                 if not node.predicted and min(node.range) == lc_idx: 
-                    #print('**occ**',node.symbol,print_config(configuration))
-                    #print('occ predicted',ref_node.label)
                     return True 
             return False
          
         def occurs_completed(ref_node,configuration):  # (occur check #2)
             #returns True if completed node already on the stack
 
-            #print(print_config(configuration))
             S,B,n,stack_state,lab_state = configuration
             for elt in S:
                 if not elt.predicted and ref_node.is_dominated_by(elt.range):
-                    #print('occ completed',ref_node.label)
                     return True
             return False
     
-            #max_incr_idx = max( [ max(elt.range) for elt in S if not elt.predicted] + [-1] )
-            #ref_idx      = ref_node.right_corner()
-            #if not ref_idx > max_incr_idx: #ERROR : move back in stack and search for an element with same label and same range !
-            #    print('occ completed',ref_node.label)
-            #    return True
-            #return False
-        
         if configuration is None:                       #init
             N = len(ref_root.words()) 
             configuration = self.init_configuration(N)   
-            #print( print_config(configuration) )
 
         if ref_root.is_leaf(): 
             configuration = self.shift_action(configuration)
             configuration = self.generate_word(configuration,sentence)
-            #print(print_config(configuration))
             S,B,n,stack_state,lab_state = configuration
             sh_word                     = sentence[S[-1].symbol]
             act_list                    = [DiscoRNNGparser.SHIFT,sh_word]
@@ -402,11 +389,7 @@ class DiscoRNNGparser:
             if not occurs_predicted(ref_root,configuration):
                 configuration = self.open_action(configuration) 
                 configuration = self.open_nonterminal(configuration,ref_root.label)
-                #print('OPENING',ref_root.label)
-                #print(print_config(configuration))
                 act_list.extend([DiscoRNNGparser.OPEN,ref_root.label])
-            #else:
-                #print('ALREADY OPEN',ref_root.label)
                 
             #B. Recursive calls 
             for child in ref_root.covered_nodes(global_root):
@@ -414,13 +397,10 @@ class DiscoRNNGparser:
                     #non local extra processing
                     local = ref_root.dominates(child.range) 
                     if not local: 
-                        #print('non loc call',child.label,'for root ',ref_root.label)
                         for ancestor in global_root.get_lc_ancestors(child.range):
-                            #print('anc',ancestor.label)
                             if ancestor is not child:
                                 configuration = self.open_action(configuration) 
                                 configuration = self.open_nonterminal(configuration,ancestor.label)
-                                #print(print_config(configuration))
                                 act_list.extend([DiscoRNNGparser.OPEN,ancestor.label]) 
 
                     local_actions, configuration = self.static_oracle(child,global_root,sentence,configuration)
@@ -431,20 +411,15 @@ class DiscoRNNGparser:
             S,B,n,stack_state,lab_state = configuration
             for stack_idx, stack_elt in enumerate(reversed(S)):
                 local = ref_root.dominates(stack_elt.range)
-                #print(ref_root.range,stack_elt.range)
                 if stack_elt.predicted and local:
                     break
                 if not local:
-                    #print('move',stack_elt.symbol)
-                    #assert(stack_idx > 0) -> nope. there exists cases where this assertion does not hold (!)
+                    #assert(stack_idx > 0) -> nope. there exist cases where this assertion does not hold (!)
                     configuration = self.move_action(configuration,stack_idx)
                     act_list.extend([DiscoRNNGparser.MOVE,stack_idx])       
-                    #print(print_config(configuration))
 
             #D. Close
-            #print("CLOSE",ref_root.label)  
             configuration = self.close_action(configuration)
-            #print(print_config(configuration))
             act_list.append(DiscoRNNGparser.CLOSE)
             return (act_list,configuration)
 
@@ -554,7 +529,7 @@ class DiscoRNNGparser:
             children_terminals += (stack_elt.is_terminal() and (not stack_elt.has_to_move))
             if stack_elt.predicted and not stack_elt.has_to_move:
                 break
-        if children:         #! last element is predicted ! 
+        if children:         #! last element is always predicted ! 
             children[-1] = False 
  
         allowed_static= [False] * self.actions.size() 
@@ -613,8 +588,6 @@ class DiscoRNNGparser:
             local_state = local_state.prev() 
 
         return dy.concatenate(stack_scores) if stack_scores else stack_scores
-
-
     
     def predict_action_distrib(self,configuration,sentence,word_encodings,conditional):
         """
@@ -651,10 +624,8 @@ class DiscoRNNGparser:
             else:
                 pass
         elif lab_state == DiscoRNNGparser.NO_LABEL :
-            if conditional:
-                
+            if conditional:                
                 restr_mask       = self.allowed_structural_actions(configuration)
-                
                 if restr_mask:
                     word_idx         = B[0] if B else -1
                     buffer_embedding = word_encodings[word_idx] 
@@ -882,17 +853,13 @@ class DiscoRNNGparser:
             elif lab_state == DiscoRNNGparser.NT_LABEL:
                 beam_elt.configuration = self.open_nonterminal(configuration,beam_elt.prev_action)
             elif type(beam_elt.prev_action) == tuple :
-                print('exec move')
                 move_label,mov_idx = beam_elt.prev_action
                 beam_elt.configuration = self.move_action(configuration,mov_idx) 
             elif beam_elt.prev_action == DiscoRNNGparser.CLOSE:
-                print('exec close')
                 beam_elt.configuration = self.close_action(configuration)
             elif beam_elt.prev_action == DiscoRNNGparser.OPEN:
-                print('exec open')
                 beam_elt.configuration = self.open_action(configuration)
             elif beam_elt.prev_action == DiscoRNNGparser.SHIFT:
-                print('exec shift')
                 beam_elt.configuration = self.shift_action(configuration)
             elif beam_elt.prev_action == DiscoRNNGparser.TERMINATE:
                 beam_elt.configuration = configuration
@@ -921,25 +888,20 @@ class DiscoRNNGparser:
             beam = DiscoRNNGparser.prune_beam(beam,K) #pruning
             for elt in beam:
                 self.exec_beam_action(elt,sentence) #lazily builds configs
-            print('--------------')    
             next_preds = [ ] 
             for elt in beam:
-                print()
                 configuration = elt.configuration
                 S,B,n,stack_state,lab_state = configuration
                 if lab_state == DiscoRNNGparser.WORD_LABEL:
                     for (action, logprob) in self.predict_action_distrib(configuration,sentence,word_encodings,True):
-                        print(print_config(configuration),action,logprob)
                         next_preds.append(BeamElement(elt,action,elt.prefix_score+logprob))
                 elif lab_state == DiscoRNNGparser.NT_LABEL:
                     for (action, logprob) in self.predict_action_distrib(configuration,sentence,word_encodings,True):
-                        print(print_config(configuration),action,logprob)
                         next_preds.append(BeamElement(elt,action,elt.prefix_score+logprob))
                 else:
                     for (action, logprob) in self.predict_action_distrib(configuration,sentence,word_encodings,True):
-                        print(print_config(configuration),action,logprob)
                         if action == DiscoRNNGparser.TERMINATE:
-                            successes.append(BeamElement(elt,action,elt.prefix_score+logprob)) #really add these terminate probs to the prefix ?
+                            successes.append(BeamElement(elt,action,elt.prefix_score+logprob))
                         else:
                             next_preds.append(BeamElement(elt,action,elt.prefix_score+logprob))
             beam = next_preds 
@@ -1017,9 +979,8 @@ class DiscoRNNGparser:
             t.close_unaries()
             train_treebank.append(t)
             print(t)
-            break
             idx += 1  #just 10 trees for now 
-            if idx > 10:
+            if idx > 50:
                 break
             
         #dev_treebank = []
@@ -1028,7 +989,7 @@ class DiscoRNNGparser:
         #    t.strip_tags()
         #    t.close_unaries()
         #    dev_treebank.append(t)
-        dev_treebank = train_treebank   #just 1 tree for now 
+        dev_treebank = train_treebank   #just 10 trees for now 
             
         self.code_lexicon(train_treebank)
         self.code_nonterminals(train_treebank,dev_treebank)
@@ -1072,12 +1033,12 @@ if __name__ == '__main__':
     p = DiscoRNNGparser(brown_file='kk.brown')
     tstream = open('negra/test.mrg')
     dstream = open('negra/dev.mrg')
-    p.train_model(tstream,tstream,'test',lr=0.25,epochs=100,dropout=0.0)
+    p.train_model(tstream,tstream,'test',lr=0.25,epochs=50,dropout=0.0)
     tstream.close()
     dstream.close()
 
     pstream = open('negra/test.mrg') 
-    p.parse_corpus(pstream,K=5,kbest=5)
+    p.parse_corpus(pstream,K=32,kbest=10)
     pstream.close( )
     exit(0)
 
@@ -1118,7 +1079,7 @@ if __name__ == '__main__':
     print(p.deriv2tree(D))
     print()
     
-    t3 =  DiscoTree.read_tree('(S (X (A 0=a)  (A 3=a))  (Y (B 1=b) (B 4=b)) (Z (C 2=c) (C 5=c)))')
+    t3 =  DiscoTree.read_tree('(S (X (A 0=a) (A 3=a))  (Y (B 1=b) (B 4=b)) (Z (C 2=c) (C 5=c)))')
     print(t3,'gap_degree',t3.gap_degree())
     wordlist = t3.words()
     print(wordlist)
