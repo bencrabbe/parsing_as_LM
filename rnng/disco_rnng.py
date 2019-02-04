@@ -975,26 +975,18 @@ class DiscoRNNGparser:
         """
         #preprocessing
         train_treebank = [ ]
-        idx = 0
         for line in train_stream:
             t = DiscoTree.read_tree(line)
             t.strip_tags()
             t.close_unaries()
             train_treebank.append(t)
-            idx += 1
-            if idx > 5:
-                break
             
         dev_treebank = []
-        idx = 0 
         for line in dev_stream:
             t = DiscoTree.read_tree(line)
             t.strip_tags()
             t.close_unaries()
             dev_treebank.append(t)
-            idx += 1
-            if idx > 5:
-                break
             
         self.code_lexicon(train_treebank)
         self.code_nonterminals(train_treebank,dev_treebank)
