@@ -685,10 +685,14 @@ class DiscoRNNGparser:
                 ref_idx          = self.actions.size() + ref_action if type(ref_action) == int else self.actions.index(ref_action)
                 restr_mask       = self.allowed_structural_actions(configuration)
 
-                #print(print_config(configuration))
-                #print('ref',ref_action)
-                #print('allowed',[code2action(r) for r in restr_mask])
-                #print()
+
+                if ref_idx no int restr_mask:
+                    print(sentence)
+                    print(print_config(configuration))
+                    print('ref',ref_action)
+                    print('allowed',[code2action(r) for r in restr_mask])
+                    print()
+                    break
                 
                 word_idx         = B[0] if B else -1
                 buffer_embedding = word_encodings[word_idx] 
