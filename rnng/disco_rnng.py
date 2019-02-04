@@ -978,10 +978,6 @@ class DiscoRNNGparser:
             t.strip_tags()
             t.close_unaries()
             train_treebank.append(t)
-            print(t)
-            idx += 1  #just 10 trees for now 
-            if idx > 50:
-                break
             
         #dev_treebank = []
         #for line in dev_stream:
