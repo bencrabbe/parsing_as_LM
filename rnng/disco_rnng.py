@@ -981,13 +981,20 @@ class DiscoRNNGparser:
             t.strip_tags()
             t.close_unaries()
             train_treebank.append(t)
+            idx += 1
+            if idx > 5:
+                break
             
         dev_treebank = []
+        idx = 0 
         for line in dev_stream:
             t = DiscoTree.read_tree(line)
             t.strip_tags()
             t.close_unaries()
             dev_treebank.append(t)
+            idx += 1
+            if idx > 5:
+                break
             
         self.code_lexicon(train_treebank)
         self.code_nonterminals(train_treebank,dev_treebank)
@@ -1019,8 +1026,10 @@ class DiscoRNNGparser:
             for idx,tree in enumerate(dev_treebank):
                 valid_stats += self.eval_sentence(tree,conditional=True,backprop=False)
  
-            NLL,lex_NLL,N,lexN = valid_stats.peek()    
-            print('[Validation] Epoch %d, NLL = %f, PPL = %f'%(e,NLL,np.exp(NLL/N)),flush=True)
+            NLL,lex_NLL,N,lexN = valid_stats.peek()
+            print(NLL,lex_NLL,N,lexN)
+            print('\n[Validation]  Epoch %d, NLL = %f, lex-NLL = %f, PPL = %f, lex-PPL = %f'%(e,NLL,lex_NLL,np.exp(NLL/N),np.exp(lex_NLL/lexN)),flush=True)
+
             print()
             if NLL < min_nll:
                 pass

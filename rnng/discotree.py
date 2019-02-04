@@ -210,7 +210,13 @@ class DiscoTree:
                 result.extend( node.tokens(global_root,max_index) )
                 max_index = max(max_index,node.right_corner())  
         return result
-         
+
+    def pos_nodes(self,global_root=None,max_index=-1):
+        """
+        Gets the part of speech nodes of this tree.
+        Assumes that
+        """
+    
     def words(self):
         """
         Returns:
