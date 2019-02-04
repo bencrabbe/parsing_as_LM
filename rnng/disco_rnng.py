@@ -686,13 +686,13 @@ class DiscoRNNGparser:
                 restr_mask       = self.allowed_structural_actions(configuration)
 
 
-                if ref_idx not in restr_mask:
-                    print(sentence)
-                    print(print_config(configuration))
-                    print('ref',ref_action)
-                    print('allowed',[code2action(r) for r in restr_mask])
-                    print()
-                    exit(1)
+                #if ref_idx not in restr_mask:
+                #    print(sentence)
+                #    print(print_config(configuration))
+                #    print('ref',ref_action)
+                #    print('allowed',[code2action(r) for r in restr_mask])
+                #    print()
+                #    exit(1)
                 
                 word_idx         = B[0] if B else -1
                 buffer_embedding = word_encodings[word_idx] 
@@ -724,7 +724,7 @@ class DiscoRNNGparser:
         dropout = self.dropout
         if not backprop:
             self.dropout = 0.0
-        
+         
         runstats = RuntimeStats('NLL','lexNLL','N','lexN')
         runstats.push_row() 
         
@@ -734,7 +734,7 @@ class DiscoRNNGparser:
         all_NLL     = [] #collects the local losses in the batch
         lexical_NLL = [] #collects the local losses in the batch (for word prediction only)
         
-        configuration = self.init_configuration( len(sentence) )
+        configuration = self.init_configuration( len(sentence) ) 
         prev_action = None
         for ref_action in ref_derivation:
             S,B,n,stack_state,lab_state = configuration                
@@ -763,7 +763,7 @@ class DiscoRNNGparser:
                 pass
             prev_action = ref_action
               
-        loss     = dy.esum(all_NLL)
+        loss     = dy.esum(all_NLL) 
         lex_loss = dy.esum(lexical_NLL)
         
         runstats['NLL']    = loss.value() 
@@ -936,12 +936,13 @@ class DiscoRNNGparser:
         D.reverse()  
         return D
 
-    def parse_corpus(self,istream,ostream=sys.stdout,stats_stream=None,K=5,kbest=1):
+    def parse_corpus(self,istream,ostream=sys.stdout,evalb_mode,stats_stream=None,K=5,kbest=1):
         """
         Parses a corpus and prints out the trees in a file.
         Args: 
            istream  (stream): the stream where to read the data from
            ostream  (stream): the stream where to write the data to
+           evalb_mode (bool): a bool stating if we reinsert tags provided by the ref tree into the output to ensure compat with evalb
         Kwargs: 
            stats_stream (string): the stream where to dump stats
            K               (int): the size of the beam
@@ -987,7 +988,6 @@ class DiscoRNNGparser:
             t.strip_tags()
             t.close_unaries()
             dev_treebank.append(t)
-        dev_treebank = train_treebank
             
         self.code_lexicon(train_treebank)
         self.code_nonterminals(train_treebank,dev_treebank)
@@ -1036,7 +1036,7 @@ if __name__ == '__main__':
     dstream.close()
 
     pstream = open('negra/test.mrg') 
-    p.parse_corpus(pstream,K=32,kbest=10)
+    p.parse_corpus(pstream,False,K=32,kbest=10)
     pstream.close( )
     exit(0)
 
