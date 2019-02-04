@@ -206,7 +206,7 @@ class DiscoTree:
            a list. A list of DiscoTree objects, the leaves of the tree
         """
         if global_root is None:
-                global_root = self
+            global_root = self
             
         if self.is_leaf():
                 return [ self ]
