@@ -130,13 +130,14 @@ class DiscoRNNGparser:
     UNKNOWN_TOKEN = '<UNK>'
     START_TOKEN   = '<START>'
     
-    def __init__(self,stack_embedding_size=300,word_embedding_size=300,stack_hidden_size=300,brown_file='toto.brown'):
+    def __init__(self,stack_embedding_size=300,word_embedding_size=300,stack_hidden_size=300,vocab_thresh=1,brown_file='toto.brown'):
 
         self.brown_file = brown_file
         self.stack_embedding_size = stack_embedding_size
         self.word_embedding_size  = stack_embedding_size
         self.stack_hidden_size    = stack_hidden_size
- 
+        self.vocab_thresh         = vocab_thresh
+
     def allocate_conditional_params(self):
         """ 
         This allocates memory for the conditional model parameters
@@ -149,8 +150,6 @@ class DiscoRNNGparser:
         self.cond_structural_W             = self.cond_model.add_parameters((self.actions.size(),self.stack_hidden_size+self.stack_embedding_size))         
         self.cond_structural_b             = self.cond_model.add_parameters((self.actions.size()))
         
-        #self.word_softmax                 = dy.ClassFactoredSoftmaxBuilder(self.stack_hidden_size,self.brown_file,self.lexicon.words2i,self.cond_model,bias=True)
-
         self.cond_nonterminals_W            = self.cond_model.add_parameters((self.nonterminals.size(),self.stack_hidden_size+self.stack_embedding_size))   
         self.cond_nonterminals_b            = self.cond_model.add_parameters((self.nonterminals.size()))
 
@@ -473,12 +472,12 @@ class DiscoRNNGparser:
     def code_lexicon(self,treebank):
         """
         Builds indexes for word symbols found in the treebank
-        """
+        """        
         known_vocabulary = [ ]
         for tree in treebank:
             known_vocabulary.extend( tree.words() )
             
-        known_vocabulary = get_known_vocabulary(known_vocabulary,vocab_threshold=-1)#change this
+        known_vocabulary = get_known_vocabulary(known_vocabulary,vocab_threshold=self.vocab_thresh)#change this
         known_vocabulary.add(DiscoRNNGparser.START_TOKEN)
         self.brown_file  = normalize_brown_file(self.brown_file,known_vocabulary,self.brown_file+'.unk',UNK_SYMBOL=DiscoRNNGparser.UNKNOWN_TOKEN)
         self.lexicon     = SymbolLexicon( list(known_vocabulary),unk_word=DiscoRNNGparser.UNKNOWN_TOKEN)
@@ -969,7 +968,7 @@ class DiscoRNNGparser:
             else:
                 print('(())',file=ostream,flush=True)
 
-    def save_model(self,modelname):
+    def save_model(self,model_name):
         """
         Saves the model params using the prefix model_name.
         Args:
@@ -978,9 +977,7 @@ class DiscoRNNGparser:
         hyperparams = { 'brown_file':self.brown_file,\
                         'vocab_thresh':self.vocab_thresh,\
                         'stack_hidden_size':self.stack_hidden_size,\
-                        'word_embedding_size':self.word_embedding_size,\
-                        'char_memory_size':self.char_memory_size,\
-                        'char_embedding_size':self.char_embedding_size}
+                        'word_embedding_size':self.word_embedding_size}
   
         jfile = open(model_name+'.json','w')
         jfile.write(json.dumps(hyperparams))
@@ -1004,15 +1001,13 @@ class DiscoRNNGparser:
             t.strip_tags()
             t.close_unaries()
             train_treebank.append(t)
-            break
         
-        dev_treebank = []
+        dev_treebank = [ ]
         for line in dev_stream:
             t = DiscoTree.read_tree(line)
             t.strip_tags()
             t.close_unaries()
-            dev_treebank.append(t)
-            break
+            dev_treebank.append(t) 
         
         self.code_lexicon(train_treebank)
         self.code_nonterminals(train_treebank,dev_treebank)
@@ -1055,13 +1050,15 @@ if __name__ == '__main__':
     p       = DiscoRNNGparser(brown_file='kk.brown')
     tstream = open('negra/train.mrg')
     dstream = open('negra/dev.mrg')
-    p.train_model(tstream,dstream,'test',lr=0.25,epochs=100,dropout=0.0)
+    p.train_model(tstream,dstream,'disco_negra_model/negra_model',lr=0.1,epochs=10,dropout=0.3)
     tstream.close()
     dstream.close()
  
-    pstream = open('negra/test.mrg') 
-    p.parse_corpus(pstream,K=32,kbest=1)
+    pstream = open('negra/test.mrg')
+    pred_stream = open('disco_negra_model/pred_test.mrg','w')
+    p.parse_corpus(pstream,ostream=pred_stream, K=32,kbest=1)
     pstream.close()
+    pred_stream.close()
     exit(0)
 
     t = DiscoTree.read_tree('(S (NP 0=John) (VP (VB 1=eats) (NP (DT 2=an) (NN 3=apple))) (PONCT 4=.))')
