@@ -686,7 +686,7 @@ class DiscoRNNGparser:
                 restr_mask       = self.allowed_structural_actions(configuration)
 
 
-                if ref_idx no int restr_mask:
+                if ref_idx not in restr_mask:
                     print(sentence)
                     print(print_config(configuration))
                     print('ref',ref_action)
