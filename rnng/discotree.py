@@ -37,7 +37,14 @@ class DiscoTree:
            Bool. True if this node is a leaf, false otherwise
         """
         return self.children == []
-
+    
+    def is_pos(self):
+        """
+        Returns :
+           Bool. True if this node is a pos tag, false otherwise
+        """
+        return self.arity() == 1 and self.children[0].is_leaf()
+    
     def arity(self):
         return len(self.children)
             
@@ -214,9 +221,53 @@ class DiscoTree:
     def pos_nodes(self,global_root=None,max_index=-1):
         """
         Gets the part of speech nodes of this tree.
-        Assumes that
+        Assumes that every token is dominated by a single part of
+        speech.
+
+        Args:
+           global_root (DiscoTree) :  the global root of the tree. No need to care in most cases
+           max_index         (int) :  the index up to which the input is covered so far. No need to care in most cases
         """
-    
+          
+        if global_root is None:
+            global_root = self
+            
+        if self.is_leaf():
+            return [ self ]
+
+        result = [ ] 
+        for node in self.covered_nodes(global_root):
+            if node.right_corner() > max_index:
+                result.extend( node.pos_nodes(global_root,max_index) )
+                max_index = max(max_index,node.right_corner())  
+        return result
+
+    def add_gold_tags(self,taglist,global_root=None,max_index=-1):
+
+        """
+        Inserts back the gold part of speech nodes of this tree.
+
+        Args:
+           taglist          (list) : list of DiscoTree nodes
+           global_root (DiscoTree) : the global root of the tree. No need to care in most cases
+           max_index         (int) : the index up to which the input is covered so far. No need to care in most cases
+        """
+            
+        if global_root is None:
+            global_root = self
+            
+        if self.is_leaf():
+            print('before',self)
+            self = taglist[0]
+            print('after',self)
+            taglist = taglist[1:]
+        else:
+            for node in self.covered_nodes(global_root):
+                if node.right_corner() > max_index:                    
+                    node.add_gold_pos_tags(taglist,global_root,max_index)
+                max_index = max(max_index,node.right_corner())  
+        return result
+     
     def words(self):
         """
         Returns:

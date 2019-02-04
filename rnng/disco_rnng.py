@@ -953,18 +953,21 @@ class DiscoRNNGparser:
         N   = 0
         stats_header = True 
         for line in istream:            
-            tree = DiscoTree.read_tree(line)
-            tokens = tree.words()
-            results            = self.predict_beam(tokens,K)
+            tree      = DiscoTree.read_tree(line)
+            tag_nodes = tree.pos_nodes()
+            tokens    = [x.children[0].label for x in tag_nodes]
+            results   = self.predict_beam(tokens,K)
             if results:
                 for idx,r in enumerate(results):
                     r_derivation  = DiscoRNNGparser.weighted_derivation(r)
                     if idx < kbest:
-                        r_tree        = self.deriv2tree([action for action,prob in r_derivation])
+                        r_tree = self.deriv2tree([action for action,prob in r_derivation])
                         r_tree.expand_unaries()
+                        r_tree.add_gold_tags(tag_nodes)
                         print(r_tree,r_derivation[-1][1])
             else:
                 print('(())',file=ostream,flush=True)
+            break
 
     def train_model(self,train_stream,dev_stream,modelname,lr=0.1,epochs=20,batch_size=1,dropout=0.3):
         """
@@ -980,6 +983,7 @@ class DiscoRNNGparser:
             t.strip_tags()
             t.close_unaries()
             train_treebank.append(t)
+            break
             
         dev_treebank = []
         for line in dev_stream:
@@ -987,7 +991,8 @@ class DiscoRNNGparser:
             t.strip_tags()
             t.close_unaries()
             dev_treebank.append(t)
-            
+            break
+        
         self.code_lexicon(train_treebank)
         self.code_nonterminals(train_treebank,dev_treebank)
         self.code_struct_actions()
@@ -1005,7 +1010,6 @@ class DiscoRNNGparser:
         valid_stats = RuntimeStats('NLL','lexNLL','N','lexN')
         
         for e in range(epochs):
-
             train_stats.push_row()
             for idx,tree in enumerate(train_treebank):
                 train_stats += self.eval_sentence(tree,conditional=True,backprop=True)
@@ -1014,17 +1018,17 @@ class DiscoRNNGparser:
             NLL,lex_NLL,N,lexN = train_stats.peek()            
             print('\n[Training]   Epoch %d, NLL = %f, lex-NLL = %f, PPL = %f, lex-PPL = %f'%(e,NLL,lex_NLL,np.exp(NLL/N),np.exp(lex_NLL/lexN)),flush=True)
 
-            valid_stats.push_row()
+            valid_stats.push_row() 
             for idx,tree in enumerate(dev_treebank):
                 valid_stats += self.eval_sentence(tree,conditional=True,backprop=False)
  
             NLL,lex_NLL,N,lexN = valid_stats.peek()
-            print('\n[Validation]  Epoch %d, NLL = %f, lex-NLL = %f, PPL = %f, lex-PPL = %f'%(e,NLL,lex_NLL,np.exp(NLL/N),np.exp(lex_NLL/lexN)),flush=True)
+            print('\n[Validation] Epoch %d, NLL = %f, lex-NLL = %f, PPL = %f, lex-PPL = %f'%(e,NLL,lex_NLL,np.exp(NLL/N),np.exp(lex_NLL/lexN)),flush=True)
             print()
             if NLL < min_nll:
                 pass
                 #self.save_model(modelname)
-        
+         
 if __name__ == '__main__':
 
     p       = DiscoRNNGparser(brown_file='kk.brown')
