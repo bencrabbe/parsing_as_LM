@@ -692,7 +692,7 @@ class DiscoRNNGparser:
                     print('ref',ref_action)
                     print('allowed',[code2action(r) for r in restr_mask])
                     print()
-                    break
+                    exit(1)
                 
                 word_idx         = B[0] if B else -1
                 buffer_embedding = word_encodings[word_idx] 
