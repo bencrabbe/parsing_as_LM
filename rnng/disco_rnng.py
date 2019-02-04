@@ -1019,10 +1019,7 @@ class DiscoRNNGparser:
                 valid_stats += self.eval_sentence(tree,conditional=True,backprop=False)
  
             NLL,lex_NLL,N,lexN = valid_stats.peek()
-            try:
-                print('\n[Validation]  Epoch %d, NLL = %f, lex-NLL = %f, PPL = %f, lex-PPL = %f'%(e,NLL,lex_NLL,np.exp(NLL/N),np.exp(lex_NLL/lexN)),flush=True)
-            except:
-                print(NLL,lex_NLL,N,lexN)
+            print('\n[Validation]  Epoch %d, NLL = %f, lex-NLL = %f, PPL = %f, lex-PPL = %f'%(e,NLL,lex_NLL,np.exp(NLL/N),np.exp(lex_NLL/lexN)),flush=True)
             print()
             if NLL < min_nll:
                 pass
@@ -1033,7 +1030,7 @@ if __name__ == '__main__':
     p       = DiscoRNNGparser(brown_file='kk.brown')
     tstream = open('negra/train.mrg')
     dstream = open('negra/dev.mrg')
-    p.train_model(tstream,tstream,'test',lr=0.25,epochs=5,dropout=0.0)
+    p.train_model(tstream,dstream,'test',lr=0.25,epochs=5,dropout=0.0)
     tstream.close()
     dstream.close()
  
