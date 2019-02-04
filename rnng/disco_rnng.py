@@ -1027,7 +1027,6 @@ class DiscoRNNGparser:
                 valid_stats += self.eval_sentence(tree,conditional=True,backprop=False)
  
             NLL,lex_NLL,N,lexN = valid_stats.peek()
-            
             try:
                 print('\n[Validation]  Epoch %d, NLL = %f, lex-NLL = %f, PPL = %f, lex-PPL = %f'%(e,NLL,lex_NLL,np.exp(NLL/N),np.exp(lex_NLL/lexN)),flush=True)
             except:
