@@ -936,8 +936,8 @@ class DiscoRNNGparser:
         D.reverse()  
         return D
 
-    def parse_corpus(self,istream,ostream=sys.stdout,evalb_mode,stats_stream=None,K=5,kbest=1):
-        """
+    def parse_corpus(self,istream,ostream=sys.stdout,evalb_mode=False,stats_stream=None,K=5,kbest=1):
+        """ 
         Parses a corpus and prints out the trees in a file.
         Args: 
            istream  (stream): the stream where to read the data from
@@ -992,7 +992,7 @@ class DiscoRNNGparser:
         self.code_lexicon(train_treebank)
         self.code_nonterminals(train_treebank,dev_treebank)
         self.code_struct_actions()
-        self.allocate_conditional_params()
+        self.allocate_conditional_params() 
 
         #Training
         self.dropout = dropout
@@ -1034,9 +1034,9 @@ if __name__ == '__main__':
     p.train_model(tstream,tstream,'test',lr=0.25,epochs=5,dropout=0.0)
     tstream.close()
     dstream.close()
-
+ 
     pstream = open('negra/test.mrg') 
-    p.parse_corpus(pstream,False,K=32,kbest=10)
+    p.parse_corpus(pstream,K=32,kbest=10)
     pstream.close( )
     exit(0)
 
