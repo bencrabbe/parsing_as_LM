@@ -232,7 +232,7 @@ class DiscoTree:
         if global_root is None:
             global_root = self
             
-        if self.is_leaf():
+        if self.is_pos():
             return [ self ]
 
         result = [ ] 
@@ -242,7 +242,7 @@ class DiscoTree:
                 max_index = max(max_index,node.right_corner())  
         return result
 
-    def add_gold_tags(self,taglist,global_root=None,max_index=-1):
+    def add_gold_tags(self,taglist):
 
         """
         Inserts back the gold part of speech nodes of this tree.
@@ -252,22 +252,15 @@ class DiscoTree:
            global_root (DiscoTree) : the global root of the tree. No need to care in most cases
            max_index         (int) : the index up to which the input is covered so far. No need to care in most cases
         """
-            
-        if global_root is None:
-            global_root = self
-            
-        if self.is_leaf():
-            print('before',self)
-            self = taglist[0]
-            print('after',self)
-            taglist = taglist[1:]
-        else:
-            for node in self.covered_nodes(global_root):
-                if node.right_corner() > max_index:                    
-                    node.add_gold_pos_tags(taglist,global_root,max_index)
-                max_index = max(max_index,node.right_corner())  
-        return result
-     
+        new_children = [] 
+        for child in self.children:
+            if child.is_leaf():
+                new_children.append(taglist[ child.range[0] ])
+            else:
+                child.add_gold_tags(taglist)
+                new_children.append(child)
+        self.children = new_children
+        
     def words(self):
         """
         Returns:

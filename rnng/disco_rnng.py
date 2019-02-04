@@ -1034,12 +1034,12 @@ if __name__ == '__main__':
     p       = DiscoRNNGparser(brown_file='kk.brown')
     tstream = open('negra/train.mrg')
     dstream = open('negra/dev.mrg')
-    p.train_model(tstream,dstream,'test',lr=0.25,epochs=5,dropout=0.0)
+    p.train_model(tstream,dstream,'test',lr=0.25,epochs=100,dropout=0.0)
     tstream.close()
     dstream.close()
  
     pstream = open('negra/test.mrg') 
-    p.parse_corpus(pstream,K=32,kbest=10)
+    p.parse_corpus(pstream,K=32,kbest=1)
     pstream.close()
     exit(0)
 
