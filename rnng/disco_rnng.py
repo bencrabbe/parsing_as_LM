@@ -1056,7 +1056,7 @@ if __name__ == '__main__':
  
     pstream = open('negra/test.mrg')
     pred_stream = open('disco_negra_model/pred_test.mrg','w')
-    p.parse_corpus(pstream,ostream=pred_stream, K=32,kbest=1)
+    p.parse_corpus(pstream,ostream=pred_stream,evalb_mode=True, K=32,kbest=1)
     pstream.close()
     pred_stream.close()
     exit(0)
