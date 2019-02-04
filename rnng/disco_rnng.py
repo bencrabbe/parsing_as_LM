@@ -264,6 +264,7 @@ class DiscoRNNGparser:
         embedding   = self.cond_nonterminals_embeddings[self.nonterminals.index(label)]
         stack_state = stack_state.add_input(embedding)
         return (S + [StackSymbol(label,embedding,predicted=True,sym_range=[B[0]])],B,n + 1,stack_state,DiscoRNNGparser.NO_LABEL) 
+
     
     def close_action(self,configuration): 
         """
@@ -968,6 +969,27 @@ class DiscoRNNGparser:
             else:
                 print('(())',file=ostream,flush=True)
 
+    def save_model(self,modelname):
+        """
+        Saves the model params using the prefix model_name.
+        Args:
+            model_name   (string): the prefix path for param files
+        """        
+        hyperparams = { 'brown_file':self.brown_file,\
+                        'vocab_thresh':self.vocab_thresh,\
+                        'stack_hidden_size':self.stack_hidden_size,\
+                        'word_embedding_size':self.word_embedding_size,\
+                        'char_memory_size':self.char_memory_size,\
+                        'char_embedding_size':self.char_embedding_size}
+  
+        jfile = open(model_name+'.json','w')
+        jfile.write(json.dumps(hyperparams))
+        jfile.close()
+
+        self.cond_model.save(model_name+'.weights')
+        self.lexicon.save(model_name+'.lex')
+        self.nonterminals.save(model_name+'.nt')
+                
     def train_model(self,train_stream,dev_stream,modelname,lr=0.1,epochs=20,batch_size=1,dropout=0.3):
         """
         Estimates the parameters of a model from a treebank.
@@ -982,13 +1004,15 @@ class DiscoRNNGparser:
             t.strip_tags()
             t.close_unaries()
             train_treebank.append(t)
-            
+            break
+        
         dev_treebank = []
         for line in dev_stream:
             t = DiscoTree.read_tree(line)
             t.strip_tags()
             t.close_unaries()
             dev_treebank.append(t)
+            break
         
         self.code_lexicon(train_treebank)
         self.code_nonterminals(train_treebank,dev_treebank)
@@ -1024,10 +1048,10 @@ class DiscoRNNGparser:
             print()
             if NLL < min_nll:
                 pass
-                #self.save_model(modelname)
-         
+                self.save_model(modelname)
+        
+                
 if __name__ == '__main__':
-
     p       = DiscoRNNGparser(brown_file='kk.brown')
     tstream = open('negra/train.mrg')
     dstream = open('negra/dev.mrg')

@@ -228,7 +228,6 @@ class DiscoTree:
            global_root (DiscoTree) :  the global root of the tree. No need to care in most cases
            max_index         (int) :  the index up to which the input is covered so far. No need to care in most cases
         """
-          
         if global_root is None:
             global_root = self
             
