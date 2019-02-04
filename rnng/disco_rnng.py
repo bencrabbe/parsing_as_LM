@@ -248,7 +248,7 @@ class DiscoRNNGparser:
            A configuration
         """
         S,B,n,stack_state,lab_state = configuration
-        return (S,B,n,stack_state,DiscoRNNGparser.NT_LABEL)
+        return (S,B,n,stack_state,DiscoRNNGparser.NT_LABEL) 
     
     def open_nonterminal(self,configuration,label):
         """
@@ -534,7 +534,7 @@ class DiscoRNNGparser:
  
         allowed_static= [False] * self.actions.size() 
         
-        if B and n <= 2*len(B):
+        if B and n <= 100:
             allowed_static[self.actions.index(DiscoRNNGparser.OPEN)]      = True  
         if (B and n >= 1):
             allowed_static[self.actions.index(DiscoRNNGparser.SHIFT)]     = True  
