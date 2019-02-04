@@ -951,8 +951,7 @@ class DiscoRNNGparser:
         NLL = 0
         N   = 0
         stats_header = True 
-        for line in istream:
-            
+        for line in istream:            
             tree = DiscoTree.read_tree(line)
             tokens = tree.words()
             results            = self.predict_beam(tokens,K)
@@ -965,7 +964,6 @@ class DiscoRNNGparser:
                         print(r_tree,r_derivation[-1][1])
             else:
                 print('(())',file=ostream,flush=True)
-            break #parses 1st tree right now
 
     def train_model(self,train_stream,dev_stream,modelname,lr=0.1,epochs=20,batch_size=1,dropout=0.3):
         """
@@ -983,13 +981,13 @@ class DiscoRNNGparser:
             t.close_unaries()
             train_treebank.append(t)
             
-        #dev_treebank = []
-        #for line in dev_stream:
-        #    t = DiscoTree.read_tree(line)
-        #    t.strip_tags()
-        #    t.close_unaries()
-        #    dev_treebank.append(t)
-        dev_treebank = train_treebank   #just 10 trees for now 
+        dev_treebank = []
+        for line in dev_stream:
+            t = DiscoTree.read_tree(line)
+            t.strip_tags()
+            t.close_unaries()
+            dev_treebank.append(t)
+        dev_treebank = train_treebank
             
         self.code_lexicon(train_treebank)
         self.code_nonterminals(train_treebank,dev_treebank)
@@ -1031,9 +1029,9 @@ class DiscoRNNGparser:
 if __name__ == '__main__':
 
     p = DiscoRNNGparser(brown_file='kk.brown')
-    tstream = open('negra/test.mrg')
+    tstream = open('negra/train.mrg')
     dstream = open('negra/dev.mrg')
-    p.train_model(tstream,tstream,'test',lr=0.25,epochs=50,dropout=0.0)
+    p.train_model(tstream,tstream,'test',lr=0.25,epochs=5,dropout=0.0)
     tstream.close()
     dstream.close()
 
