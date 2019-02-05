@@ -1051,6 +1051,7 @@ class DiscoRNNGparser:
         parser.tags         = SymbolLexicon.load(model_name+'.tag')
         parser.code_struct_actions()
         parser.allocate_conditional_params()
+        parser.allocate_generative_params()
         parser.cond_model.populate(model_name+".cond.weights")
         parser.gen_model.populate(model_name+".gen.weights")
         return parser
