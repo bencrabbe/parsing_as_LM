@@ -990,7 +990,7 @@ class DiscoRNNGparser:
         parser.nonterminals = SymbolLexicon.load(model_name+'.nt')
         parser.code_struct_actions()
         parser.allocate_conditional_params()
-        parser.model.populate(model_name+".weights")
+        parser.cond_model.populate(model_name+".weights")
         return parser
                 
     def save_model(self,model_name):
