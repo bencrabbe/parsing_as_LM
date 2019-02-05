@@ -142,6 +142,7 @@ class DiscoRNNGparser:
         self.cond_stack_embedding_size = 128
         self.cond_stack_hidden_size    = 128    #these two vars should be merged
         self.cond_word_embedding_size  = 128
+        self.pos_embedding_size        = 64
 
         self.gen_stack_embedding_size  = 256
         self.gen_stack_hidden_size     = 256    #these two vars should be merged
@@ -155,7 +156,9 @@ class DiscoRNNGparser:
         self.cond_stack_embedding_size = int(config['conditional']['stack_embedding_size'])
         self.cond_stack_hidden_size    = int(config['conditional']['stack_embedding_size'])
         self.cond_word_embedding_size  = int(config['conditional']['word_embedding_size'])
+        self.pos_embedding_size        = int(config['conditional']['pos_embedding_size'])
 
+        
         self.gen_stack_embedding_size = int(config['generative']['stack_embedding_size'])
         self.gen_stack_hidden_size    = int(config['generative']['stack_embedding_size'])
         self.gen_word_embedding_size  = int(config['generative']['word_embedding_size'])
@@ -186,8 +189,10 @@ class DiscoRNNGparser:
         self.cond_tree_W                   = self.cond_model.add_parameters((self.cond_stack_embedding_size,self.cond_stack_hidden_size*2))
         self.cond_tree_b                   = self.cond_model.add_parameters((self.cond_stack_embedding_size))
  
-        #specific to the cond model
-        self.lexer_rnn_bwd                 = dy.LSTMBuilder(2,self.cond_stack_embedding_size, self.cond_word_embedding_size,self.cond_model)   
+        #lookahead specific to the cond model
+        self.lexer_rnn_bwd                 = dy.LSTMBuilder(2,self.cond_stack_embedding_size, self.pos_embedding_size+self.cond_word_embedding_size,self.cond_model)   
+        self.pos_embeddings                = self.cond_model.add_lookup_parameters((self.tagset.size(),self.pos_embedding_size)) 
+
         
     def allocate_generative_params(self):
         """ 
@@ -644,10 +649,8 @@ class DiscoRNNGparser:
             if conditional:
                 return [(next_word,0)] # in the discriminative case words are given and have prob = 1.0
             else:
-                pass 
-            # TODO in the generative case...
-            #next_word_idx = self.lexicon.index(next_word)
-            #return [(next_word,-self.word_softmax.neg_log_softmax(dy.rectify(stack_state.output()),next_word_idx).value())]
+                next_word_idx = self.lexicon.index(next_word)
+                return [(next_word,-self.word_softmax.neg_log_softmax(dy.rectify(stack_state.output()),next_word_idx).value())]
         elif lab_state == DiscoRNNGparser.NT_LABEL:
             if conditional:
                 word_idx = B[0] if B else -1
@@ -655,10 +658,13 @@ class DiscoRNNGparser:
                 logprobs = dy.log_softmax(self.cond_nonterminals_W  * dy.rectify(H)  + self.cond_nonterminals_b).value()
                 return zip(self.nonterminals.i2words,logprobs)
             else:
-                pass
+                H = stack_state.output()
+                logprobs = dy.log_softmax(self.gen_nonterminals_W  * dy.rectify(H)  + self.gen_nonterminals_b).value()
+                return zip(self.nonterminals.i2words,logprobs)
+            
         elif lab_state == DiscoRNNGparser.NO_LABEL :
+            restr_mask       = self.allowed_structural_actions(configuration)
             if conditional:                
-                restr_mask       = self.allowed_structural_actions(configuration)
                 if restr_mask:
                     word_idx         = B[0] if B else -1
                     buffer_embedding = word_encodings[word_idx] 
@@ -669,9 +675,16 @@ class DiscoRNNGparser:
                     all_scores       = dy.concatenate([static_scores,move_scores]) if move_scores else static_scores
                     logprobs         = dy.log_softmax(all_scores,restr_mask).value()                     
                     return [ (code2action(action_idx),logprob) for action_idx,logprob in enumerate(logprobs) if action_idx in restr_mask]
-            else: 
-                pass #add generative stuff here
-                
+                #parser trapped, let it crash
+            else:
+                if restr_mask:
+                    hidden_input     = stack_state.output()
+                    static_scores    = self.gen_structural_W  * self.ifdropout(dy.rectify(hidden_input))  + self.gen_structural_b
+                    move_scores      = self.dynamic_move_matrix(S,stack_state,buffer_embedding,conditional)
+                    all_scores       = dy.concatenate([static_scores,move_scores]) if move_scores else static_scores
+                    logprobs         = dy.log_softmax(all_scores,restr_mask).value()                     
+                    return [ (code2action(action_idx),logprob) for action_idx,logprob in enumerate(logprobs) if action_idx in restr_mask]
+                #parser trapped, let it crash
         return [ ]
  
      
@@ -694,49 +707,41 @@ class DiscoRNNGparser:
 
         if lab_state == DiscoRNNGparser.WORD_LABEL:
             if conditional:
-                #in the discriminative case the word is given and has nll = 0
-                nll = dy.scalarInput(0.0)  
+                nll = dy.scalarInput(0.0)  #in the discriminative case the word is given and has nll = 0
             else:
-                pass
-            #TODO : in the generative case
-            #ref_idx  = self.lexicon.index(ref_action)
-            #nll =  self.word_softmax.neg_log_softmax(self.ifdropout(dy.rectify(stack_state.output())),ref_idx) 
+                ref_idx  = self.lexicon.index(ref_action)
+                nll = -self.word_softmax.neg_log_softmax(dy.rectify(stack_state.output()),ref_idx).value()
 
         elif lab_state == DiscoRNNGparser.NT_LABEL:
             
+            ref_idx  = self.nonterminals.index(ref_action)
             if conditional:
-                ref_idx  = self.nonterminals.index(ref_action)
                 word_idx = B[0] if B else -1
                 H        =  dy.concatenate([stack_state.output(),word_encodings[word_idx]])
                 nll      = dy.pickneglogsoftmax(self.cond_nonterminals_W  * self.ifdropout(dy.rectify(H)) + self.cond_nonterminals_b,ref_idx)
             else:
-                pass
+                H   = stack_state.output()
+                nll = dy.pickneglog_softmax(self.gen_nonterminals_W  * dy.rectify(H)  + self.gen_nonterminals_b),ref_idx)
             
         elif lab_state == DiscoRNNGparser.NO_LABEL:
+
+            restr_mask       = self.allowed_structural_actions(configuration)
+            ref_idx          = self.actions.size() + ref_action if type(ref_action) == int else self.actions.index(ref_action)
             
             if conditional:
-                ref_idx          = self.actions.size() + ref_action if type(ref_action) == int else self.actions.index(ref_action)
-                restr_mask       = self.allowed_structural_actions(configuration)
-
-
-                #if ref_idx not in restr_mask:
-                #    print(sentence)
-                #    print(print_config(configuration))
-                #    print('ref',ref_action)
-                #    print('allowed',[code2action(r) for r in restr_mask])
-                #    print()
-                #    exit(1)
-                
                 word_idx         = B[0] if B else -1
                 buffer_embedding = word_encodings[word_idx] 
-
                 hidden_input     = dy.concatenate([stack_state.output(),word_encodings[word_idx]])
                 static_scores    = self.cond_structural_W  * self.ifdropout(dy.rectify(hidden_input))  + self.cond_structural_b
                 move_scores      = self.dynamic_move_matrix(S,stack_state,buffer_embedding,conditional)
                 all_scores        = dy.concatenate([static_scores,move_scores]) if move_scores else static_scores
                 nll              = -dy.pick(dy.log_softmax(all_scores,restr_mask),ref_idx)
             else:
-                pass
+                 hidden_input     = stack_state.output()
+                 static_scores    = self.gen_structural_W  * self.ifdropout(dy.rectify(hidden_input))  + self.gen_structural_b
+                 move_scores      = self.dynamic_move_matrix(S,stack_state,buffer_embedding,conditional)
+                 all_scores       = dy.concatenate([static_scores,move_scores]) if move_scores else static_scores
+                 nll              = -dy.pick(dy.log_softmax(all_scores,restr_mask),ref_idx)                    
         else: 
             print('error in evaluation')
         return nll
