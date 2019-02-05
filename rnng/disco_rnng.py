@@ -343,7 +343,9 @@ class DiscoRNNGparser:
             bwd_state = bwd_state.add_input(SYM.embedding)
 
         tree_h         = dy.concatenate([self.ifdropout(fwd_state.output()),self.ifdropout(bwd_state.output())])
-        tree_embedding = dy.rectify(self.cond_tree_W * tree_h + self.cond_tree_b)
+        W = self.cond_tree_W if conditional else self.gen_tree_W
+        b = self.cond_tree_b if conditional else self.gen_tree_b
+        tree_embedding = dy.rectify(W * tree_h + b)
         
         completeNT = completeNT.complete()
         completeNT.range     = complete_range 
@@ -1154,7 +1156,7 @@ if __name__ == '__main__':
     p       = DiscoRNNGparser(config_file='disco_negra_model/default.conf')
     tstream = open('negra/train.mrg') 
     dstream = open('negra/dev.mrg')
-    p.train_model(tstream,dstream,'disco_negra_model/negra_model',config_file='default.conf')
+    p.train_model(tstream,dstream,'disco_negra_model/negra_model',config_file='default.conf',generative=False)
     tstream.close()
     dstream.close()
      
