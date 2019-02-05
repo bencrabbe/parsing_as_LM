@@ -276,7 +276,8 @@ class DiscoRNNGparser:
             wembedding   = self.cond_word_embeddings[self.lexicon.index(shifted_word)]
             tembedding   = self.tag_embeddings[self.tags.index(shifted_tag)]
             embedding    = dy.concatenate([wembedding,tembedding])
-            xinput       = dy.rectify(self.cond_lex_W * embedding + self.cond_lex_b) 
+            xinput       = dy.rectify(self.cond_lex_W * embedding + self.cond_lex_b)
+            print('gen',xinput.npvalue().shape)
             stack_state = stack_state.add_input(xinput)
         else: 
             embedding   = self.gen_word_embeddings[self.lexicon.index(shifted_word)]
@@ -348,6 +349,7 @@ class DiscoRNNGparser:
         fwd_state = self.cond_tree_fwd.initial_state() if conditional else self.gen_tree_fwd.initial_state()
         fwd_state = fwd_state.add_input(self.cond_nonterminals_embeddings[nt_idx]) if conditional else  fwd_state.add_input(self.gen_nonterminals_embeddings[nt_idx])
         for SYM in reversed(closed_symbols):
+            print('close',SYM.embedding.npvalue().shape)
             fwd_state = fwd_state.add_input(SYM.embedding)
             
         bwd_state = self.cond_tree_bwd.initial_state() if conditional else self.gen_tree_bwd.initial_state()
