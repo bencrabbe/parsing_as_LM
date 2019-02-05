@@ -980,9 +980,6 @@ class DiscoRNNGparser:
         Returns:
             RNNGparser. An instance of RNNG ready to use.
         """
-        #    def __init__(self,stack_embedding_size=300,word_embedding_size=300,stack_hidden_size=300,vocab_thresh=1,brown_file='toto.brown'):
-
-        
         hyperparams = json.loads(open(model_name+'.json').read())
         parser = DiscoRNNGparser(vocab_thresh=hyperparams['vocab_thresh'],\
                                  stack_embedding_size=hyperparams['stack_hidden_size'],\
@@ -1075,13 +1072,12 @@ class DiscoRNNGparser:
         
                 
 if __name__ == '__main__':
-    #p       = DiscoRNNGparser(brown_file='kk.brown')
-    #tstream = open('negra/train.mrg')
-    #dstream = open('negra/dev.mrg')
-    #p.train_model(tstream,dstream,'disco_negra_model/negra_model',lr=0.1,epochs=10,dropout=0.3)
-    #tstream.close()
-    #dstream.close()
-    p = DiscoRNNGparser.load_model('disco_negra_model/negra_model')
+    p       = DiscoRNNGparser(brown_file='kk.brown')
+    tstream = open('negra/train.mrg')
+    dstream = open('negra/dev.mrg')
+    p.train_model(tstream,dstream,'disco_negra_model/negra_model',lr=0.1,epochs=10,dropout=0.1)
+    tstream.close()
+    dstream.close()
     
     pstream = open('negra/test.mrg')
     pred_stream = open('disco_negra_model/pred_test.mrg','w')
