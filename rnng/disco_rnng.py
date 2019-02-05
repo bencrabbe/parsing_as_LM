@@ -183,8 +183,8 @@ class DiscoRNNGparser:
         #stack_lstm
         self.cond_rnn                      = dy.LSTMBuilder(2,self.cond_stack_embedding_size, self.cond_stack_hidden_size,self.cond_model)          
 
-        self.cond_lex_W                    = self.cond_model.add_parameters((self.cond_stack_embedding_size,self.cond_word_embedding_size+self.pos_embedding_size))            
-        self.cond_lex_b                    = self.cond_model.add_parameters((self.cond_stack_embedding_size))
+        self.cond_lex_W                    = self.cond_model.add_parameters((self.cond_word_embedding_size,self.cond_word_embedding_size+self.pos_embedding_size))            
+        self.cond_lex_b                    = self.cond_model.add_parameters((self.cond_word_embedding_size))
         
         self.cond_tree_fwd                 = dy.LSTMBuilder(1,self.cond_stack_embedding_size, self.cond_stack_hidden_size,self.cond_model)        
         self.cond_tree_bwd                 = dy.LSTMBuilder(1,self.cond_stack_embedding_size, self.cond_stack_hidden_size,self.cond_model)        
