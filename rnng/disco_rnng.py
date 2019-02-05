@@ -109,7 +109,7 @@ def print_config(config):
     return '(%s;%s;%d;%s)'%(','.join([ str(s) for s in S ]),str(B),n,lab_state)
     
 
-class DiscoRNNGparser:
+class DiscoRNNGparser: 
     """
     This is discontinuous RNNG with pre-order tree traversal and a move action
     """        
@@ -1151,15 +1151,15 @@ class DiscoRNNGparser:
                 
 if __name__ == '__main__':
     
-    p       = DiscoRNNGparser(config_file='default.conf')
+    p       = DiscoRNNGparser(config_file='disco_negra_model/default.conf')
     tstream = open('negra/train.mrg') 
     dstream = open('negra/dev.mrg')
-    p.train_model(tstream,dstream,'disco_negra_model_small/negra_model',config_file='default.conf')
+    p.train_model(tstream,dstream,'disco_negra_model/negra_model',config_file='default.conf')
     tstream.close()
     dstream.close()
-    
+     
     pstream = open('negra/test.mrg')
-    pred_stream = open('disco_negra_model_small/pred_test.mrg','w')
+    pred_stream = open('disco_negra_model/pred_test.mrg','w')
     p.parse_corpus(pstream,ostream=pred_stream,evalb_mode=True, K=32,kbest=1)
     pstream.close()
     pred_stream.close()
