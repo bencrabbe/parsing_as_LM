@@ -1051,9 +1051,9 @@ class DiscoRNNGparser:
         parser.tags         = SymbolLexicon.load(model_name+'.tag')
         parser.code_struct_actions()
         parser.allocate_conditional_params()
-        parser.allocate_generative_params()
+        #parser.allocate_generative_params()
         parser.cond_model.populate(model_name+".cond.weights")
-        parser.gen_model.populate(model_name+".gen.weights")
+        #parser.gen_model.populate(model_name+".gen.weights")
         return parser
                 
     def save_model(self,model_name):
@@ -1160,7 +1160,7 @@ class DiscoRNNGparser:
 
         self.allocate_conditional_params( ) 
         self.allocate_generative_params( )   
-        #Training
+        #Training 
         if conditional:
             self.estimate_params(train_treebank,train_tags,dev_treebank,dev_tags,modelname,config_file,True)
         if generative:
