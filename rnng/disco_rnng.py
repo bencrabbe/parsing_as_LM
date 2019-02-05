@@ -125,12 +125,11 @@ class DiscoRNNGparser:
     NT_LABEL        = '@n'
     NO_LABEL        = '@'
 
-
     #special tokens
     UNKNOWN_TOKEN = '<UNK>'
     START_TOKEN   = '<START>'
     
-    def __init__(self,stack_embedding_size=128,word_embedding_size=300,stack_hidden_size=300,vocab_thresh=1,brown_file='toto.brown'):
+    def __init__(self,stack_embedding_size=300,word_embedding_size=300,stack_hidden_size=300,vocab_thresh=1,brown_file='toto.brown'):
 
         self.brown_file = brown_file
         self.stack_embedding_size = stack_embedding_size
@@ -1072,7 +1071,7 @@ class DiscoRNNGparser:
         
                 
 if __name__ == '__main__':
-    p       = DiscoRNNGparser(brown_file='kk.brown')
+    p       = DiscoRNNGparser(stack_embedding_size=128,word_embedding_size=128,stack_hidden_size=128,brown_file='kk.brown')
     tstream = open('negra/train.mrg')
     dstream = open('negra/dev.mrg')
     p.train_model(tstream,dstream,'disco_negra_model_small/negra_model',lr=0.1,epochs=10,dropout=0.1)
