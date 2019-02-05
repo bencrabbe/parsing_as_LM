@@ -898,7 +898,7 @@ class DiscoRNNGparser:
         beam = beam[:K]
         return beam
  
-    def exec_beam_action(self,beam_elt,sentence,tag_sequence):
+    def exec_beam_action(self,beam_elt,sentence,tag_sequence,conditional):
         """
         Generates the element's configuration and assigns it internally.
         Args:
@@ -908,20 +908,20 @@ class DiscoRNNGparser:
         """
         
         if  beam_elt.is_initial_element():
-            beam_elt.configuration = self.init_configuration(len(sentence))
+            beam_elt.configuration = self.init_configuration(len(sentence),conditional)
         else:
             configuration = beam_elt.prev_element.configuration
             S,B,n,stack_state,lab_state = configuration
             
             if lab_state == DiscoRNNGparser.WORD_LABEL:
-                beam_elt.configuration = self.generate_word(configuration,sentence,tag_sequence)
+                beam_elt.configuration = self.generate_word(configuration,sentence,tag_sequence,conditional)
             elif lab_state == DiscoRNNGparser.NT_LABEL:
-                beam_elt.configuration = self.open_nonterminal(configuration,beam_elt.prev_action)
+                beam_elt.configuration = self.open_nonterminal(configuration,beam_elt.prev_action,conditional)
             elif type(beam_elt.prev_action) == tuple :
                 move_label,mov_idx = beam_elt.prev_action
                 beam_elt.configuration = self.move_action(configuration,mov_idx) 
             elif beam_elt.prev_action == DiscoRNNGparser.CLOSE:
-                beam_elt.configuration = self.close_action(configuration)
+                beam_elt.configuration = self.close_action(configuration,conditional)
             elif beam_elt.prev_action == DiscoRNNGparser.OPEN:
                 beam_elt.configuration = self.open_action(configuration)
             elif beam_elt.prev_action == DiscoRNNGparser.SHIFT:
@@ -954,7 +954,7 @@ class DiscoRNNGparser:
         while beam :
             beam = DiscoRNNGparser.prune_beam(beam,K) #pruning
             for elt in beam:
-                self.exec_beam_action(elt,sentence,tag_sequence) #lazily builds configs
+                self.exec_beam_action(elt,sentence,tag_sequence,True) #lazily builds configs
             next_preds = [ ] 
             for elt in beam:
                 configuration = elt.configuration
