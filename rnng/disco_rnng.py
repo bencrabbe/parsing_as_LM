@@ -130,7 +130,7 @@ class DiscoRNNGparser:
     UNKNOWN_TOKEN = '<UNK>'
     START_TOKEN   = '<START>'
     
-    def __init__(self,stack_embedding_size=300,word_embedding_size=300,stack_hidden_size=300,vocab_thresh=1,brown_file='toto.brown'):
+    def __init__(self,stack_embedding_size=128,word_embedding_size=300,stack_hidden_size=300,vocab_thresh=1,brown_file='toto.brown'):
 
         self.brown_file = brown_file
         self.stack_embedding_size = stack_embedding_size
@@ -164,7 +164,7 @@ class DiscoRNNGparser:
         self.cond_tree_b                   = self.cond_model.add_parameters((self.stack_embedding_size))
 
         #specific to the cond model
-        self.lexer_rnn_bwd                 = dy.LSTMBuilder(1,self.stack_embedding_size, self.word_embedding_size,self.cond_model)   
+        self.lexer_rnn_bwd                 = dy.LSTMBuilder(2,self.stack_embedding_size, self.word_embedding_size,self.cond_model)   
         
     def allocate_generative_params(self):
         """ 
@@ -1075,12 +1075,12 @@ if __name__ == '__main__':
     p       = DiscoRNNGparser(brown_file='kk.brown')
     tstream = open('negra/train.mrg')
     dstream = open('negra/dev.mrg')
-    p.train_model(tstream,dstream,'disco_negra_model/negra_model',lr=0.1,epochs=10,dropout=0.1)
+    p.train_model(tstream,dstream,'disco_negra_model_small/negra_model',lr=0.1,epochs=10,dropout=0.1)
     tstream.close()
     dstream.close()
     
     pstream = open('negra/test.mrg')
-    pred_stream = open('disco_negra_model/pred_test.mrg','w')
+    pred_stream = open('disco_negra_model_small/pred_test.mrg','w')
     p.parse_corpus(pstream,ostream=pred_stream,evalb_mode=True, K=32,kbest=1)
     pstream.close()
     pred_stream.close()
