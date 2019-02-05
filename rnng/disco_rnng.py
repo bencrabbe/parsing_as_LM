@@ -948,7 +948,7 @@ class DiscoRNNGparser:
 
         word_encodings = self.encode_words(sentence,tag_sequence) if tag_sequence else None
         
-        init = BeamElement.init_element(self.init_configuration(len(sentence)))
+        init = BeamElement.init_element(self.init_configuration(len(sentence)),True)
         beam,successes  = [init],[ ]
 
         while beam :
