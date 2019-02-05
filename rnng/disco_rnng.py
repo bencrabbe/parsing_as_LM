@@ -276,7 +276,7 @@ class DiscoRNNGparser:
             wembedding   = self.cond_word_embeddings[self.lexicon.index(shifted_word)]
             tembedding   = self.tag_embeddings[self.tags.index(shifted_tag)]
             embedding    = dy.concatenate([wembedding,tembedding])
-            xinput       = dy.relu(self.cond_lex_W * embedding + self.cond_lex_b) 
+            xinput       = dy.rectify(self.cond_lex_W * embedding + self.cond_lex_b) 
             stack_state = stack_state.add_input(xinput)
         else: 
             embedding   = self.gen_word_embeddings[self.lexicon.index(shifted_word)]
