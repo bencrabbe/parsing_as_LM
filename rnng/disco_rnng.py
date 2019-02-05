@@ -133,10 +133,10 @@ class DiscoRNNGparser:
     def __init__(self,config_file=None,brown_file='toto.brown'):
 
         self.brown_file = brown_file
-        self.read_config_file(config_file)
+        self.read_structure_params(config_file) 
 
         
-    def read_config_file(self,configfilename):
+    def read_structure_params(self,configfilename):
         
         #defaults
         self.cond_stack_embedding_size = 128
@@ -746,7 +746,7 @@ class DiscoRNNGparser:
             print('error in evaluation')
         return nll
 
-    def eval_derivation(self,ref_derivation,sentence,word_encodings,backprop=True):
+    def eval_derivation(self,ref_derivation,sentence,word_encodings,conditional,backprop=True):
         """
         Evaluates the model predictions against the reference derivation
 
@@ -754,6 +754,7 @@ class DiscoRNNGparser:
           ref_derivation                (list) : a reference derivation
           sentence                      (list) : a list of strings (words)
           word_encodings                (list) : a list of dynet expressions (word embeddings)
+          conditional                   (bool) : a flag telling if we train a conditional or a generative model
         Kwargs:
           backprop                       (bool): a flag telling if we perform backprop or not
         Returns:
@@ -772,7 +773,7 @@ class DiscoRNNGparser:
         all_NLL     = [] #collects the local losses in the batch
         lexical_NLL = [] #collects the local losses in the batch (for word prediction only)
         
-        configuration = self.init_configuration( len(sentence) ) 
+        configuration = self.init_configuration( len(sentence),conditional ) 
         prev_action = None
         for ref_action in ref_derivation:
             S,B,n,stack_state,lab_state = configuration                
@@ -781,18 +782,18 @@ class DiscoRNNGparser:
                 prev_action = ref_action
                 continue
             
-            nll =  self.eval_action_distrib(configuration,sentence,word_encodings,ref_action,True)
+            nll =  self.eval_action_distrib(configuration,sentence,word_encodings,ref_action,conditional)
             all_NLL.append( nll )
             
             if lab_state == DiscoRNNGparser.WORD_LABEL:
-                configuration = self.generate_word(configuration,sentence)
+                configuration = self.generate_word(configuration,sentence,conditional)
                 lexical_NLL.append(nll)
             elif lab_state == DiscoRNNGparser.NT_LABEL:
-                configuration = self.open_nonterminal(configuration,ref_action)
+                configuration = self.open_nonterminal(configuration,ref_action,conditional)
             elif prev_action == DiscoRNNGparser.MOVE:
                 configuration = self.move_action(configuration,int(ref_action))
             elif ref_action == DiscoRNNGparser.CLOSE:
-                configuration = self.close_action(configuration)
+                configuration = self.close_action(configuration,conditional)
             elif ref_action == DiscoRNNGparser.OPEN:
                 configuration = self.open_action(configuration)
             elif ref_action == DiscoRNNGparser.SHIFT:
@@ -852,13 +853,9 @@ class DiscoRNNGparser:
         
         sentence = ref_tree.words()
  
-        if conditional:
-            word_encodings = self.encode_words(sentence)
-            derivation,last_config = self.static_oracle(ref_tree,ref_tree,sentence)
-            return self.eval_derivation(derivation,sentence,word_encodings,backprop)
-        else:
-            pass
-            #add stuff for training the generative model here
+        word_encodings = self.encode_words(sentence)
+        derivation,last_config = self.static_oracle(ref_tree,ref_tree,sentence)
+        return self.eval_derivation(derivation,sentence,word_encodings,conditional,backprop)
 
     @staticmethod
     def prune_beam(beam,K):
@@ -1028,7 +1025,8 @@ class DiscoRNNGparser:
         parser.nonterminals = SymbolLexicon.load(model_name+'.nt')
         parser.code_struct_actions()
         parser.allocate_conditional_params()
-        parser.cond_model.populate(model_name+".weights")
+        parser.cond_model.populate(model_name+".cond.weights")
+        parser.gen_model.populate(model_name+".gen.weights")
         return parser
                 
     def save_model(self,model_name):
@@ -1046,13 +1044,66 @@ class DiscoRNNGparser:
         jfile.write(json.dumps(hyperparams))
         jfile.close()
 
-        self.cond_model.save(model_name+'.weights')
+        self.cond_model.save(model_name+'.cond.weights')
+        self.gen_model.save(model_name+'.gen.weights')
         self.lexicon.save(model_name+'.lex')
         self.nonterminals.save(model_name+'.nt')
-                
-    def train_model(self,train_stream,dev_stream,modelname,lr=0.1,epochs=20,batch_size=1,dropout=0.3):
+
+
+    def read_learning_params(self,configfile,conditional):
+
+        config = configparser.ConfigParser()
+        config.read(configfilename)
+
+        section = 'conditional' if conditional else 'generative'
+        
+        
+        lr      = float(config[section]['learning_rate'])
+        epochs  = int(config[section]['num_epochs'])
+        dropout = float(config[section]['dropout'])
+
+        return lr,epochs,dropout
+
+    
+    def estimate_params(self,train_trees,dev_trees,modelname,config_file,conditional):
         """
         Estimates the parameters of a model from a treebank.
+        """
+        lr,epochs,dropout = self.read_learning_params(conditional)
+        
+        self.dropout = dropout
+        self.trainer = dy.SimpleSGDTrainer(self.cond_model,learning_rate=lr) if conditional else dy.SimpleSGDTrainer(self.gen_model,learning_rate=lr)
+        min_nll      = np.inf
+
+        ntrain_sentences = len(train_treebank)
+        ndev_sentences   = len(dev_treebank)
+
+        train_stats = RuntimeStats('NLL','lexNLL','N','lexN')
+        valid_stats = RuntimeStats('NLL','lexNLL','N','lexN')
+        
+        for e in range(epochs):
+            train_stats.push_row()
+            for idx,tree in enumerate(train_treebank):
+                train_stats += self.eval_sentence(tree,conditional=conditional,backprop=True)
+                sys.stdout.write('\r===> processed %d training trees'%(idx+1))
+
+            NLL,lex_NLL,N,lexN = train_stats.peek()            
+            print('\n[Training]   Epoch %d, NLL = %f, lex-NLL = %f, PPL = %f, lex-PPL = %f'%(e,NLL,lex_NLL,np.exp(NLL/N),np.exp(lex_NLL/lexN)),flush=True)
+
+            valid_stats.push_row() 
+            for idx,tree in enumerate(dev_treebank):
+                valid_stats += self.eval_sentence(tree,conditional=conditional,backprop=False)
+ 
+            NLL,lex_NLL,N,lexN = valid_stats.peek()
+            print('[Validation] Epoch %d, NLL = %f, lex-NLL = %f, PPL = %f, lex-PPL = %f'%(e,NLL,lex_NLL,np.exp(NLL/N),np.exp(lex_NLL/lexN)),flush=True)
+            print()
+            if NLL < min_nll:
+                pass
+                self.save_model(modelname) 
+        
+    def train_model(self,train_stream,dev_stream,modelname,config_file=None,conditional=True,generative=True):
+        """
+        Reads data and runs the learning process
         Args:
            train_stream  (stream): a stream open on a treebank file 
            dev_stream    (stream): a stream open on a treebank file 
@@ -1075,38 +1126,14 @@ class DiscoRNNGparser:
         self.code_lexicon(train_treebank)
         self.code_nonterminals(train_treebank,dev_treebank)
         self.code_struct_actions()
+
         self.allocate_conditional_params() 
-
+        self.allocate_generative_params() 
         #Training
-        self.dropout = dropout
-        self.trainer = dy.SimpleSGDTrainer(self.cond_model,learning_rate=lr)
-        min_nll      = np.inf
-
-        ntrain_sentences = len(train_treebank)
-        ndev_sentences   = len(dev_treebank)
-
-        train_stats = RuntimeStats('NLL','lexNLL','N','lexN')
-        valid_stats = RuntimeStats('NLL','lexNLL','N','lexN')
-        
-        for e in range(epochs):
-            train_stats.push_row()
-            for idx,tree in enumerate(train_treebank):
-                train_stats += self.eval_sentence(tree,conditional=True,backprop=True)
-                sys.stdout.write('\r===> processed %d training trees'%(idx+1))
-
-            NLL,lex_NLL,N,lexN = train_stats.peek()            
-            print('\n[Training]   Epoch %d, NLL = %f, lex-NLL = %f, PPL = %f, lex-PPL = %f'%(e,NLL,lex_NLL,np.exp(NLL/N),np.exp(lex_NLL/lexN)),flush=True)
-
-            valid_stats.push_row() 
-            for idx,tree in enumerate(dev_treebank):
-                valid_stats += self.eval_sentence(tree,conditional=True,backprop=False)
- 
-            NLL,lex_NLL,N,lexN = valid_stats.peek()
-            print('[Validation] Epoch %d, NLL = %f, lex-NLL = %f, PPL = %f, lex-PPL = %f'%(e,NLL,lex_NLL,np.exp(NLL/N),np.exp(lex_NLL/lexN)),flush=True)
-            print()
-            if NLL < min_nll:
-                pass
-                self.save_model(modelname)
+        if conditional:
+            self.estimate_params(train_treebank,dev_treebank,modelname,config_file,True)
+        if generative:
+            self.estimate_params(train_treebank,dev_treebank,modelname,config_file,False)
         
                 
 if __name__ == '__main__':
