@@ -167,7 +167,6 @@ class DiscoRNNGparser:
         """ 
         This allocates memory for the conditional model parameters
         """
-        print(self.cond_stack_embedding_size,self.cond_stack_hidden_size)
         self.cond_model                     = dy.ParameterCollection()
         
         self.cond_nonterminals_embeddings   = self.cond_model.add_lookup_parameters((self.nonterminals.size(),self.cond_stack_embedding_size)) 
@@ -310,6 +309,7 @@ class DiscoRNNGparser:
         S,B,n,stack_state,lab_state = configuration
         nt_idx      = self.nonterminals.index(label)
         embedding   = self.cond_nonterminals_embeddings[nt_idx] if conditional else self.gen_nonterminals_embeddings[nt_idx]
+        print('open',embedding.npvalue().shape)
         stack_state = stack_state.add_input(embedding)
         return (S + [StackSymbol(label,embedding,predicted=True,sym_range=[B[0]])],B,n + 1,stack_state,DiscoRNNGparser.NO_LABEL) 
 
