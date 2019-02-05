@@ -190,7 +190,7 @@ class DiscoRNNGparser:
         self.cond_tree_b                   = self.cond_model.add_parameters((self.cond_stack_embedding_size))
  
         #lookahead specific to the cond model
-        self.lexer_rnn_bwd                 = dy.LSTMBuilder(2,self.cond_stack_embedding_size, self.pos_embedding_size+self.cond_word_embedding_size,self.cond_model)   
+        self.lexer_rnn_bwd                 = dy.LSTMBuilder(2,self.pos_embedding_size+self.cond_word_embedding_size,self.cond_stack_embedding_size,self.cond_model)   
         self.tag_embeddings                = self.cond_model.add_lookup_parameters((self.tags.size(),self.pos_embedding_size)) 
 
         
@@ -203,12 +203,12 @@ class DiscoRNNGparser:
         self.gen_nonterminals_embeddings   = self.gen_model.add_lookup_parameters((self.nonterminals.size(),self.gen_stack_embedding_size)) 
         self.gen_word_embeddings           = self.gen_model.add_lookup_parameters((self.lexicon.size(),self.gen_word_embedding_size)) 
 
-        self.gen_structural_W              = self.model.add_parameters((self.actions.size(),self.gen_stack_hidden_size))         
-        self.gen_structural_b              = self.model.add_parameters((self.actions.size()))
+        self.gen_structural_W              = self.gen_model.add_parameters((self.actions.size(),self.gen_stack_hidden_size))         
+        self.gen_structural_b              = self.gen_model.add_parameters((self.actions.size()))
         
         self.word_softmax                  = dy.ClassFactoredSoftmaxBuilder(self.gen_stack_hidden_size,self.brown_file,self.lexicon.words2i,self.gen_model,bias=True)
 
-        self.gen_nonterminals_W            = self.gen_model.add_parameters((self.nonterminals.size(),self.stack_hidden_size))   
+        self.gen_nonterminals_W            = self.gen_model.add_parameters((self.nonterminals.size(),self.gen_stack_hidden_size))   
         self.gen_nonterminals_b            = self.gen_model.add_parameters((self.nonterminals.size()))
 
         self.gen_move                      = self.gen_model.add_parameters((1,self.gen_stack_hidden_size+self.gen_stack_embedding_size))
@@ -267,7 +267,6 @@ class DiscoRNNGparser:
            tuple. a configuration after word generation
         """
         S,B,n,stack_state,lab_state = configuration
-        
         shifted     = sentence[ B[0] ]
         embedding   = self.cond_word_embeddings[self.lexicon.index(shifted)] if conditional else self.gen_word_embeddings[self.lexicon.index(shifted)]
         stack_state = stack_state.add_input(embedding)
@@ -300,7 +299,7 @@ class DiscoRNNGparser:
         stack_state = stack_state.add_input(embedding)
         return (S + [StackSymbol(label,embedding,predicted=True,sym_range=[B[0]])],B,n + 1,stack_state,DiscoRNNGparser.NO_LABEL) 
 
-    def close_action(self,configuration,conditional,conditional): 
+    def close_action(self,configuration,conditional): 
         """
         This actually executes the RNNG CLOSE action.
         Args:
@@ -379,7 +378,7 @@ class DiscoRNNGparser:
         new_n = n-1 if moved_elt.predicted else n
         return (newS,B,new_n,stack_state,DiscoRNNGparser.NO_LABEL)
 
-    def static_oracle(self,ref_root,global_root,sentence,configuration=None):
+    def static_oracle(self,ref_root,global_root,sentence,conditional,configuration=None):
         """
         Generates a list of configurations and returns a list of actions to exec given a ref tree
         Args: 
@@ -408,14 +407,14 @@ class DiscoRNNGparser:
                 if not elt.predicted and ref_node.is_dominated_by(elt.range):
                     return True
             return False
-    
+        
         if configuration is None:                       #init
             N = len(ref_root.words()) 
-            configuration = self.init_configuration(N)   
+            configuration = self.init_configuration(N,conditional)   
 
         if ref_root.is_leaf(): 
             configuration = self.shift_action(configuration)
-            configuration = self.generate_word(configuration,sentence)
+            configuration = self.generate_word(configuration,sentence,conditional)
             S,B,n,stack_state,lab_state = configuration
             sh_word                     = sentence[S[-1].symbol]
             act_list                    = [DiscoRNNGparser.SHIFT,sh_word]
@@ -426,7 +425,7 @@ class DiscoRNNGparser:
             act_list = []
             if not occurs_predicted(ref_root,configuration):
                 configuration = self.open_action(configuration) 
-                configuration = self.open_nonterminal(configuration,ref_root.label)
+                configuration = self.open_nonterminal(configuration,ref_root.label,conditional)
                 act_list.extend([DiscoRNNGparser.OPEN,ref_root.label])
                 
             #B. Recursive calls 
@@ -438,10 +437,10 @@ class DiscoRNNGparser:
                         for ancestor in global_root.get_lc_ancestors(child.range):
                             if ancestor is not child:
                                 configuration = self.open_action(configuration) 
-                                configuration = self.open_nonterminal(configuration,ancestor.label)
+                                configuration = self.open_nonterminal(configuration,ancestor.label,conditional)
                                 act_list.extend([DiscoRNNGparser.OPEN,ancestor.label]) 
 
-                    local_actions, configuration = self.static_oracle(child,global_root,sentence,configuration)
+                    local_actions, configuration = self.static_oracle(child,global_root,sentence,conditional,configuration)
                     act_list.extend(local_actions)
 
 
@@ -457,12 +456,12 @@ class DiscoRNNGparser:
                     act_list.extend([DiscoRNNGparser.MOVE,stack_idx])       
 
             #D. Close
-            configuration = self.close_action(configuration)
+            configuration = self.close_action(configuration,conditional)
             act_list.append(DiscoRNNGparser.CLOSE)
             return (act_list,configuration)
 
         
-    def deriv2tree(self,derivation):
+    def deriv2tree(self,derivation): 
         """
         Generates a discontinuous tree from the derivation
         Args:
@@ -507,22 +506,18 @@ class DiscoRNNGparser:
         root = stack.pop()
         return root.symbol
 
-    def code_lexicon(self,treebank):
+    def code_lexicon(self,train_words,train_tags):
         """
         Builds indexes for word symbols found in the treebank
         """        
         known_words = [ ]
         known_tags  = set([ ])
-        for tree in treebank:
-            tokens = tree.pos_nodes()
-            tags   = [tok.label for tok in tokens]
-            words  = [tok.children[0].label for tok in tokens] 
+        for words,tags in zip(train_words,train_tags):
             known_words.extend(words)
             known_tags.update(tags)
             
-            
-        known_words = get_known_vocabulary(known_words,vocab_threshold=self.vocab_thresh)#change this
-        known_words.add(DiscoRNNGparser.START_TOKEN)
+        known_words      = get_known_vocabulary(known_words,vocab_threshold=self.vocab_thresh) #change this
+        known_words.add( DiscoRNNGparser.START_TOKEN)
         self.brown_file  = normalize_brown_file(self.brown_file,known_words,self.brown_file+'.unk',UNK_SYMBOL=DiscoRNNGparser.UNKNOWN_TOKEN)
         self.lexicon     = SymbolLexicon( list(known_words),unk_word=DiscoRNNGparser.UNKNOWN_TOKEN)
 
@@ -677,8 +672,7 @@ class DiscoRNNGparser:
                 if restr_mask:
                     word_idx         = B[0] if B else -1
                     buffer_embedding = word_encodings[word_idx] 
-
-                    hidden_input     = dy.concatenate([stack_state.output(),word_encodings[word_idx]])
+                    hidden_input     = dy.concatenate([stack_state.output(),buffer_embedding])
                     static_scores    = self.cond_structural_W  * self.ifdropout(dy.rectify(hidden_input))  + self.cond_structural_b
                     move_scores      = self.dynamic_move_matrix(S,stack_state,buffer_embedding,conditional)
                     all_scores       = dy.concatenate([static_scores,move_scores]) if move_scores else static_scores
@@ -708,7 +702,7 @@ class DiscoRNNGparser:
           conditional              (bool): flag stating whether to perform conditional or generative inference
         Returns: 
             a dynet expression. The loss (NLL) for this action
-        """
+        """        
         def code2action(act_idx): 
             return (self.MOVE,act_idx-self.actions.size())  if act_idx >= self.actions.size() else  self.actions.wordform(act_idx)
         
@@ -726,11 +720,11 @@ class DiscoRNNGparser:
             ref_idx  = self.nonterminals.index(ref_action)
             if conditional:
                 word_idx = B[0] if B else -1
-                H        =  dy.concatenate([stack_state.output(),word_encodings[word_idx]])
+                H        = dy.concatenate([stack_state.output(),word_encodings[word_idx]])
                 nll      = dy.pickneglogsoftmax(self.cond_nonterminals_W  * self.ifdropout(dy.rectify(H)) + self.cond_nonterminals_b,ref_idx)
             else:
                 H   = stack_state.output()
-                nll = dy.pickneglog_softmax(self.gen_nonterminals_W  * dy.rectify(H)  + self.gen_nonterminals_b),ref_idx)
+                nll = dy.pickneglog_softmax(self.gen_nonterminals_W  * dy.rectify(H)  + self.gen_nonterminals_b,ref_idx)
             
         elif lab_state == DiscoRNNGparser.NO_LABEL:
 
@@ -740,7 +734,7 @@ class DiscoRNNGparser:
             if conditional:
                 word_idx         = B[0] if B else -1
                 buffer_embedding = word_encodings[word_idx] 
-                hidden_input     = dy.concatenate([stack_state.output(),word_encodings[word_idx]])
+                hidden_input     = dy.concatenate([stack_state.output(),buffer_embedding])
                 static_scores    = self.cond_structural_W  * self.ifdropout(dy.rectify(hidden_input))  + self.cond_structural_b
                 move_scores      = self.dynamic_move_matrix(S,stack_state,buffer_embedding,conditional)
                 all_scores        = dy.concatenate([static_scores,move_scores]) if move_scores else static_scores
@@ -828,7 +822,7 @@ class DiscoRNNGparser:
             
         return runstats
 
-    def encode_words(self,sentence,pos):
+    def encode_words(self,sentence,pos_sequence):
         """
         Runs a backward LSTM on the input sentence.
         Used by the conditional model to get a lookahead
@@ -840,12 +834,14 @@ class DiscoRNNGparser:
         wembedding      = self.cond_word_embeddings[ self.lexicon.index(DiscoRNNGparser.START_TOKEN) ]
         tembedding      = self.tag_embeddings[ self.tags.index(DiscoRNNGparser.START_POS) ]        
         lex_state       = lex_state.add_input(dy.concatenate([wembedding,tembedding]))
-        word_embeddings = [self.cond_word_embeddings[self.lexicon.index(w)] for w in reversed(sentence) ]
-        word_encodings  = lex_state.transduce(word_embeddings)
+        word_embeddings = [self.cond_word_embeddings[self.lexicon.index(word)] for word in reversed(sentence) ]
+        tag_embeddings  = [self.tag_embeddings[self.tags.index(pos)] for pos in reversed(pos_sequence) ]
+        xinput          = [dy.concatenate([w,t]) for w,t in zip(word_embeddings,tag_embeddings)]
+        word_encodings  = lex_state.transduce(xinput)
         word_encodings.reverse()
         return word_encodings
 
-    def eval_sentence(self,ref_tree,conditional,backprop=True):
+    def eval_sentence(self,ref_tree,ref_tags,conditional,backprop=True):
         #add an option for training the generative here
         """
         Evaluates the model predictions against the reference data.
@@ -859,22 +855,19 @@ class DiscoRNNGparser:
         Returns:
           RuntimeStats. the model NLL, the word only NLL, the size of the derivations, the number of predicted words on this batch
         """
-        
-        dy.renew_cg()
 
+        dy.renew_cg()
+        
+        sentence           = ref_tree.words()
         if conditional:
-            wordsXpos = ref_tree.pos_nodes()
-            pos      = [tag.label for tag in wordsXpos]
-            sentence = [tag.children[0].label for tag in wordsXpos]
-            word_encodings = self.encode_words(sentence,pos)
-            derivation,last_config = self.static_oracle(ref_tree,ref_tree,sentence)
+            word_encodings         = self.encode_words(sentence,ref_tags)
+            derivation,last_config = self.static_oracle(ref_tree,ref_tree,sentence,conditional)
             return self.eval_derivation(derivation,sentence,word_encodings,conditional,backprop)
         else:
-            sentence       = ref_tree.words()
-            word_encodings = None
-            derivation,last_config = self.static_oracle(ref_tree,ref_tree,sentence)
+            word_encodings         = None
+            derivation,last_config = self.static_oracle(ref_tree,ref_tree,sentence,conditional)
             return self.eval_derivation(derivation,sentence,word_encodings,conditional,backprop)
-        
+
     @staticmethod
     def prune_beam(beam,K):
         """
@@ -889,8 +882,7 @@ class DiscoRNNGparser:
         beam.sort(key=lambda x:x.prefix_score,reverse=True)
         beam = beam[:K]
         return beam
-
-    
+ 
     def exec_beam_action(self,beam_elt,sentence):
         """
         Generates the element's configuration and assigns it internally.
@@ -968,7 +960,7 @@ class DiscoRNNGparser:
             successes.sort(key=lambda x:x.prefix_score,reverse=True)
             successes = successes[:K]
         return successes
-    
+     
     @staticmethod
     def weighted_derivation(success_elt):
         """
@@ -988,7 +980,7 @@ class DiscoRNNGparser:
             else:
                 D.append((current.prev_action,current.prefix_score))
             current = current.prev_element
-        D.reverse()  
+        D.reverse()   
         return D
 
     def parse_corpus(self,istream,ostream=sys.stdout,evalb_mode=False,stats_stream=None,K=5,kbest=1,conditional=True):
@@ -1002,7 +994,7 @@ class DiscoRNNGparser:
            stats_stream (string): the stream where to dump stats
            K               (int): the size of the beam
            kbest           (int): the number of parses hypotheses outputted per sentence (<= K)
-        """        
+        """         
         self.dropout = 0.0
         NLL = 0
         N   = 0
@@ -1076,7 +1068,7 @@ class DiscoRNNGparser:
     def read_learning_params(self,configfile,conditional):
 
         config = configparser.ConfigParser()
-        config.read(configfilename)
+        config.read(configfile)
 
         section = 'conditional' if conditional else 'generative'
         
@@ -1088,11 +1080,11 @@ class DiscoRNNGparser:
         return lr,epochs,dropout
 
     
-    def estimate_params(self,train_trees,dev_trees,modelname,config_file,conditional):
+    def estimate_params(self,train_treebank,train_tags,dev_treebank,dev_tags,modelname,config_file,conditional):
         """
         Estimates the parameters of a model from a treebank.
         """
-        lr,epochs,dropout = self.read_learning_params(conditional)
+        lr,epochs,dropout = self.read_learning_params(config_file,conditional)
         
         self.dropout = dropout
         self.trainer = dy.SimpleSGDTrainer(self.cond_model,learning_rate=lr) if conditional else dy.SimpleSGDTrainer(self.gen_model,learning_rate=lr)
@@ -1106,16 +1098,16 @@ class DiscoRNNGparser:
         
         for e in range(epochs):
             train_stats.push_row()
-            for idx,tree in enumerate(train_treebank):
-                train_stats += self.eval_sentence(tree,conditional=conditional,backprop=True)
+            for idx,(tree,xtags) in enumerate(zip(train_treebank,train_tags)):
+                train_stats += self.eval_sentence(tree,xtags,conditional=conditional,backprop=True)
                 sys.stdout.write('\r===> processed %d training trees'%(idx+1))
 
             NLL,lex_NLL,N,lexN = train_stats.peek()            
             print('\n[Training]   Epoch %d, NLL = %f, lex-NLL = %f, PPL = %f, lex-PPL = %f'%(e,NLL,lex_NLL,np.exp(NLL/N),np.exp(lex_NLL/lexN)),flush=True)
 
             valid_stats.push_row() 
-            for idx,tree in enumerate(dev_treebank):
-                valid_stats += self.eval_sentence(tree,conditional=conditional,backprop=False)
+            for idx,(tree,xtags) in enumerate(zip(dev_treebank,dev_tags)):
+                valid_stats += self.eval_sentence(tree,xtags,conditional=conditional,backprop=False)
  
             NLL,lex_NLL,N,lexN = valid_stats.peek()
             print('[Validation] Epoch %d, NLL = %f, lex-NLL = %f, PPL = %f, lex-PPL = %f'%(e,NLL,lex_NLL,np.exp(NLL/N),np.exp(lex_NLL/lexN)),flush=True)
@@ -1123,7 +1115,7 @@ class DiscoRNNGparser:
             if NLL < min_nll:
                 pass
                 self.save_model(modelname) 
-        
+         
     def train_model(self,train_stream,dev_stream,modelname,config_file=None,conditional=True,generative=True):
         """
         Reads data and runs the learning process
@@ -1133,20 +1125,34 @@ class DiscoRNNGparser:
         """
         #preprocessing
         train_treebank = [ ]
+        train_words    = [ ]
+        train_tags     = [ ]
         for line in train_stream:
-            t = DiscoTree.read_tree(line)
+            t      = DiscoTree.read_tree(line)
+            tokens = t.pos_nodes()
+            words  = [tok.children[0].label for tok in tokens]
+            tags   = [tok.label             for tok in tokens]
             t.strip_tags()
             t.close_unaries()
             train_treebank.append(t)
+            train_words.append(words)
+            train_tags.append(tags)
         
         dev_treebank = [ ]
+        dev_words    = [ ]
+        dev_tags     = [ ]
         for line in dev_stream:
             t = DiscoTree.read_tree(line)
+            tokens = t.pos_nodes()
+            words  = [tok.children[0].label for tok in tokens]
+            tags   = [tok.label             for tok in tokens]
             t.strip_tags()
             t.close_unaries()
-            dev_treebank.append(t) 
+            dev_treebank.append(t)
+            dev_words.append(words)
+            dev_tags.append(tags)
         
-        self.code_lexicon(train_treebank)
+        self.code_lexicon(train_words,train_tags)
         self.code_nonterminals(train_treebank,dev_treebank)
         self.code_struct_actions()
 
@@ -1154,17 +1160,17 @@ class DiscoRNNGparser:
         self.allocate_generative_params() 
         #Training
         if conditional:
-            self.estimate_params(train_treebank,dev_treebank,modelname,config_file,True)
+            self.estimate_params(train_treebank,train_tags,dev_treebank,dev_tags,modelname,config_file,True)
         if generative:
-            self.estimate_params(train_treebank,dev_treebank,modelname,config_file,False)
+            self.estimate_params(train_treebank,train_tags,dev_treebank,dev_tags,modelname,config_file,False)
         
                 
 if __name__ == '__main__':
     
-    p       = DiscoRNNGparser(stack_embedding_size=128,word_embedding_size=128,stack_hidden_size=128,brown_file='kk.brown')
+    p       = DiscoRNNGparser(config_file='default.conf',brown_file='kk.brown')
     tstream = open('negra/train.mrg') 
     dstream = open('negra/dev.mrg')
-    p.train_model(tstream,dstream,'disco_negra_model_small/negra_model',lr=0.1,epochs=10,dropout=0.1)
+    p.train_model(tstream,dstream,'disco_negra_model_small/negra_model',config_file='default.conf')
     tstream.close()
     dstream.close()
     
