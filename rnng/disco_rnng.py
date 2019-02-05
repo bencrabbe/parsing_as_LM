@@ -272,13 +272,14 @@ class DiscoRNNGparser:
         S,B,n,stack_state,lab_state = configuration
         shifted_word     = sentence[ B[0] ]
         if conditional:
+            shifted_tag  = tag_sequence[ B[0] ]
             wembedding   = self.cond_word_embeddings[self.lexicon.index(shifted_word)]
             tembedding   = self.tag_embeddings[self.tags.index(shifted_tag)]
             embedding    = dy.concatenate([wembedding,tembedding])
             xinput       = dy.relu(self.cond_lex_W * embedding + self.cond_lex_b) 
             stack_state = stack_state.add_input(xinput)
         else: 
-            embedding   = self.gen_word_embeddings[self.lexicon.index(shifted)]
+            embedding   = self.gen_word_embeddings[self.lexicon.index(shifted_word)]
             stack_state = stack_state.add_input(embedding)
             
         return (S + [StackSymbol(B[0],embedding,predicted=False,sym_range=[B[0]])],B[1:],n,stack_state,DiscoRNNGparser.NO_LABEL)
