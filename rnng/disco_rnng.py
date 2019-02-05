@@ -1078,7 +1078,7 @@ if __name__ == '__main__':
     #p.train_model(tstream,dstream,'disco_negra_model/negra_model',lr=0.1,epochs=10,dropout=0.3)
     #tstream.close()
     #dstream.close()
-    p = DiscoRNNGparser.load('disco_negra_model/negra_model')
+    p = DiscoRNNGparser.load_model('disco_negra_model/negra_model')
     
     pstream = open('negra/test.mrg')
     pred_stream = open('disco_negra_model/pred_test.mrg','w')
