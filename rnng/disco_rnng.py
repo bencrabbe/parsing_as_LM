@@ -11,7 +11,6 @@ from proc_monitors import *
 from rnng_params import *
 
    
-#GENERIC TODO : MOVE should be reframed as an atomic action rather than as a couple (ACT,IDX) in the derivation sequences
 class BeamElement:
     """
     This class is a place holder for elements in the beam.
@@ -129,6 +128,7 @@ class DiscoRNNGparser:
     #special tokens
     UNKNOWN_TOKEN = '<UNK>'
     START_TOKEN   = '<START>'
+    START_POS     = '<START>'
     
     def __init__(self,config_file=None,brown_file='toto.brown'):
 
@@ -191,7 +191,7 @@ class DiscoRNNGparser:
  
         #lookahead specific to the cond model
         self.lexer_rnn_bwd                 = dy.LSTMBuilder(2,self.cond_stack_embedding_size, self.pos_embedding_size+self.cond_word_embedding_size,self.cond_model)   
-        self.pos_embeddings                = self.cond_model.add_lookup_parameters((self.tagset.size(),self.pos_embedding_size)) 
+        self.tag_embeddings                = self.cond_model.add_lookup_parameters((self.tags.size(),self.pos_embedding_size)) 
 
         
     def allocate_generative_params(self):
@@ -511,15 +511,25 @@ class DiscoRNNGparser:
         """
         Builds indexes for word symbols found in the treebank
         """        
-        known_vocabulary = [ ]
+        known_words = [ ]
+        known_tags  = set([ ])
         for tree in treebank:
-            known_vocabulary.extend( tree.words() )
+            tokens = tree.pos_nodes()
+            tags   = [tok.label for tok in tokens]
+            words  = [tok.children[0].label for tok in tokens] 
+            known_words.extend(words)
+            known_tags.update(tags)
             
-        known_vocabulary = get_known_vocabulary(known_vocabulary,vocab_threshold=self.vocab_thresh)#change this
-        known_vocabulary.add(DiscoRNNGparser.START_TOKEN)
-        self.brown_file  = normalize_brown_file(self.brown_file,known_vocabulary,self.brown_file+'.unk',UNK_SYMBOL=DiscoRNNGparser.UNKNOWN_TOKEN)
-        self.lexicon     = SymbolLexicon( list(known_vocabulary),unk_word=DiscoRNNGparser.UNKNOWN_TOKEN)
-        return self.lexicon
+            
+        known_words = get_known_vocabulary(known_words,vocab_threshold=self.vocab_thresh)#change this
+        known_words.add(DiscoRNNGparser.START_TOKEN)
+        self.brown_file  = normalize_brown_file(self.brown_file,known_words,self.brown_file+'.unk',UNK_SYMBOL=DiscoRNNGparser.UNKNOWN_TOKEN)
+        self.lexicon     = SymbolLexicon( list(known_words),unk_word=DiscoRNNGparser.UNKNOWN_TOKEN)
+
+        known_tags.add(DiscoRNNGparser.START_POS)
+        self.tags = SymbolLexicon( list(known_tags))
+                    
+        return self.lexicon,self.tags
      
     def code_nonterminals(self,train_treebank,dev_treebank):
         """
@@ -593,7 +603,6 @@ class DiscoRNNGparser:
             
         allowed_idxes = [idx for idx, mask_val in enumerate(allowed_static+allowed_dynamic) if mask_val]
         return allowed_idxes
-
     
     def ifdropout(self,expression):
         """
@@ -819,7 +828,7 @@ class DiscoRNNGparser:
             
         return runstats
 
-    def encode_words(self,sentence):
+    def encode_words(self,sentence,pos):
         """
         Runs a backward LSTM on the input sentence.
         Used by the conditional model to get a lookahead
@@ -828,8 +837,9 @@ class DiscoRNNGparser:
         Returns list. A list of dynet expressions (the encoded words)
         """
         lex_state       = self.lexer_rnn_bwd.initial_state()
-        start_embedding = self.cond_word_embeddings[ self.lexicon.index(DiscoRNNGparser.START_TOKEN) ]
-        lex_state       = lex_state.add_input(start_embedding)
+        wembedding      = self.cond_word_embeddings[ self.lexicon.index(DiscoRNNGparser.START_TOKEN) ]
+        tembedding      = self.tag_embeddings[ self.tags.index(DiscoRNNGparser.START_POS) ]        
+        lex_state       = lex_state.add_input(dy.concatenate([wembedding,tembedding]))
         word_embeddings = [self.cond_word_embeddings[self.lexicon.index(w)] for w in reversed(sentence) ]
         word_encodings  = lex_state.transduce(word_embeddings)
         word_encodings.reverse()
@@ -849,14 +859,22 @@ class DiscoRNNGparser:
         Returns:
           RuntimeStats. the model NLL, the word only NLL, the size of the derivations, the number of predicted words on this batch
         """
-        dy.renew_cg()
         
-        sentence = ref_tree.words()
- 
-        word_encodings = self.encode_words(sentence)
-        derivation,last_config = self.static_oracle(ref_tree,ref_tree,sentence)
-        return self.eval_derivation(derivation,sentence,word_encodings,conditional,backprop)
+        dy.renew_cg()
 
+        if conditional:
+            wordsXpos = ref_tree.pos_nodes()
+            pos      = [tag.label for tag in wordsXpos]
+            sentence = [tag.children[0].label for tag in wordsXpos]
+            word_encodings = self.encode_words(sentence,pos)
+            derivation,last_config = self.static_oracle(ref_tree,ref_tree,sentence)
+            return self.eval_derivation(derivation,sentence,word_encodings,conditional,backprop)
+        else:
+            sentence       = ref_tree.words()
+            word_encodings = None
+            derivation,last_config = self.static_oracle(ref_tree,ref_tree,sentence)
+            return self.eval_derivation(derivation,sentence,word_encodings,conditional,backprop)
+        
     @staticmethod
     def prune_beam(beam,K):
         """
@@ -1023,6 +1041,7 @@ class DiscoRNNGparser:
 
         parser.lexicon      = SymbolLexicon.load(model_name+'.lex')
         parser.nonterminals = SymbolLexicon.load(model_name+'.nt')
+        parser.tags         = SymbolLexicon.load(model_name+'.tag')
         parser.code_struct_actions()
         parser.allocate_conditional_params()
         parser.cond_model.populate(model_name+".cond.weights")
@@ -1047,6 +1066,7 @@ class DiscoRNNGparser:
         self.cond_model.save(model_name+'.cond.weights')
         self.gen_model.save(model_name+'.gen.weights')
         self.lexicon.save(model_name+'.lex')
+        self.tags.save(model_name+'.tag')
         self.nonterminals.save(model_name+'.nt')
 
 
