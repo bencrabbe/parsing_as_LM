@@ -1175,7 +1175,7 @@ if __name__ == '__main__':
     #tstream.close()
     #dstream.close()
 
-    p = DiscoRNNGparser.load(config_file='disco_negra_model/negra_model')
+    p = DiscoRNNGparser.load_model(config_file='disco_negra_model/negra_model')
     
     pstream = open('negra/test.mrg')
     pred_stream = open('disco_negra_model/pred_test.mrg','w')
