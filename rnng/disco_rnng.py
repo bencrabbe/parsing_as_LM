@@ -923,7 +923,7 @@ class DiscoRNNGparser:
             else:
                 print('oops')
         
-    def predict_beam(self,sentence,K):
+    def predict_beam(self,sentence,K,tag_sequence=None):
         """
         Performs parsing and returns an ordered list of successful beam elements.
         The default search strategy amounts to sample the search space with discriminative probs and to rank the succesful states with generative probs.
@@ -931,12 +931,14 @@ class DiscoRNNGparser:
         Args: 
               sentence      (list): list of strings (tokens)
               K              (int): beam width
+        KwArgs:
+              tag_sequence  (list): a list of strings (tags)
         Returns:
              list. List of BeamElements.
         """
         dy.renew_cg()
 
-        word_encodings = self.encode_words(sentence)
+        word_encodings = self.encode_words(sentence,tag_sequence) if tag_sequence else None
         
         init = BeamElement.init_element(self.init_configuration(len(sentence)))
         beam,successes  = [init],[ ]
@@ -989,7 +991,7 @@ class DiscoRNNGparser:
         D.reverse()  
         return D
 
-    def parse_corpus(self,istream,ostream=sys.stdout,evalb_mode=False,stats_stream=None,K=5,kbest=1):
+    def parse_corpus(self,istream,ostream=sys.stdout,evalb_mode=False,stats_stream=None,K=5,kbest=1,conditional=True):
         """ 
         Parses a corpus and prints out the trees in a file.
         Args: 
@@ -1009,7 +1011,8 @@ class DiscoRNNGparser:
             tree      = DiscoTree.read_tree(line)
             tag_nodes = tree.pos_nodes()
             tokens    = [x.children[0].label for x in tag_nodes]
-            results   = self.predict_beam(tokens,K)
+            tags      = [x.label for x in tag_nodes]
+            results   = self.predict_beam(tokens,K,tags) if conditional else self.predict_beam(tokens,K)
             if results:
                 for idx,r in enumerate(results):
                     r_derivation  = DiscoRNNGparser.weighted_derivation(r)
