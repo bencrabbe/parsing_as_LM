@@ -277,13 +277,12 @@ class DiscoRNNGparser:
             tembedding   = self.tag_embeddings[self.tags.index(shifted_tag)]
             embedding    = dy.concatenate([wembedding,tembedding])
             xinput       = dy.rectify(self.cond_lex_W * embedding + self.cond_lex_b)
-            print('gen',xinput.npvalue().shape)
             stack_state = stack_state.add_input(xinput)
+            return (S + [StackSymbol(B[0],xinput,predicted=False,sym_range=[B[0]])],B[1:],n,stack_state,DiscoRNNGparser.NO_LABEL)
         else: 
             embedding   = self.gen_word_embeddings[self.lexicon.index(shifted_word)]
             stack_state = stack_state.add_input(embedding)
-            
-        return (S + [StackSymbol(B[0],embedding,predicted=False,sym_range=[B[0]])],B[1:],n,stack_state,DiscoRNNGparser.NO_LABEL)
+            return (S + [StackSymbol(B[0],embedding,predicted=False,sym_range=[B[0]])],B[1:],n,stack_state,DiscoRNNGparser.NO_LABEL)
  
     def open_action(self,configuration):
         """
@@ -309,7 +308,6 @@ class DiscoRNNGparser:
         S,B,n,stack_state,lab_state = configuration
         nt_idx      = self.nonterminals.index(label)
         embedding   = self.cond_nonterminals_embeddings[nt_idx] if conditional else self.gen_nonterminals_embeddings[nt_idx]
-        print('open',embedding.npvalue().shape)
         stack_state = stack_state.add_input(embedding)
         return (S + [StackSymbol(label,embedding,predicted=True,sym_range=[B[0]])],B,n + 1,stack_state,DiscoRNNGparser.NO_LABEL) 
 
@@ -350,7 +348,6 @@ class DiscoRNNGparser:
         fwd_state = self.cond_tree_fwd.initial_state() if conditional else self.gen_tree_fwd.initial_state()
         fwd_state = fwd_state.add_input(self.cond_nonterminals_embeddings[nt_idx]) if conditional else  fwd_state.add_input(self.gen_nonterminals_embeddings[nt_idx])
         for SYM in reversed(closed_symbols):
-            print('close',SYM.embedding.npvalue().shape)
             fwd_state = fwd_state.add_input(SYM.embedding)
             
         bwd_state = self.cond_tree_bwd.initial_state() if conditional else self.gen_tree_bwd.initial_state()
