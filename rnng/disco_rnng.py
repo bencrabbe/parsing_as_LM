@@ -875,7 +875,7 @@ class DiscoRNNGparser:
         sentence           = ref_tree.words()
         if conditional:
             word_encodings         = self.encode_words(sentence,ref_tags)
-            derivation,last_config = self.static_oracle(ref_tree,ref_tree,sentence,conditional)
+            derivation,last_config = self.static_oracle(ref_tree,ref_tree,sentence,ref_tags,conditional)
             return self.eval_derivation(derivation,sentence,ref_tags,word_encodings,conditional,backprop)
         else:
             word_encodings         = None
