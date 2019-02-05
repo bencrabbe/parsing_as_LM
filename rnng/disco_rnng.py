@@ -952,7 +952,7 @@ class DiscoRNNGparser:
         NLL = 0
         N   = 0
         stats_header = True 
-        for line in istream:            
+        for line in istream:             
             tree      = DiscoTree.read_tree(line)
             tag_nodes = tree.pos_nodes()
             tokens    = [x.children[0].label for x in tag_nodes]
@@ -964,10 +964,35 @@ class DiscoRNNGparser:
                         r_tree = self.deriv2tree([action for action,prob in r_derivation])
                         r_tree.expand_unaries()
                         r_tree.add_gold_tags(tag_nodes)
-                        print(r_tree,r_derivation[-1][1])
+                        print(r_tree,r_derivation[-1][1],file=ostream)
             else:
                 print('(())',file=ostream,flush=True)
 
+    @staticmethod
+    def load_model(model_name):
+        """
+        Loads an RNNG parser from params at prefix model_name
+        Args:
+            model_name   (string): the prefix path for param files
+        Returns:
+            RNNGparser. An instance of RNNG ready to use.
+        """
+        #    def __init__(self,stack_embedding_size=300,word_embedding_size=300,stack_hidden_size=300,vocab_thresh=1,brown_file='toto.brown'):
+
+        
+        hyperparams = json.loads(open(model_name+'.json').read())
+        parser = DiscoRNNGparser(vocab_thresh=hyperparams['vocab_thresh'],\
+                                 stack_embedding_size=hyperparams['stack_hidden_size'],\
+                                 word_embedding_size=hyperparams['word_embedding_size'],\
+                                 brown_file=hyperparams['brown_file'])
+
+        parser.lexicon      = SymbolLexicon.load(model_name+'.lex')
+        parser.nonterminals = SymbolLexicon.load(model_name+'.nt')
+        parser.code_struct_actions()
+        parser.allocate_conditional_params()
+        parser.model.populate(model_name+".weights")
+        return parser
+                
     def save_model(self,model_name):
         """
         Saves the model params using the prefix model_name.
@@ -1039,7 +1064,7 @@ class DiscoRNNGparser:
                 valid_stats += self.eval_sentence(tree,conditional=True,backprop=False)
  
             NLL,lex_NLL,N,lexN = valid_stats.peek()
-            print('\n[Validation] Epoch %d, NLL = %f, lex-NLL = %f, PPL = %f, lex-PPL = %f'%(e,NLL,lex_NLL,np.exp(NLL/N),np.exp(lex_NLL/lexN)),flush=True)
+            print('[Validation] Epoch %d, NLL = %f, lex-NLL = %f, PPL = %f, lex-PPL = %f'%(e,NLL,lex_NLL,np.exp(NLL/N),np.exp(lex_NLL/lexN)),flush=True)
             print()
             if NLL < min_nll:
                 pass
@@ -1047,13 +1072,14 @@ class DiscoRNNGparser:
         
                 
 if __name__ == '__main__':
-    p       = DiscoRNNGparser(brown_file='kk.brown')
-    tstream = open('negra/train.mrg')
-    dstream = open('negra/dev.mrg')
-    p.train_model(tstream,dstream,'disco_negra_model/negra_model',lr=0.1,epochs=10,dropout=0.3)
-    tstream.close()
-    dstream.close()
- 
+    #p       = DiscoRNNGparser(brown_file='kk.brown')
+    #tstream = open('negra/train.mrg')
+    #dstream = open('negra/dev.mrg')
+    #p.train_model(tstream,dstream,'disco_negra_model/negra_model',lr=0.1,epochs=10,dropout=0.3)
+    #tstream.close()
+    #dstream.close()
+    p = DiscoRNNGparser.load('disco_negra_model/negra_model')
+    
     pstream = open('negra/test.mrg')
     pred_stream = open('disco_negra_model/pred_test.mrg','w')
     p.parse_corpus(pstream,ostream=pred_stream,evalb_mode=True, K=32,kbest=1)
