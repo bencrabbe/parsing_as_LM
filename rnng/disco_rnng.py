@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
 import dynet as dy
+import configparser
+
 from collections import namedtuple
 
 from lexicons  import *
@@ -8,7 +10,7 @@ from discotree import *
 from proc_monitors import *
 from rnng_params import *
 
-
+   
 #GENERIC TODO : MOVE should be reframed as an atomic action rather than as a couple (ACT,IDX) in the derivation sequences
 class BeamElement:
     """
@@ -49,11 +51,10 @@ class BeamElement:
         """
         return self.prev_element is None or self.prev_action is None
 
-
 class StackSymbol:
     """
     A convenience class for symbols on the stack.
-    """
+    """ 
     def __init__(self,symbol,embedding,predicted=False,sym_range=None):
         """
         Args:
@@ -129,41 +130,64 @@ class DiscoRNNGparser:
     UNKNOWN_TOKEN = '<UNK>'
     START_TOKEN   = '<START>'
     
-    def __init__(self,stack_embedding_size=300,word_embedding_size=300,stack_hidden_size=300,vocab_thresh=1,brown_file='toto.brown'):
+    def __init__(self,config_file=None,brown_file='toto.brown'):
 
         self.brown_file = brown_file
-        self.stack_embedding_size = stack_embedding_size
-        self.word_embedding_size  = stack_embedding_size
-        self.stack_hidden_size    = stack_hidden_size
-        self.vocab_thresh         = vocab_thresh
+        self.read_config_file(config_file)
 
+        
+    def read_config_file(self,configfilename):
+        
+        #defaults
+        self.cond_stack_embedding_size = 128
+        self.cond_stack_hidden_size    = 128    #these two vars should be merged
+        self.cond_word_embedding_size  = 128
+
+        self.gen_stack_embedding_size  = 256
+        self.gen_stack_hidden_size     = 256    #these two vars should be merged
+        self.gen_word_embedding_size   = 256
+        
+        self.vocab_thresh              = 1
+
+        config = configparser.ConfigParser()
+        config.read(configfilename)
+        
+        self.cond_stack_embedding_size = int(config['conditional']['stack_embedding_size'])
+        self.cond_stack_hidden_size    = int(config['conditional']['stack_embedding_size'])
+        self.cond_word_embedding_size  = int(config['conditional']['word_embedding_size'])
+
+        self.gen_stack_embedding_size = int(config['generative']['stack_embedding_size'])
+        self.gen_stack_hidden_size    = int(config['generative']['stack_embedding_size'])
+        self.gen_word_embedding_size  = int(config['generative']['word_embedding_size'])
+        
+        
     def allocate_conditional_params(self):
         """ 
         This allocates memory for the conditional model parameters
         """
         self.cond_model                     = dy.ParameterCollection()
         
-        self.cond_nonterminals_embeddings   = self.cond_model.add_lookup_parameters((self.nonterminals.size(),self.stack_embedding_size)) 
-        self.cond_word_embeddings           = self.cond_model.add_lookup_parameters((self.lexicon.size(),self.word_embedding_size)) 
+        self.cond_nonterminals_embeddings   = self.cond_model.add_lookup_parameters((self.nonterminals.size(),self.cond_stack_embedding_size)) 
+        self.cond_word_embeddings           = self.cond_model.add_lookup_parameters((self.lexicon.size(),self.cond_word_embedding_size)) 
 
-        self.cond_structural_W             = self.cond_model.add_parameters((self.actions.size(),self.stack_hidden_size+self.stack_embedding_size))         
-        self.cond_structural_b             = self.cond_model.add_parameters((self.actions.size()))
+        self.cond_structural_W             = self.cond_model.add_parameters((self.actions.size(),self.cond_stack_hidden_size+self.cond_stack_embedding_size))         
+        self.cond_structural_b             = self.cond_model.add_parameters((self.actions.size())) 
         
-        self.cond_nonterminals_W            = self.cond_model.add_parameters((self.nonterminals.size(),self.stack_hidden_size+self.stack_embedding_size))   
+        self.cond_nonterminals_W            = self.cond_model.add_parameters((self.nonterminals.size(),self.cond_stack_hidden_size+self.cond_stack_embedding_size))   
         self.cond_nonterminals_b            = self.cond_model.add_parameters((self.nonterminals.size()))
 
-        self.cond_move                      = self.cond_model.add_parameters((1,self.stack_hidden_size+self.stack_embedding_size))
+        self.cond_move                      = self.cond_model.add_parameters((1,self.cond_stack_hidden_size+self.cond_stack_embedding_size))
         
         #stack_lstm
-        self.cond_rnn                      = dy.LSTMBuilder(2,self.stack_embedding_size, self.stack_hidden_size,self.cond_model)          
+        self.cond_rnn                      = dy.LSTMBuilder(2,self.cond_stack_embedding_size, self.cond_stack_hidden_size,self.cond_model)          
  
-        self.cond_tree_fwd                 = dy.LSTMBuilder(1,self.stack_embedding_size, self.stack_hidden_size,self.cond_model)        
-        self.cond_tree_bwd                 = dy.LSTMBuilder(1,self.stack_embedding_size, self.stack_hidden_size,self.cond_model)        
-        self.cond_tree_W                   = self.cond_model.add_parameters((self.stack_embedding_size,self.stack_hidden_size*2))
-        self.cond_tree_b                   = self.cond_model.add_parameters((self.stack_embedding_size))
-
+        self.cond_tree_fwd                 = dy.LSTMBuilder(1,self.cond_stack_embedding_size, self.cond_stack_hidden_size,self.cond_model)        
+        self.cond_tree_bwd                 = dy.LSTMBuilder(1,self.cond_stack_embedding_size, self.cond_stack_hidden_size,self.cond_model)        
+        self.cond_tree_W                   = self.cond_model.add_parameters((self.cond_stack_embedding_size,self.cond_stack_hidden_size*2))
+        self.cond_tree_b                   = self.cond_model.add_parameters((self.cond_stack_embedding_size))
+ 
         #specific to the cond model
-        self.lexer_rnn_bwd                 = dy.LSTMBuilder(2,self.stack_embedding_size, self.word_embedding_size,self.cond_model)   
+        self.lexer_rnn_bwd                 = dy.LSTMBuilder(2,self.cond_stack_embedding_size, self.cond_word_embedding_size,self.cond_model)   
         
     def allocate_generative_params(self):
         """ 
@@ -171,30 +195,35 @@ class DiscoRNNGparser:
         """
         self.gen_model                     = dy.ParameterCollection()
         
-        self.gen_nonterminals_embeddings   = self.gen_model.add_lookup_parameters((self.nonterminals.size(),self.stack_embedding_size)) 
-        self.gen_word_embeddings           = self.gen_model.add_lookup_parameters((self.lexicon.size(),self.word_embedding_size)) 
+        self.gen_nonterminals_embeddings   = self.gen_model.add_lookup_parameters((self.nonterminals.size(),self.gen_stack_embedding_size)) 
+        self.gen_word_embeddings           = self.gen_model.add_lookup_parameters((self.lexicon.size(),self.gen_word_embedding_size)) 
 
-        self.gen_structural_W              = self.model.add_parameters((self.actions.size(),self.stack_hidden_size))         
+        self.gen_structural_W              = self.model.add_parameters((self.actions.size(),self.gen_stack_hidden_size))         
         self.gen_structural_b              = self.model.add_parameters((self.actions.size()))
         
-        self.word_softmax                  = dy.ClassFactoredSoftmaxBuilder(self.stack_hidden_size,self.brown_file,self.lexicon.words2i,self.cond_model,bias=True)
+        self.word_softmax                  = dy.ClassFactoredSoftmaxBuilder(self.gen_stack_hidden_size,self.brown_file,self.lexicon.words2i,self.gen_model,bias=True)
 
         self.gen_nonterminals_W            = self.gen_model.add_parameters((self.nonterminals.size(),self.stack_hidden_size))   
         self.gen_nonterminals_b            = self.gen_model.add_parameters((self.nonterminals.size()))
 
-        self.gen_move                      = self.gen_model.add_parameters((1,self.stack_hidden_size+self.stack_embedding_size))
+        self.gen_move                      = self.gen_model.add_parameters((1,self.gen_stack_hidden_size+self.gen_stack_embedding_size))
         
         #stack_lstm
-        self.gen_rnn                       = dy.LSTMBuilder(2,self.stack_embedding_size, self.stack_hidden_size,self.gen_model)          
+        self.gen_rnn                       = dy.LSTMBuilder(2,self.gen_stack_embedding_size, self.gen_stack_hidden_size,self.gen_model)          
  
-        self.gen_tree_fwd                  = dy.LSTMBuilder(1,self.stack_embedding_size, self.stack_hidden_size,self.gen_model)        
-        self.gen_tree_bwd                  = dy.LSTMBuilder(1,self.stack_embedding_size, self.stack_hidden_size,self.gen_model)        
-        self.gen_tree_W                    = self.gen_model.add_parameters((self.stack_embedding_size,self.stack_hidden_size*2))
-        self.gen_tree_b                    = self.gen_model.add_parameters((self.stack_embedding_size))
-    
+        self.gen_tree_fwd                  = dy.LSTMBuilder(1,self.gen_stack_embedding_size, self.gen_stack_hidden_size,self.gen_model)        
+        self.gen_tree_bwd                  = dy.LSTMBuilder(1,self.gen_stack_embedding_size, self.gen_stack_hidden_size,self.gen_model)        
+        self.gen_tree_W                    = self.gen_model.add_parameters((self.gen_stack_embedding_size,self.gen_stack_hidden_size*2))
+        self.gen_tree_b                    = self.gen_model.add_parameters((self.gen_stack_embedding_size))
+
+        
     #TRANSITION SYSTEM AND ORACLE
-    def init_configuration(self,N):
+    def init_configuration(self,N,conditional):
         """ 
+        Args:
+            N            (int): the length of the input 
+            conditional (bool): flags for conditional vs generative model
+
         Inits a starting configuration. A configuration is 5-uple
         S: is the stack
         B: the buffer
@@ -204,8 +233,9 @@ class DiscoRNNGparser:
         Args:
            N   (int): the length of the input sequence
         """
-        stack_state = self.cond_rnn.initial_state()
-        w0          = self.cond_word_embeddings[self.lexicon.index(DiscoRNNGparser.START_TOKEN)]
+        w0_idx      = self.lexicon.index(DiscoRNNGparser.START_TOKEN)
+        w0          = self.cond_word_embeddings[w0_idx] if conditional else self.gen_word_embeddings[w0_idx]        
+        stack_state = self.cond_rnn.initial_state()  if conditional else self.gen_rnn.initial_state()
         stack_state = stack_state.add_input(w0)
         return ([ ] ,tuple(range(N)),0, stack_state, DiscoRNNGparser.NO_LABEL)
 
@@ -220,22 +250,22 @@ class DiscoRNNGparser:
         """
         S,B,n,stack_state,lab_state = configuration
         return (S,B,n,stack_state,DiscoRNNGparser.WORD_LABEL)
-     
-    def generate_word(self,configuration,sentence):
+
+    def generate_word(self,configuration,sentence,conditional):
         """
         This generates a word (performs the actual shifting).
         Args:
            configuration (tuple) :  a configuration frow where to generate a word
            sentence       (list) :  a list of strings, the sentence tokens
+           conditional     (bool): flag for conditional vs generative model
         Returns:
            tuple. a configuration after word generation
         """
         S,B,n,stack_state,lab_state = configuration
         
-        shifted     = sentence[B[0]]
-        embedding   = self.cond_word_embeddings[self.lexicon.index(shifted)]
+        shifted     = sentence[ B[0] ]
+        embedding   = self.cond_word_embeddings[self.lexicon.index(shifted)] if conditional else self.gen_word_embeddings[self.lexicon.index(shifted)]
         stack_state = stack_state.add_input(embedding)
-        #print('added shift embedding',shifted,embedding.npvalue())
         return (S + [StackSymbol(B[0],embedding,predicted=False,sym_range=[B[0]])],B[1:],n,stack_state,DiscoRNNGparser.NO_LABEL)
  
     def open_action(self,configuration):
@@ -248,27 +278,29 @@ class DiscoRNNGparser:
         S,B,n,stack_state,lab_state = configuration
         return (S,B,n,stack_state,DiscoRNNGparser.NT_LABEL) 
     
-    def open_nonterminal(self,configuration,label):
+    def open_nonterminal(self,configuration,label,conditional):
         """
         The nonterminal labelling action. This adds an open nonterminal on the stack under the stack top (left corner style inference)
         
         Arguments:
             configuration (tuple) : a configuration where to perform the labelling
             label         (string): the nonterminal label
+            conditional     (bool): flag for conditional vs generative model
         Returns:
             tuple. A configuration resulting from the labelling
         """
         S,B,n,stack_state,lab_state = configuration
-        embedding   = self.cond_nonterminals_embeddings[self.nonterminals.index(label)]
+        nt_idx      = self.nonterminals.index(label)
+        embedding   = self.cond_nonterminals_embeddings[nt_idx] if conditional else self.gen_nonterminals_embeddings[nt_idx]
         stack_state = stack_state.add_input(embedding)
         return (S + [StackSymbol(label,embedding,predicted=True,sym_range=[B[0]])],B,n + 1,stack_state,DiscoRNNGparser.NO_LABEL) 
 
-    
-    def close_action(self,configuration): 
+    def close_action(self,configuration,conditional,conditional): 
         """
         This actually executes the RNNG CLOSE action.
         Args:
            configuration (tuple): a configuration frow where to perform open
+           conditional    (bool): flag for conditional vs generative model
         Returns:
            tuple. A configuration resulting from closing the constituent
         """
@@ -293,15 +325,17 @@ class DiscoRNNGparser:
 
         stack_state = stack_state.prev()      
         completeNT = newS.pop()  
-
+ 
         #computes the tree embedding of the completed stuff
-        fwd_state = self.cond_tree_fwd.initial_state()  
-        fwd_state = fwd_state.add_input(self.cond_nonterminals_embeddings[self.nonterminals.index(completeNT.symbol)])
+        nt_idx    = self.nonterminals.index(completeNT.symbol)
+
+        fwd_state = self.cond_tree_fwd.initial_state() if conditional else self.gen_tree_fwd.initial_state()
+        fwd_state = fwd_state.add_input(self.cond_nonterminals_embeddings[nt_idx]) if conditional else  fwd_state.add_input(self.gen_nonterminals_embeddings[nt_idx])
         for SYM in reversed(closed_symbols):
             fwd_state = fwd_state.add_input(SYM.embedding)
             
-        bwd_state = self.cond_tree_bwd.initial_state()  
-        bwd_state = bwd_state.add_input(self.cond_nonterminals_embeddings[self.nonterminals.index(completeNT.symbol)])
+        bwd_state = self.cond_tree_bwd.initial_state() if conditional else self.gen_tree_bwd.initial_state()
+        bwd_state = bwd_state.add_input(self.cond_nonterminals_embeddings[nt_idx]) if conditional else bwd_state.add_input(self.gen_nonterminals_embeddings[nt_idx])
         for SYM in closed_symbols:
             bwd_state = bwd_state.add_input(SYM.embedding)
 
@@ -313,7 +347,7 @@ class DiscoRNNGparser:
         completeNT.embedding = tree_embedding
         newS.append(completeNT)
         stack_state = stack_state.add_input(tree_embedding)
-        
+         
         #updates the stack state when putting back the moved elements
         newS.extend(reversed(moved_symbols))
         new_n = n-1
@@ -1071,8 +1105,9 @@ class DiscoRNNGparser:
         
                 
 if __name__ == '__main__':
+    
     p       = DiscoRNNGparser(stack_embedding_size=128,word_embedding_size=128,stack_hidden_size=128,brown_file='kk.brown')
-    tstream = open('negra/train.mrg')
+    tstream = open('negra/train.mrg') 
     dstream = open('negra/dev.mrg')
     p.train_model(tstream,dstream,'disco_negra_model_small/negra_model',lr=0.1,epochs=10,dropout=0.1)
     tstream.close()
