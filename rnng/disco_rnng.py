@@ -391,7 +391,7 @@ class DiscoRNNGparser:
         new_n = n-1 if moved_elt.predicted else n
         return (newS,B,new_n,stack_state,DiscoRNNGparser.NO_LABEL)
 
-    def static_oracle(self,ref_root,global_root,sentence,conditional,configuration=None):
+    def static_oracle(self,ref_root,global_root,sentence,tag_sequence,conditional,configuration=None):
         """
         Generates a list of configurations and returns a list of actions to exec given a ref tree
         Args: 
@@ -427,7 +427,7 @@ class DiscoRNNGparser:
 
         if ref_root.is_leaf(): 
             configuration = self.shift_action(configuration)
-            configuration = self.generate_word(configuration,sentence,conditional)
+            configuration = self.generate_word(configuration,sentence,tag_sequence,conditional)
             S,B,n,stack_state,lab_state = configuration
             sh_word                     = sentence[S[-1].symbol]
             act_list                    = [DiscoRNNGparser.SHIFT,sh_word]
@@ -453,7 +453,7 @@ class DiscoRNNGparser:
                                 configuration = self.open_nonterminal(configuration,ancestor.label,conditional)
                                 act_list.extend([DiscoRNNGparser.OPEN,ancestor.label]) 
 
-                    local_actions, configuration = self.static_oracle(child,global_root,sentence,conditional,configuration)
+                    local_actions, configuration = self.static_oracle(child,global_root,sentence,tag_sequence,conditional,configuration)
                     act_list.extend(local_actions)
 
 
