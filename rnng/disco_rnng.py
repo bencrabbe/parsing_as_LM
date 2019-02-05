@@ -182,7 +182,10 @@ class DiscoRNNGparser:
         
         #stack_lstm
         self.cond_rnn                      = dy.LSTMBuilder(2,self.cond_stack_embedding_size, self.cond_stack_hidden_size,self.cond_model)          
- 
+
+        self.cond_lex_W                    = self.cond_model.add_parameters((self.cond_stack_embedding_size,self.cond_word_embedding_size+self.pos_embedding_size))            
+        self.cond_lex_b                    = self.cond_model.add_parameters((self.cond_stack_embedding_size))
+        
         self.cond_tree_fwd                 = dy.LSTMBuilder(1,self.cond_stack_embedding_size, self.cond_stack_hidden_size,self.cond_model)        
         self.cond_tree_bwd                 = dy.LSTMBuilder(1,self.cond_stack_embedding_size, self.cond_stack_hidden_size,self.cond_model)        
         self.cond_tree_W                   = self.cond_model.add_parameters((self.cond_stack_embedding_size,self.cond_stack_hidden_size*2))
@@ -255,20 +258,29 @@ class DiscoRNNGparser:
         S,B,n,stack_state,lab_state = configuration
         return (S,B,n,stack_state,DiscoRNNGparser.WORD_LABEL)
 
-    def generate_word(self,configuration,sentence,conditional):
+    def generate_word(self,configuration,sentence,tag_sequence,conditional):
         """
         This generates a word (performs the actual shifting).
         Args:
            configuration (tuple) :  a configuration frow where to generate a word
            sentence       (list) :  a list of strings, the sentence tokens
+           tag_sequence (list)   :  a list of strings, the sentence tags
            conditional     (bool): flag for conditional vs generative model
         Returns:
            tuple. a configuration after word generation
         """
         S,B,n,stack_state,lab_state = configuration
-        shifted     = sentence[ B[0] ]
-        embedding   = self.cond_word_embeddings[self.lexicon.index(shifted)] if conditional else self.gen_word_embeddings[self.lexicon.index(shifted)]
-        stack_state = stack_state.add_input(embedding)
+        shifted_word     = sentence[ B[0] ]
+        if conditional:
+            wembedding   = self.cond_word_embeddings[self.lexicon.index(shifted_word)]
+            tembedding   = self.tag_embeddings[self.tags.index(shifted_tag)]
+            embedding    = dy.concatenate([wembedding,tembedding])
+            xinput       = dy.relu(self.cond_lex_W * embedding + self.cond_lex_b) 
+            stack_state = stack_state.add_input(xinput)
+        else: 
+            embedding   = self.gen_word_embeddings[self.lexicon.index(shifted)]
+            stack_state = stack_state.add_input(embedding)
+            
         return (S + [StackSymbol(B[0],embedding,predicted=False,sym_range=[B[0]])],B[1:],n,stack_state,DiscoRNNGparser.NO_LABEL)
  
     def open_action(self,configuration):
@@ -750,13 +762,14 @@ class DiscoRNNGparser:
             print('error in evaluation')
         return nll
 
-    def eval_derivation(self,ref_derivation,sentence,word_encodings,conditional,backprop=True):
+    def eval_derivation(self,ref_derivation,sentence,tag_sequence,word_encodings,conditional,backprop=True):
         """
         Evaluates the model predictions against the reference derivation
 
         Args:
           ref_derivation                (list) : a reference derivation
           sentence                      (list) : a list of strings (words)
+          tag_sequence                  (list) : a list of strings (tags)
           word_encodings                (list) : a list of dynet expressions (word embeddings)
           conditional                   (bool) : a flag telling if we train a conditional or a generative model
         Kwargs:
@@ -790,7 +803,7 @@ class DiscoRNNGparser:
             all_NLL.append( nll )
             
             if lab_state == DiscoRNNGparser.WORD_LABEL:
-                configuration = self.generate_word(configuration,sentence,conditional)
+                configuration = self.generate_word(configuration,sentence,tag_sequence,conditional)
                 lexical_NLL.append(nll)
             elif lab_state == DiscoRNNGparser.NT_LABEL:
                 configuration = self.open_nonterminal(configuration,ref_action,conditional)
@@ -863,7 +876,7 @@ class DiscoRNNGparser:
         if conditional:
             word_encodings         = self.encode_words(sentence,ref_tags)
             derivation,last_config = self.static_oracle(ref_tree,ref_tree,sentence,conditional)
-            return self.eval_derivation(derivation,sentence,word_encodings,conditional,backprop)
+            return self.eval_derivation(derivation,sentence,ref_tags,word_encodings,conditional,backprop)
         else:
             word_encodings         = None
             derivation,last_config = self.static_oracle(ref_tree,ref_tree,sentence,conditional)
@@ -884,12 +897,13 @@ class DiscoRNNGparser:
         beam = beam[:K]
         return beam
  
-    def exec_beam_action(self,beam_elt,sentence):
+    def exec_beam_action(self,beam_elt,sentence,tag_sequence):
         """
         Generates the element's configuration and assigns it internally.
         Args:
              beam_elt  (BeamElement): a BeamElement missing its configuration
              sentence         (list): a list of strings, the tokens.
+             tag_sequence     (list): a list of strings, the tags.
         """
         
         if  beam_elt.is_initial_element():
@@ -899,7 +913,7 @@ class DiscoRNNGparser:
             S,B,n,stack_state,lab_state = configuration
             
             if lab_state == DiscoRNNGparser.WORD_LABEL:
-                beam_elt.configuration = self.generate_word(configuration,sentence)
+                beam_elt.configuration = self.generate_word(configuration,sentence,tag_sequence)
             elif lab_state == DiscoRNNGparser.NT_LABEL:
                 beam_elt.configuration = self.open_nonterminal(configuration,beam_elt.prev_action)
             elif type(beam_elt.prev_action) == tuple :
@@ -939,7 +953,7 @@ class DiscoRNNGparser:
         while beam :
             beam = DiscoRNNGparser.prune_beam(beam,K) #pruning
             for elt in beam:
-                self.exec_beam_action(elt,sentence) #lazily builds configs
+                self.exec_beam_action(elt,sentence,tag_sequence) #lazily builds configs
             next_preds = [ ] 
             for elt in beam:
                 configuration = elt.configuration
@@ -1159,10 +1173,10 @@ if __name__ == '__main__':
     p.train_model(tstream,dstream,'disco_negra_model/negra_model',config_file='default.conf',generative=False)
     tstream.close()
     dstream.close()
-     
+      
     pstream = open('negra/test.mrg')
     pred_stream = open('disco_negra_model/pred_test.mrg','w')
-    p.parse_corpus(pstream,ostream=pred_stream,evalb_mode=True, K=32,kbest=1)
+    p.parse_corpus(pstream,ostream=pred_stream,evalb_mode=True,K=64,kbest=1)
     pstream.close()
     pred_stream.close()
     exit(0)
