@@ -167,6 +167,7 @@ class DiscoRNNGparser:
         """ 
         This allocates memory for the conditional model parameters
         """
+        print(self.cond_stack_embedding_size,self.cond_stack_hidden_size)
         self.cond_model                     = dy.ParameterCollection()
         
         self.cond_nonterminals_embeddings   = self.cond_model.add_lookup_parameters((self.nonterminals.size(),self.cond_stack_embedding_size)) 
