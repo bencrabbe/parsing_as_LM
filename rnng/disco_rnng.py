@@ -130,13 +130,11 @@ class DiscoRNNGparser:
     START_TOKEN   = '<START>'
     START_POS     = '<START>'
     
-    def __init__(self,config_file=None,brown_file='toto.brown'):
-
-        self.brown_file = brown_file
-        self.read_structure_params(config_file) 
-
+    def __init__(self,config_file):
         
-    def read_structure_params(self,configfilename):
+        self.read_hyperparams(config_file) 
+
+    def read_hyperparams(self,configfilename):
         
         #defaults
         self.cond_stack_embedding_size = 128
@@ -157,12 +155,13 @@ class DiscoRNNGparser:
         self.cond_stack_hidden_size    = int(config['conditional']['stack_embedding_size'])
         self.cond_word_embedding_size  = int(config['conditional']['word_embedding_size'])
         self.pos_embedding_size        = int(config['conditional']['pos_embedding_size'])
+        self.vocab_thresh              = int(config['conditional']['vocab_thresh'])
 
-        
         self.gen_stack_embedding_size = int(config['generative']['stack_embedding_size'])
         self.gen_stack_hidden_size    = int(config['generative']['stack_embedding_size'])
         self.gen_word_embedding_size  = int(config['generative']['word_embedding_size'])
-        
+        self.vocab_thresh             = int(config['generative']['vocab_thresh'])
+        self.brown_file               = config['generative']['brown_file']
         
     def allocate_conditional_params(self):
         """ 
@@ -1028,11 +1027,7 @@ class DiscoRNNGparser:
         Returns:
             RNNGparser. An instance of RNNG ready to use.
         """
-        hyperparams = json.loads(open(model_name+'.json').read())
-        parser = DiscoRNNGparser(vocab_thresh=hyperparams['vocab_thresh'],\
-                                 stack_embedding_size=hyperparams['stack_hidden_size'],\
-                                 word_embedding_size=hyperparams['word_embedding_size'],\
-                                 brown_file=hyperparams['brown_file'])
+        parser = DiscoRNNGparser(model_name+'.conf')
 
         parser.lexicon      = SymbolLexicon.load(model_name+'.lex')
         parser.nonterminals = SymbolLexicon.load(model_name+'.nt')
@@ -1048,22 +1043,12 @@ class DiscoRNNGparser:
         Saves the model params using the prefix model_name.
         Args:
             model_name   (string): the prefix path for param files
-        """        
-        hyperparams = { 'brown_file':self.brown_file,\
-                        'vocab_thresh':self.vocab_thresh,\
-                        'stack_hidden_size':self.stack_hidden_size,\
-                        'word_embedding_size':self.word_embedding_size}
-  
-        jfile = open(model_name+'.json','w')
-        jfile.write(json.dumps(hyperparams))
-        jfile.close()
-
+        """       
         self.cond_model.save(model_name+'.cond.weights')
         self.gen_model.save(model_name+'.gen.weights')
         self.lexicon.save(model_name+'.lex')
         self.tags.save(model_name+'.tag')
         self.nonterminals.save(model_name+'.nt')
-
 
     def read_learning_params(self,configfile,conditional):
 
@@ -1078,7 +1063,6 @@ class DiscoRNNGparser:
         dropout = float(config[section]['dropout'])
 
         return lr,epochs,dropout
-
     
     def estimate_params(self,train_treebank,train_tags,dev_treebank,dev_tags,modelname,config_file,conditional):
         """
@@ -1156,8 +1140,8 @@ class DiscoRNNGparser:
         self.code_nonterminals(train_treebank,dev_treebank)
         self.code_struct_actions()
 
-        self.allocate_conditional_params() 
-        self.allocate_generative_params() 
+        self.allocate_conditional_params( ) 
+        self.allocate_generative_params( )   
         #Training
         if conditional:
             self.estimate_params(train_treebank,train_tags,dev_treebank,dev_tags,modelname,config_file,True)
@@ -1167,7 +1151,7 @@ class DiscoRNNGparser:
                 
 if __name__ == '__main__':
     
-    p       = DiscoRNNGparser(config_file='default.conf',brown_file='kk.brown')
+    p       = DiscoRNNGparser(config_file='default.conf')
     tstream = open('negra/train.mrg') 
     dstream = open('negra/dev.mrg')
     p.train_model(tstream,dstream,'disco_negra_model_small/negra_model',config_file='default.conf')
