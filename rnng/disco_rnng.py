@@ -964,7 +964,10 @@ class DiscoRNNGparser:
                         r_tree = self.deriv2tree([action for action,prob in r_derivation])
                         r_tree.expand_unaries()
                         r_tree.add_gold_tags(tag_nodes)
-                        print(r_tree,r_derivation[-1][1],file=ostream)
+                        if kbest > 1:
+                            print(r_tree,r_derivation[-1][1],file=ostream)
+                        else:
+                            print(r_tree,file=ostream)
             else:
                 print('(())',file=ostream,flush=True)
 
