@@ -651,11 +651,11 @@ class DiscoRNNGparser:
         stack_scores = [ ] 
         
         for idx,stack_elt in enumerate(reversed(stack)):
-            H =  dy.concatenate([local_state.output(),buffer_embedding])
             if conditional:
+                H =  dy.concatenate([local_state.output(),buffer_embedding])
                 stack_scores.append( self.cond_move * H )
             else:
-                stack_scores.append( self.gen_move * H )
+                stack_scores.append( self.gen_move * local_state.output())
             if stack_elt.predicted and not stack_elt.has_to_move : #check this condition:up to where can we move ?
                 break
             local_state = local_state.prev() 
@@ -773,7 +773,7 @@ class DiscoRNNGparser:
             else:
                  hidden_input     = stack_state.output()
                  static_scores    = self.gen_structural_W  * self.ifdropout(dy.rectify(hidden_input))  + self.gen_structural_b
-                 move_scores      = self.dynamic_move_matrix(S,stack_state,buffer_embedding,conditional)
+                 move_scores      = self.dynamic_move_matrix(S,stack_state,None,conditional)
                  all_scores       = dy.concatenate([static_scores,move_scores]) if move_scores else static_scores
                  nll              = -dy.pick(dy.log_softmax(all_scores,restr_mask),ref_idx)                    
         else: 
