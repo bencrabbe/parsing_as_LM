@@ -135,7 +135,7 @@ class DiscoRNNGparser:
         self.read_hyperparams(config_file) 
 
     def read_hyperparams(self,configfilename):
-
+        print(configfilename)
         
         #defaults
         self.cond_stack_memory_size     = 128
@@ -1115,9 +1115,9 @@ class DiscoRNNGparser:
         parser.tags         = SymbolLexicon.load(model_name+'.tag')
         parser.code_struct_actions()
         parser.allocate_conditional_params()
-        #parser.allocate_generative_params()
+        parser.allocate_generative_params()
         parser.cond_model.populate(model_name+".cond.weights")
-        #parser.gen_model.populate(model_name+".gen.weights")
+        parser.gen_model.populate(model_name+".gen.weights")
         return parser
                 
     def save_model(self,model_name):
@@ -1126,8 +1126,6 @@ class DiscoRNNGparser:
         Args:
             model_name   (string): the prefix path for param files
         """       
-        self.cond_model.save(model_name+'.cond.weights')
-        self.gen_model.save(model_name+'.gen.weights')
         self.lexicon.save(model_name+'.lex')
         self.tags.save(model_name+'.tag')
         self.nonterminals.save(model_name+'.nt')
@@ -1138,7 +1136,6 @@ class DiscoRNNGparser:
         config.read(configfile)
 
         section = 'conditional' if conditional else 'generative'
-        
         
         lr      = float(config[section]['learning_rate'])
         epochs  = int(config[section]['num_epochs'])
@@ -1263,9 +1260,9 @@ class DiscoRNNGparser:
         self.allocate_generative_params( )   
         #Training 
         if conditional:
-            self.estimate_params(train_treebank,train_tags,dev_treebank,dev_tags,modelname,config_file,True)
+            self.estimate_params(train_treebank,train_tags,dev_treebank,dev_tags,modelname+'cond.weights',config_file,True)
         if generative:
-            self.estimate_params(train_treebank,train_tags,dev_treebank,dev_tags,modelname,config_file,False)
+            self.estimate_params(train_treebank,train_tags,dev_treebank,dev_tags,modelname+'gen.weights',config_file,False)
 
     def tests():
         t = DiscoTree.read_tree('(S (NP 0=John) (VP (VB 1=eats) (NP (DT 2=an) (NN 3=apple))) (PONCT 4=.))')
@@ -1362,8 +1359,8 @@ if __name__ == '__main__':
             elif opt in ['-s','--stats']:
                 stats = True
     except getopt.GetoptError:
-        print('bad command line arguments.\naborting...')
-                
+        print('bad command line arguments.\naborting...') 
+
     if train_file and dev_file and model_name:
         try:
             os.mkdir(model_name)
