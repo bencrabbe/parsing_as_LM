@@ -249,10 +249,19 @@ class DiscoRNNGparser:
         Args:
            N   (int): the length of the input sequence
         """
-        w0_idx      = self.lexicon.index(DiscoRNNGparser.START_TOKEN)
-        w0          = self.cond_word_embeddings[w0_idx] if conditional else self.gen_word_embeddings[w0_idx]        
-        stack_state = self.cond_rnn.initial_state()  if conditional else self.gen_rnn.initial_state()
-        stack_state = stack_state.add_input(w0)
+        if conditional:
+            w0_idx      = self.lexicon.index(DiscoRNNGparser.START_TOKEN)
+            w0          = self.cond_word_embeddings[w0_idx] if conditional else self.gen_word_embeddings[w0_idx]        
+            t0_idx      = self.tags.index(DiscoRNNGparser.START_POS)
+            t0          = self.tag_embeddings[t0_idx]    
+            stack_state = self.cond_rnn.initial_state()
+            stack_state = stack_state.add_input(dy.rectify(self.cond_lex_W*dy.concatenate([w0,t0]) + self.cond_lex_b))
+        else:
+            w0_idx      = self.lexicon.index(DiscoRNNGparser.START_TOKEN)
+            w0          = self.gen_word_embeddings[w0_idx]  
+            self.gen_rnn.initial_state()
+            stack_state = stack_state.add_input(w0)
+            
         return ([ ] ,tuple(range(N)),0, stack_state, DiscoRNNGparser.NO_LABEL)
 
     def shift_action(self,configuration):
