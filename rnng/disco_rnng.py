@@ -135,65 +135,71 @@ class DiscoRNNGparser:
         self.read_hyperparams(config_file) 
 
     def read_hyperparams(self,configfilename):
+
         
         #defaults
-        self.cond_stack_embedding_size = 128
-        self.cond_stack_hidden_size    = 128    #these two vars should be merged
-        self.cond_word_embedding_size  = 128
-        self.pos_embedding_size        = 64
+        self.cond_stack_memory_size     = 128
+        self.cond_stack_xsymbol_size    = 128    
+        self.cond_word_embedding_size   = 32
+        self.pos_embedding_size         = 16
 
-        self.gen_stack_embedding_size  = 256
-        self.gen_stack_hidden_size     = 256    #these two vars should be merged
+        self.gen_stack_memory_size     = 256
+        self.stack_xsymbol_size        = 256 
         self.gen_word_embedding_size   = 256
+        assert(self.stack_xsymbol_size == self.gen_word_embedding_size)
         
         self.vocab_thresh              = 1
 
         config = configparser.ConfigParser()
         config.read(configfilename)
         
-        self.cond_stack_embedding_size = int(config['conditional']['stack_embedding_size'])
-        self.cond_stack_hidden_size    = int(config['conditional']['stack_embedding_size'])
-        self.cond_word_embedding_size  = int(config['conditional']['word_embedding_size'])
-        self.pos_embedding_size        = int(config['conditional']['pos_embedding_size'])
-        self.vocab_thresh              = int(config['conditional']['vocab_thresh'])
-
-        self.gen_stack_embedding_size = int(config['generative']['stack_embedding_size'])
-        self.gen_stack_hidden_size    = int(config['generative']['stack_embedding_size'])
-        self.gen_word_embedding_size  = int(config['generative']['word_embedding_size'])
-        self.vocab_thresh             = int(config['generative']['vocab_thresh'])
-        self.brown_file               = config['generative']['brown_file']
+        self.cond_stack_memory_size     = int(config['conditional']['stack_memory_size'])    #size of stack output
+        self.cond_stack_xsymbol_size    = int(config['conditional']['stack_xsymbol_size'])   #size of stack input
+        self.cond_word_embedding_size   = int(config['conditional']['word_embedding_size'])
+        self.pos_embedding_size         = int(config['conditional']['pos_embedding_size'])
+        self.vocab_thresh               = int(config['conditional']['vocab_thresh'])
+ 
+        self.gen_stack_memory_size     = int(config['generative']['stack_embedding_size'])
+        self.gen_stack_xsymbol_size    = int(config['generative']['stack_embedding_size'])
+        self.gen_word_embedding_size   = int(config['generative']['word_embedding_size'])
+        self.vocab_thresh              = int(config['generative']['vocab_thresh'])
+        self.brown_file                = config['generative']['brown_file']
         
     def allocate_conditional_params(self):
         """ 
         This allocates memory for the conditional model parameters
         """
         self.cond_model                     = dy.ParameterCollection()
-        
-        self.cond_nonterminals_embeddings   = self.cond_model.add_lookup_parameters((self.nonterminals.size(),self.cond_stack_embedding_size)) 
+
+        #input symbols
+        self.cond_nonterminals_embeddings   = self.cond_model.add_lookup_parameters((self.nonterminals.size(),self.cond_stack_xsymbol_size)) 
         self.cond_word_embeddings           = self.cond_model.add_lookup_parameters((self.lexicon.size(),self.cond_word_embedding_size)) 
-
-        self.cond_structural_W             = self.cond_model.add_parameters((self.actions.size(),self.cond_stack_hidden_size+self.cond_stack_embedding_size))         
-        self.cond_structural_b             = self.cond_model.add_parameters((self.actions.size())) 
-        
-        self.cond_nonterminals_W            = self.cond_model.add_parameters((self.nonterminals.size(),self.cond_stack_hidden_size+self.cond_stack_embedding_size))   
-        self.cond_nonterminals_b            = self.cond_model.add_parameters((self.nonterminals.size()))
-
-        self.cond_move                      = self.cond_model.add_parameters((1,self.cond_stack_hidden_size+self.cond_stack_embedding_size))
+        self.tag_embeddings                 = self.cond_model.add_lookup_parameters((self.tags.size(),self.pos_embedding_size))
+        ## merge words+tags
+        self.cond_lex_W                     = self.cond_model.add_parameters((self.cond_stack_xsymbol_size,self.cond_word_embedding_size+self.pos_embedding_size))            
+        self.cond_lex_b                     = self.cond_model.add_parameters((self.cond_stack_xsymbol_size))
         
         #stack_lstm
-        self.cond_rnn                      = dy.LSTMBuilder(2,self.cond_stack_embedding_size, self.cond_stack_hidden_size,self.cond_model)          
+        self.cond_rnn                      = dy.LSTMBuilder(2,cond_stack_xsymbol_size self.cond_stack_memory_size,self.cond_model)   
 
-        self.cond_lex_W                    = self.cond_model.add_parameters((self.cond_stack_embedding_size,self.cond_word_embedding_size+self.pos_embedding_size))            
-        self.cond_lex_b                    = self.cond_model.add_parameters((self.cond_stack_embedding_size))
         
-        self.cond_tree_fwd                 = dy.LSTMBuilder(1,self.cond_stack_embedding_size, self.cond_stack_hidden_size,self.cond_model)        
-        self.cond_tree_bwd                 = dy.LSTMBuilder(1,self.cond_stack_embedding_size, self.cond_stack_hidden_size,self.cond_model)        
-        self.cond_tree_W                   = self.cond_model.add_parameters((self.cond_stack_embedding_size,self.cond_stack_hidden_size*2))
-        self.cond_tree_b                   = self.cond_model.add_parameters((self.cond_stack_embedding_size))
+        #output params
+        self.cond_structural_W              = self.cond_model.add_parameters((self.actions.size(),self.cond_stack_memory_size*2))         
+        self.cond_structural_b              = self.cond_model.add_parameters((self.actions.size())) 
+        
+        self.cond_nonterminals_W            = self.cond_model.add_parameters((self.nonterminals.size(),self.cond_stack_memory_size*2))   
+        self.cond_nonterminals_b            = self.cond_model.add_parameters((self.nonterminals.size()))
+
+        self.cond_move                      = self.cond_model.add_parameters((1,self.cond_stack_memory_size*2))
+
+        #tree embeddings
+        self.cond_tree_fwd                  = dy.LSTMBuilder(1,self.cond_stack_xsymbol_size, self.cond_stack_memory_size,self.cond_model)        
+        self.cond_tree_bwd                  = dy.LSTMBuilder(1,self.cond_stack_xsymbol_size, self.cond_stack_memory_size,self.cond_model)        
+        self.cond_tree_W                    = self.cond_model.add_parameters((self.cond_stack_xsymbol_size,self.cond_stack_memory_size*2))
+        self.cond_tree_b                    = self.cond_model.add_parameters((self.cond_stack_xsymbol_size))
  
         #lookahead specific to the cond model
-        self.lexer_rnn_bwd                 = dy.LSTMBuilder(2,self.pos_embedding_size+self.cond_word_embedding_size,self.cond_stack_embedding_size,self.cond_model)   
-        self.tag_embeddings                = self.cond_model.add_lookup_parameters((self.tags.size(),self.pos_embedding_size)) 
+        self.lexer_rnn_bwd                 = dy.LSTMBuilder(2,(self.cond_stack_xsymbol_size,self.cond_stack_memory_size,self.cond_model)   
 
         
     def allocate_generative_params(self):
@@ -201,27 +207,30 @@ class DiscoRNNGparser:
         This allocates memory for the generative model parameters
         """
         self.gen_model                     = dy.ParameterCollection()
-        
-        self.gen_nonterminals_embeddings   = self.gen_model.add_lookup_parameters((self.nonterminals.size(),self.gen_stack_embedding_size)) 
+
+        #input symbols
+        self.gen_nonterminals_embeddings   = self.gen_model.add_lookup_parameters((self.nonterminals.size(),self.gen_stack_xsymbol_size)) 
         self.gen_word_embeddings           = self.gen_model.add_lookup_parameters((self.lexicon.size(),self.gen_word_embedding_size)) 
 
-        self.gen_structural_W              = self.gen_model.add_parameters((self.actions.size(),self.gen_stack_hidden_size))         
+        #stack_lstm
+        self.gen_rnn                       = dy.LSTMBuilder(2,self.gen_stack_xsymbol_size, self.gen_stack_memory_size,self.gen_model)     
+
+        #output params
+        self.gen_structural_W              = self.gen_model.add_parameters((self.actions.size(),self.gen_stack_memory_size))         
         self.gen_structural_b              = self.gen_model.add_parameters((self.actions.size()))
         
-        self.word_softmax                  = dy.ClassFactoredSoftmaxBuilder(self.gen_stack_hidden_size,self.brown_file,self.lexicon.words2i,self.gen_model,bias=True)
+        self.word_softmax                  = dy.ClassFactoredSoftmaxBuilder(self.gen_stack_memory_size,self.brown_file,self.lexicon.words2i,self.gen_model,bias=True)
 
-        self.gen_nonterminals_W            = self.gen_model.add_parameters((self.nonterminals.size(),self.gen_stack_hidden_size))   
+        self.gen_nonterminals_W            = self.gen_model.add_parameters((self.nonterminals.size(),self.gen_stack_memory_size))   
         self.gen_nonterminals_b            = self.gen_model.add_parameters((self.nonterminals.size()))
 
-        self.gen_move                      = self.gen_model.add_parameters((1,self.gen_stack_hidden_size+self.gen_stack_embedding_size))
-        
-        #stack_lstm
-        self.gen_rnn                       = dy.LSTMBuilder(2,self.gen_stack_embedding_size, self.gen_stack_hidden_size,self.gen_model)          
- 
-        self.gen_tree_fwd                  = dy.LSTMBuilder(1,self.gen_stack_embedding_size, self.gen_stack_hidden_size,self.gen_model)        
-        self.gen_tree_bwd                  = dy.LSTMBuilder(1,self.gen_stack_embedding_size, self.gen_stack_hidden_size,self.gen_model)        
-        self.gen_tree_W                    = self.gen_model.add_parameters((self.gen_stack_embedding_size,self.gen_stack_hidden_size*2))
-        self.gen_tree_b                    = self.gen_model.add_parameters((self.gen_stack_embedding_size))
+        self.gen_move                      = self.gen_model.add_parameters((1,self.gen_stack_embedding_size))
+
+        #tree lstm
+        self.gen_tree_fwd                  = dy.LSTMBuilder(1,self.gen_stack_xsymbol_size, self.gen_stack_memory_size,self.gen_model)        
+        self.gen_tree_bwd                  = dy.LSTMBuilder(1,self.gen_stack_xsymbol_size, self.gen_stack_memory_size,self.gen_model)        
+        self.gen_tree_W                    = self.gen_model.add_parameters((self.gen_stack_xsymbol_size,self.gen_stack_memory_size*2))
+        self.gen_tree_b                    = self.gen_model.add_parameters((self.gen_stack_xsymbol_size))
 
         
     #TRANSITION SYSTEM AND ORACLE
