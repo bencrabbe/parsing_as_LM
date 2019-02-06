@@ -1295,29 +1295,28 @@ if __name__ == '__main__':
     
     try:
         opts, args = getopt.getopt(sys.argv[1:],"ht:d:p:m:b:c:sB:")
+        for opt, arg in opts:
+            if opt   in ['-t','--train']:
+                train_file = arg
+            elif opt in ['-d','--dev']:
+                dev_file = arg
+            elif opt in ['-p','--pred']:
+                pred_file = arg
+            elif opt in ['-c','--config']:
+                config_file = arg
+            elif opt in ['-m','--model']:
+                model_name = arg
+            elif opt in ['-G','--generative']:
+                generative = True
+            elif opt in ['-D','--discriminative']:
+                discriminative = True
+            elif opt in ['-B','--Beam-size']:
+                beam_size  = int(arg)
+            elif opt in ['-s','--stats']:
+                stats = True
     except getopt.GetoptError:
         print('bad command line arguments.\naborting...')
-        
-    for opt, arg in opts:
-        if opt   in ['-t','--train']:
-            train_file = arg
-        elif opt in ['-d','--dev']:
-            dev_file = arg
-        elif opt in ['-p','--pred']:
-            pred_file = arg
-        elif opt in ['-c','--config']:
-            config_file = arg
-        elif opt in ['-m','--model']:
-            model_name = arg
-        elif opt in ['-G','--generative']:
-            generative = True
-        elif opt in ['-D','--discriminative']:
-            discriminative = True
-        elif opt in ['-B','--Beam-size']:
-            beam_size  = int(arg)
-        elif opt in ['-s','--stats']:
-            stats = True
-
+                
     if train_file and dev_file and model_name:
         try:
             os.mkdir(modelname)
