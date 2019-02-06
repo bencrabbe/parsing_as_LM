@@ -890,9 +890,9 @@ class DiscoRNNGparser:
             elif ref_action == DiscoRNNGparser.TERMINATE:
                 pass
             prev_action = ref_action
-            
+             
         return r_derivation
-
+ 
             
     
     def encode_words(self,sentence,pos_sequence):
@@ -1369,7 +1369,7 @@ if __name__ == '__main__':
             os.mkdir(model_name)
         except:
             pass
-        shutil.copyfile(config_file,model_name+'/'+modelname+'.conf')
+        shutil.copyfile(config_file,model_name+'/'+model_name+'.conf')
         
         parser = DiscoRNNGparser(config_file=config_file)
         train_stream = open(train_file) 
