@@ -897,7 +897,7 @@ class DiscoRNNGparser:
             return self.eval_derivation(derivation,sentence,ref_tags,word_encodings,conditional,backprop)
         else:
             word_encodings         = None
-            derivation,last_config = self.static_oracle(ref_tree,ref_tree,sentence,conditional)
+            derivation,last_config = self.static_oracle(ref_tree,ref_tree,sentence,None,conditional)
             return self.eval_derivation(derivation,sentence,word_encodings,conditional,backprop)
 
     @staticmethod
