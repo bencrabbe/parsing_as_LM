@@ -1116,8 +1116,8 @@ class DiscoRNNGparser:
         parser.code_struct_actions()
         parser.allocate_conditional_params()
         parser.allocate_generative_params()
-        parser.cond_model.populate(model_name+'/'+model_name+".cond.weights")
-        parser.gen_model.populate(model_name+'/'+model_name+".gen.weights")
+        parser.cond_model.populate(model_name+".cond.weights")
+        parser.gen_model.populate(model_name+".gen.weights")
         return parser
                 
     def save_model(self,model_name):
@@ -1381,7 +1381,7 @@ if __name__ == '__main__':
         out_stream  = open(model_name+'.pred.mrg','w')
         evalb_flag  = pred_file.endswith('mrg')
 
-        parser = DiscoRNNGparser.load_model(model_name)
+        parser = DiscoRNNGparser.load_model(model_name+'/'+model_name)
         parser.parse_corpus(pred_stream,ostream=out_stream,evalb_mode=evalb_flag,K=beam_size,kbest=1,conditional=discriminative,generative=generative)
 
         pred_stream.close()
