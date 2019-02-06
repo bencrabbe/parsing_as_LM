@@ -199,7 +199,7 @@ class DiscoRNNGparser:
         self.cond_tree_b                    = self.cond_model.add_parameters((self.cond_stack_xsymbol_size))
  
         #lookahead specific to the cond model
-        self.lexer_rnn_bwd                 = dy.LSTMBuilder(2,(self.cond_stack_xsymbol_size,self.cond_stack_memory_size,self.cond_model)   
+        self.lexer_rnn_bwd                 = dy.LSTMBuilder(2,self.cond_stack_xsymbol_size,self.cond_stack_memory_size,self.cond_model)   
 
         
     def allocate_generative_params(self):
