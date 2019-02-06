@@ -180,7 +180,7 @@ class DiscoRNNGparser:
         self.cond_lex_b                     = self.cond_model.add_parameters((self.cond_stack_xsymbol_size))
         
         #stack_lstm
-        self.cond_rnn                      = dy.LSTMBuilder(2,cond_stack_xsymbol_size, self.cond_stack_memory_size,self.cond_model)   
+        self.cond_rnn                      = dy.LSTMBuilder(2,self.cond_stack_xsymbol_size, self.cond_stack_memory_size,self.cond_model)   
 
         
         #output params
