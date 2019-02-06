@@ -1362,9 +1362,9 @@ if __name__ == '__main__':
     if train_file and dev_file and model_name:
         try:
             os.mkdir(model_name)
+            shutil.copyfile(config_file,model_name+'/'+model_name+'.conf')
         except:
             pass
-        shutil.copyfile(config_file,model_name+'/'+model_name+'.conf')
         
         parser = DiscoRNNGparser(config_file=config_file)
         train_stream = open(train_file) 
