@@ -1221,7 +1221,7 @@ class DiscoRNNGparser:
             self.estimate_params(train_treebank,train_tags,dev_treebank,dev_tags,modelname,config_file,False)
 
     def tests():
-         t = DiscoTree.read_tree('(S (NP 0=John) (VP (VB 1=eats) (NP (DT 2=an) (NN 3=apple))) (PONCT 4=.))')
+        t = DiscoTree.read_tree('(S (NP 0=John) (VP (VB 1=eats) (NP (DT 2=an) (NN 3=apple))) (PONCT 4=.))')
         print(t)
         wordlist = t.words()
         print(wordlist)
