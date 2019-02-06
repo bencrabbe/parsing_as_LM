@@ -1116,8 +1116,8 @@ class DiscoRNNGparser:
         parser.code_struct_actions()
         parser.allocate_conditional_params()
         parser.allocate_generative_params()
-        parser.cond_model.populate(model_name+".cond.weights")
-        parser.gen_model.populate(model_name+".gen.weights")
+        parser.cond_model.populate(model_name+'/'+model_name+".cond.weights")
+        parser.gen_model.populate(model_name+'/'+model_name+".gen.weights")
         return parser
                 
     def save_model(self,model_name):
