@@ -858,10 +858,10 @@ class DiscoRNNGparser:
         lex_state       = self.lexer_rnn_bwd.initial_state()
         wembedding      = self.cond_word_embeddings[ self.lexicon.index(DiscoRNNGparser.START_TOKEN) ]
         tembedding      = self.tag_embeddings[ self.tags.index(DiscoRNNGparser.START_POS) ]        
-        lex_state       = lex_state.add_input(dy.concatenate([wembedding,tembedding]))
+        lex_state       = lex_state.add_input( dy.rectify(self.cond_lex_W*dy.concatenate([wembedding,tembedding])+ self.cond_lex_b) )
         word_embeddings = [self.cond_word_embeddings[self.lexicon.index(word)] for word in reversed(sentence) ]
         tag_embeddings  = [self.tag_embeddings[self.tags.index(pos)] for pos in reversed(pos_sequence) ]
-        xinput          = [dy.concatenate([w,t]) for w,t in zip(word_embeddings,tag_embeddings)]
+        xinput          = [dy.rectify(self.cond_lex_W*dy.concatenate([wembedding,tembedding])+ self.cond_lex_b) for wembedding,tembedding in zip(word_embeddings,tag_embeddings)]
         word_encodings  = lex_state.transduce(xinput)
         word_encodings.reverse()
         return word_encodings
