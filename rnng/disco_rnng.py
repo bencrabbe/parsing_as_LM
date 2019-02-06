@@ -898,7 +898,7 @@ class DiscoRNNGparser:
         else:
             word_encodings         = None
             derivation,last_config = self.static_oracle(ref_tree,ref_tree,sentence,None,conditional)
-            return self.eval_derivation(derivation,sentence,word_encodings,conditional,backprop)
+            return self.eval_derivation(derivation,sentence,None,word_encodings,conditional,backprop)
 
     @staticmethod
     def prune_beam(beam,K):
