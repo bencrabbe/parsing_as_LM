@@ -1,7 +1,7 @@
 from discotree import *
 
 istream = open("negra/train.mrg")
-ostream = open("negra/train.raw") 
+ostream = open("negra/train.raw",'w') 
 
 for line in istream:
 
