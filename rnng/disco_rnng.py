@@ -224,7 +224,7 @@ class DiscoRNNGparser:
         self.gen_nonterminals_W            = self.gen_model.add_parameters((self.nonterminals.size(),self.gen_stack_memory_size))   
         self.gen_nonterminals_b            = self.gen_model.add_parameters((self.nonterminals.size()))
 
-        self.gen_move                      = self.gen_model.add_parameters((1,self.gen_stack_embedding_size))
+        self.gen_move                      = self.gen_model.add_parameters((1,self.gen_stack_memory_size))
 
         #tree lstm
         self.gen_tree_fwd                  = dy.LSTMBuilder(1,self.gen_stack_xsymbol_size, self.gen_stack_memory_size,self.gen_model)        
