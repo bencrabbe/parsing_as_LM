@@ -744,7 +744,7 @@ class DiscoRNNGparser:
                 nll = dy.scalarInput(0.0)  #in the discriminative case the word is given and has nll = 0
             else:
                 ref_idx  = self.lexicon.index(ref_action)
-                nll = -self.word_softmax.neg_log_softmax(dy.rectify(stack_state.output()),ref_idx)
+                nll = self.word_softmax.neg_log_softmax(dy.rectify(stack_state.output()),ref_idx)
 
         elif lab_state == DiscoRNNGparser.NT_LABEL:
             
@@ -1223,10 +1223,10 @@ class DiscoRNNGparser:
                 
 if __name__ == '__main__':
     
-    p       = DiscoRNNGparser(config_file='disco_negra_model/negra_model.conf')
+    p       = DiscoRNNGparser(config_file='disco_negra_model_generative/negra_model.conf')
     tstream = open('negra/train.mrg') 
     dstream = open('negra/dev.mrg')
-    p.train_model(tstream,dstream,'disco_negra_model/negra_model',config_file='disco_negra_model/negra_model.conf',conditional=True,generative=False)
+    p.train_model(tstream,dstream,'disco_negra_model_generative/negra_model',config_file='disco_negra_model_generative/negra_model.conf',conditional=False,generative=True)
     tstream.close()
     dstream.close()
 
