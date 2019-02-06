@@ -1283,7 +1283,7 @@ if __name__ == '__main__':
 
     import shutil,os
     
-    modelname      = ''
+    model_name      = ''
     config_file    = ''
     train_file     = ''
     dev_file       = ''
@@ -1319,7 +1319,7 @@ if __name__ == '__main__':
                 
     if train_file and dev_file and model_name:
         try:
-            os.mkdir(modelname)
+            os.mkdir(model_name)
         except:
             pass
         shutil.copyfile(config_file,model_name+'/modelname.conf')
