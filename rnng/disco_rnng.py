@@ -258,7 +258,7 @@ class DiscoRNNGparser:
         else:
             w0_idx      = self.lexicon.index(DiscoRNNGparser.START_TOKEN)
             w0          = self.gen_word_embeddings[w0_idx]  
-            self.gen_rnn.initial_state()
+            stack_state = self.gen_rnn.initial_state()
             stack_state = stack_state.add_input(w0)
             
         return ([ ] ,tuple(range(N)),0, stack_state, DiscoRNNGparser.NO_LABEL)
