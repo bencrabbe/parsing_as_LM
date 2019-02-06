@@ -14,7 +14,6 @@ class BeamElement:
     """
     This class is a place holder for elements in the beam.
     """
-
     __slots__ = ['prev_element', 'prev_action','prefix_score','configuration']
     
     def __init__(self,prev_element,prev_action,prefix_score):
@@ -1127,6 +1126,8 @@ class DiscoRNNGparser:
         self.lexicon.save(model_name+'.lex')
         self.tags.save(model_name+'.tag')
         self.nonterminals.save(model_name+'.nt')
+        self.cond_model.save(model_name+".cond.weights")
+        self.gen_model.save(model_name+".gen.weights")
 
     def read_learning_params(self,configfile,conditional):
 
@@ -1211,7 +1212,6 @@ class DiscoRNNGparser:
             print('[Validation] Epoch %d, NLL = %f, lex-NLL = %f, PPL = %f, lex-PPL = %f'%(e,NLL,lex_NLL,np.exp(NLL/N),np.exp(lex_NLL/lexN)),flush=True)
             print()
             if NLL < min_nll:
-                pass
                 self.save_model(modelname+'/'+modelname) 
          
     def train_model(self,train_stream,dev_stream,modelname,config_file=None,conditional=True,generative=True):
@@ -1258,9 +1258,9 @@ class DiscoRNNGparser:
         self.allocate_generative_params( )   
         #Training 
         if conditional:
-            self.estimate_params(train_treebank,train_tags,dev_treebank,dev_tags,modelname+'cond.weights',config_file,True)
+            self.estimate_params(train_treebank,train_tags,dev_treebank,dev_tags,modelname,config_file,True)
         if generative:
-            self.estimate_params(train_treebank,train_tags,dev_treebank,dev_tags,modelname+'gen.weights',config_file,False)
+            self.estimate_params(train_treebank,train_tags,dev_treebank,dev_tags,modelname,config_file,False)
 
     def tests():
         t = DiscoTree.read_tree('(S (NP 0=John) (VP (VB 1=eats) (NP (DT 2=an) (NN 3=apple))) (PONCT 4=.))')
