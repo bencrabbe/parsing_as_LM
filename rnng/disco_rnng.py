@@ -218,7 +218,7 @@ class DiscoRNNGparser:
         self.gen_structural_W              = self.gen_model.add_parameters((self.actions.size(),self.gen_stack_memory_size))         
         self.gen_structural_b              = self.gen_model.add_parameters((self.actions.size()))
         
-        #self.word_softmax                  = dy.ClassFactoredSoftmaxBuilder(self.gen_stack_memory_size,self.brown_file,self.lexicon.words2i,self.gen_model,bias=True)
+        self.word_softmax                  = dy.ClassFactoredSoftmaxBuilder(self.gen_stack_memory_size,self.brown_file,self.lexicon.words2i,self.gen_model,bias=True)
 
         self.gen_nonterminals_W            = self.gen_model.add_parameters((self.nonterminals.size(),self.gen_stack_memory_size))   
         self.gen_nonterminals_b            = self.gen_model.add_parameters((self.nonterminals.size()))
@@ -1114,9 +1114,9 @@ class DiscoRNNGparser:
         parser.tags         = SymbolLexicon.load(model_name+'.tag')
         parser.code_struct_actions()
         parser.allocate_conditional_params()
-        parser.allocate_generative_params()
+        #parser.allocate_generative_params()
         parser.cond_model.populate(model_name+".cond.weights")
-        parser.gen_model.populate(model_name+".gen.weights")
+        #parser.gen_model.populate(model_name+".gen.weights")
         return parser
                 
     def save_model(self,model_name):
