@@ -1099,6 +1099,37 @@ class DiscoRNNGparser:
         dropout = float(config[section]['dropout'])
 
         return lr,epochs,dropout
+
+    
+    def summary(self,train_bank_size,dev_bank_size,learning_rate,epochs,conditional):
+        """
+        A summary to display before training. Provides model structure and main learning hyperparams
+        Args:
+            train_bank_size  (int): num training trees
+            dev_bank_size    (int): num dev trees
+            learning_rate  (float): the learning rate
+            batch_size       (int): size of minibatch
+            epochs           (int): num epochs
+        Returns:
+            string. The summary
+        """
+        model_str = 'discriminative' if conditional else 'generative'
+        
+        
+        return '\n'.join(['----------------------------',\
+                          '* Training %s model *'%(model_str,),\
+                          'Vocabulary   size   : %d'%(self.lexicon.size()),\
+                          '# Nonterminals      : %d'%(self.nonterminals.size()),\
+                          'Word embedding size : %d'%(self.word_embedding_size),\
+                          'Stack xinput size   : %d'%(self.stack_xinput_size),\
+                          'Stack memory size   : %d'%(self.stack_memory_size),\
+                          '# training trees    : %d'%(train_bank_size),\
+                          '# validation trees  : %d'%(dev_bank_size),\
+                          '# epochs            : %d'%(epochs),\
+                          'Learning rate       : %.3f'%(learning_rate),\
+                          'Dropout             : %.3f'%(self.dropout),\
+                          '----------------------------']) 
+    
     
     def estimate_params(self,train_treebank,train_tags,dev_treebank,dev_tags,modelname,config_file,conditional):
         """
@@ -1113,6 +1144,8 @@ class DiscoRNNGparser:
         ntrain_sentences = len(train_treebank)
         ndev_sentences   = len(dev_treebank)
 
+        print(self.summary(ntrain_sentences,ndev_sentences,lr,epochs,conditional))
+        
         train_stats = RuntimeStats('NLL','lexNLL','N','lexN')
         valid_stats = RuntimeStats('NLL','lexNLL','N','lexN')
         
