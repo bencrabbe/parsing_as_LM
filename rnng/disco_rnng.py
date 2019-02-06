@@ -1223,10 +1223,10 @@ class DiscoRNNGparser:
                 
 if __name__ == '__main__':
     
-    p       = DiscoRNNGparser(config_file='disco_negra_model_generative/negra_model.conf')
+    p       = DiscoRNNGparser(config_file='disco_negra_model/negra_model.conf')
     tstream = open('negra/train.mrg') 
     dstream = open('negra/dev.mrg')
-    p.train_model(tstream,dstream,'disco_negra_model_generative/negra_model',config_file='disco_negra_model_generative/negra_model.conf',conditional=False,generative=True)
+    p.train_model(tstream,dstream,'disco_negra_model/negra_model',config_file='disco_negra_model/negra_model.conf',conditional=True,generative=False)
     tstream.close()
     dstream.close()
 
