@@ -1179,14 +1179,14 @@ class DiscoRNNGparser:
                 
 if __name__ == '__main__':
     
-    #p       = DiscoRNNGparser(config_file='disco_negra_model/negra_model.conf')
+    p       = DiscoRNNGparser(config_file='disco_negra_model/negra_model.conf')
     tstream = open('negra/train.mrg') 
     dstream = open('negra/dev.mrg')
-    #p.train_model(tstream,dstream,'disco_negra_model/negra_model',config_file='disco_negra_model/negra_model.conf',generative=False)
+    p.train_model(tstream,dstream,'disco_negra_model/negra_model',config_file='disco_negra_model/negra_model.conf',generative=False)
     tstream.close()
     dstream.close()
 
-    p = DiscoRNNGparser.load_model('disco_negra_model/negra_model')
+    #p = DiscoRNNGparser.load_model('disco_negra_model/negra_model')
     
     pstream = open('negra/test.mrg')
     pred_stream = open('disco_negra_model/pred_test.mrg','w')

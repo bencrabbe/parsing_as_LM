@@ -70,9 +70,7 @@ class SymbolLexicon:
         @param token: a string
         @return a string, the token or the UNK word code
         """
-        res = token if token in self.words2i else self.unk_word
-        print(res)
-        return res
+        return token if token in self.words2i else self.unk_word
     
     def index(self,token):
         """
