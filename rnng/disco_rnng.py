@@ -1113,16 +1113,20 @@ class DiscoRNNGparser:
         Returns:
             string. The summary
         """
-        model_str = 'discriminative' if conditional else 'generative'
-        
+
+        model_str   = 'discriminative' if conditional else 'generative'
+        embed_size  = self.cond_word_embedding_size if conditional else  self.gen_word_embedding_size
+        xstack_size = self.cond_stack_xinput_size   if conditional else  self.gen_stack_xinput_size
+        mem_size    = self.cond_stack_memory_size   if conditional else  self.gen_stack_memory_size 
+
         
         return '\n'.join(['----------------------------',\
                           '* Training %s model *'%(model_str,),\
                           'Vocabulary   size   : %d'%(self.lexicon.size()),\
                           '# Nonterminals      : %d'%(self.nonterminals.size()),\
-                          'Word embedding size : %d'%(self.word_embedding_size),\
-                          'Stack xinput size   : %d'%(self.stack_xinput_size),\
-                          'Stack memory size   : %d'%(self.stack_memory_size),\
+                          'Word embedding size : %d'%(embed_size),\
+                          'Stack xinput size   : %d'%(xstack_size),\
+                          'Stack memory size   : %d'%(mem_size),\
                           '# training trees    : %d'%(train_bank_size),\
                           '# validation trees  : %d'%(dev_bank_size),\
                           '# epochs            : %d'%(epochs),\
