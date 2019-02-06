@@ -159,8 +159,8 @@ class DiscoRNNGparser:
         self.pos_embedding_size         = int(config['conditional']['pos_embedding_size'])
         self.vocab_thresh               = int(config['conditional']['vocab_thresh'])
  
-        self.gen_stack_memory_size     = int(config['generative']['stack_embedding_size'])
-        self.gen_stack_xsymbol_size    = int(config['generative']['stack_embedding_size'])
+        self.gen_stack_memory_size     = int(config['generative']['stack_memory_size'])
+        self.gen_stack_xsymbol_size    = int(config['generative']['stack_xsymbol_size'])
         self.gen_word_embedding_size   = int(config['generative']['word_embedding_size'])
         self.vocab_thresh              = int(config['generative']['vocab_thresh'])
         self.brown_file                = config['generative']['brown_file']
