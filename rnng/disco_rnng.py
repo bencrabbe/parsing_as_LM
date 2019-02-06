@@ -232,7 +232,6 @@ class DiscoRNNGparser:
         self.gen_tree_W                    = self.gen_model.add_parameters((self.gen_stack_xsymbol_size,self.gen_stack_memory_size*2))
         self.gen_tree_b                    = self.gen_model.add_parameters((self.gen_stack_xsymbol_size))
 
-        
     #TRANSITION SYSTEM AND ORACLE
     def init_configuration(self,N,conditional):
         """ 
@@ -1188,10 +1187,10 @@ class DiscoRNNGparser:
                 
 if __name__ == '__main__':
     
-    p       = DiscoRNNGparser(config_file='disco_negra_model/negra_model.conf')
+    p       = DiscoRNNGparser(config_file='disco_negra_model_generative/negra_model.conf')
     tstream = open('negra/train.mrg') 
     dstream = open('negra/dev.mrg')
-    p.train_model(tstream,dstream,'disco_negra_model/negra_model',config_file='disco_negra_model/negra_model.conf',generative=False)
+    p.train_model(tstream,dstream,'disco_negra_model_generative/negra_model',config_file='disco_negra_model_generative/negra_model.conf',generative=True)
     tstream.close()
     dstream.close()
 
