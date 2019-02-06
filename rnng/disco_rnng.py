@@ -9,7 +9,6 @@ from lexicons  import *
 from discotree import *
 from proc_monitors import *
 from rnng_params import *
-
    
 class BeamElement:
     """
@@ -892,8 +891,6 @@ class DiscoRNNGparser:
              
         return r_derivation
  
-            
-    
     def encode_words(self,sentence,pos_sequence):
         """
         Runs a backward LSTM on the input sentence.
@@ -1112,11 +1109,13 @@ class DiscoRNNGparser:
         parser.lexicon      = SymbolLexicon.load(model_name+'.lex')
         parser.nonterminals = SymbolLexicon.load(model_name+'.nt')
         parser.tags         = SymbolLexicon.load(model_name+'.tag')
+        
+        parser.brown_file   = parser.brown_file+'.unk' #hack triggered by the 'code_lexicon' function
         parser.code_struct_actions()
         parser.allocate_conditional_params()
-        #parser.allocate_generative_params()
+        parser.allocate_generative_params()
         parser.cond_model.populate(model_name+".cond.weights")
-        #parser.gen_model.populate(model_name+".gen.weights")
+        parser.gen_model.populate(model_name+".gen.weights")
         return parser
                 
     def save_model(self,model_name):
