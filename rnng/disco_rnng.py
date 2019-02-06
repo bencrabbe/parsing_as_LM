@@ -1327,7 +1327,7 @@ if __name__ == '__main__':
         parser = DiscoRNNGparser(config_file=config_file)
         train_stream = open(train_file) 
         dev_stream   = open(dev_file)
-        parser.train_model(train_stream,dev_stream,modelname,config_file=config_file,conditional=discriminative,generative=generative)
+        parser.train_model(train_stream,dev_stream,model_name,config_file=config_file,conditional=discriminative,generative=generative)
         train_stream.close()
         dev_stream.close()
 
@@ -1337,7 +1337,7 @@ if __name__ == '__main__':
         out_stream  = open(model_name+'.pred.mrg','w')
         evalb_flag  = pred_file.endswith('mrg')
 
-        parser = DiscoRNNGparser.load_model(modelname)
+        parser = DiscoRNNGparser.load_model(model_name)
         parser.parse_corpus(pred_stream,ostream=out_stream,evalb_mode=evalb_flag,K=beam_size,kbest=1,conditional=discriminative,generative=generative)
 
         pred_stream.close()
