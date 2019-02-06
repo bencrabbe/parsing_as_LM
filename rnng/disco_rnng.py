@@ -1294,7 +1294,7 @@ if __name__ == '__main__':
     generative     = False
     
     try:
-        opts, args = getopt.getopt(sys.argv[1:],"ht:d:p:m:b:c:sB:")
+        opts, args = getopt.getopt(sys.argv[1:],"ht:d:p:m:b:c:sDGB:")
         for opt, arg in opts:
             if opt   in ['-t','--train']:
                 train_file = arg
