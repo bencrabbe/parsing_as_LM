@@ -744,7 +744,7 @@ class DiscoRNNGparser:
                 nll = dy.scalarInput(0.0)  #in the discriminative case the word is given and has nll = 0
             else:
                 ref_idx  = self.lexicon.index(ref_action)
-                nll = -self.word_softmax.neg_log_softmax(dy.rectify(stack_state.output()),ref_idx).value()
+                nll = -self.word_softmax.neg_log_softmax(dy.rectify(stack_state.output()),ref_idx)
 
         elif lab_state == DiscoRNNGparser.NT_LABEL:
             
@@ -837,7 +837,6 @@ class DiscoRNNGparser:
                 pass
             prev_action = ref_action
 
-        print(all_NLL)
         loss     = dy.esum(all_NLL) 
         lex_loss = dy.esum(lexical_NLL)
         
