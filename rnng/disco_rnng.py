@@ -176,6 +176,7 @@ class DiscoRNNGparser:
         self.cond_word_embeddings           = self.cond_model.add_lookup_parameters((self.lexicon.size(),self.cond_word_embedding_size)) 
         self.tag_embeddings                 = self.cond_model.add_lookup_parameters((self.tags.size(),self.pos_embedding_size))
         ## merge words+tags
+        print(self.cond_word_embedding_size,self.pos_embedding_size,self.cond_word_embedding_size+self.pos_embedding_size)
         self.cond_lex_W                     = self.cond_model.add_parameters((self.cond_stack_xsymbol_size,self.cond_word_embedding_size+self.pos_embedding_size))            
         self.cond_lex_b                     = self.cond_model.add_parameters((self.cond_stack_xsymbol_size))
         
