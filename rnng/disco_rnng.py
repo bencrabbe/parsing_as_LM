@@ -1056,7 +1056,7 @@ class DiscoRNNGparser:
         D.reverse()   
         return D
         
-    def parse_corpus(self,istream,ostream=sys.stdout,evalb_mode=False,stats_stream=None,K=5,kbest=1,conditional=True):
+    def parse_corpus(self,istream,ostream=sys.stdout,evalb_mode=False,stats_stream=None,K=5,kbest=1,conditional=True,generative=True):
         """ 
         Parses a corpus and prints out the trees in a file.
         Args: 
