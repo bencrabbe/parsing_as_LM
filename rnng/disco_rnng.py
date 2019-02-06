@@ -753,9 +753,9 @@ class DiscoRNNGparser:
                 word_idx = B[0] if B else -1
                 H        = dy.concatenate([stack_state.output(),word_encodings[word_idx]])
                 nll      = dy.pickneglogsoftmax(self.cond_nonterminals_W  * self.ifdropout(dy.rectify(H)) + self.cond_nonterminals_b,ref_idx)
-            else:
+            else: 
                 H   = stack_state.output()
-                nll = dy.pickneglog_softmax(self.gen_nonterminals_W  * dy.rectify(H)  + self.gen_nonterminals_b,ref_idx)
+                nll = dy.pickneglogsoftmax(self.gen_nonterminals_W  * dy.rectify(H)  + self.gen_nonterminals_b,ref_idx)
             
         elif lab_state == DiscoRNNGparser.NO_LABEL:
 
