@@ -804,7 +804,7 @@ class DiscoRNNGparser:
         
         runstats['lexN'] = len(sentence)
         runstats['N']    = len(ref_derivation)
-
+ 
         all_NLL     = [] #collects the local losses in the batch
         lexical_NLL = [] #collects the local losses in the batch (for word prediction only)
         
@@ -822,7 +822,7 @@ class DiscoRNNGparser:
             
             if lab_state == DiscoRNNGparser.WORD_LABEL:
                 configuration = self.generate_word(configuration,sentence,tag_sequence,conditional)
-                lexical_NLL.append(nll)
+                lexical_NLL.append( nll )
             elif lab_state == DiscoRNNGparser.NT_LABEL:
                 configuration = self.open_nonterminal(configuration,ref_action,conditional)
             elif prev_action == DiscoRNNGparser.MOVE:
@@ -836,7 +836,8 @@ class DiscoRNNGparser:
             elif ref_action == DiscoRNNGparser.TERMINATE:
                 pass
             prev_action = ref_action
-              
+
+        print(all_NLL)
         loss     = dy.esum(all_NLL) 
         lex_loss = dy.esum(lexical_NLL)
         
@@ -1037,7 +1038,6 @@ class DiscoRNNGparser:
             tag_nodes = tree.pos_nodes()
             tokens    = [x.children[0].label for x in tag_nodes]
             tags      = [x.label for x in tag_nodes]
-            print(tokens)
             results   = self.predict_beam(tokens,K,tags) if conditional else self.predict_beam(tokens,K)
             if results:
                 for idx,r in enumerate(results):
