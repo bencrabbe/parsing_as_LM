@@ -779,7 +779,7 @@ class DiscoRNNGparser:
         else: 
             print('error in evaluation')
         return nll
-
+ 
     def eval_derivation(self,ref_derivation,sentence,tag_sequence,word_encodings,conditional,backprop=True):
         """
         Evaluates the model predictions against the reference derivation
@@ -854,6 +854,47 @@ class DiscoRNNGparser:
             
         return runstats
 
+    def rescore_derivation(self,base_derivation,sentence):
+        """
+        The generative model is used to rescore this derivation.
+        """
+        r_derivation = [ ]
+        prefix_score = 0.0
+        
+        prev_action = None
+        configuration = self.init_configuration( len(sentence),conditional )
+        
+        for action,prob in base_derivation:
+            S,B,n,stack_state,lab_state = configuration
+            if action ==  DiscoRNNGparser.MOVE: #skips the move
+                prev_action = action
+                continue
+            
+            gen_prob = self.eval_action_distrib(configuration,sentence,None,action,False)
+            prefix_score += gen_prob
+    
+            r_derivation.append( (action,prefix_score) )
+            
+            if lab_state == DiscoRNNGparser.WORD_LABEL:
+                configuration = self.generate_word(configuration,sentence,None,False)
+            elif lab_state == DiscoRNNGparser.NT_LABEL:
+                configuration = self.open_nonterminal(configuration,action,False)
+            elif prev_action == DiscoRNNGparser.MOVE:
+                configuration = self.move_action(configuration,int(action))
+            elif ref_action == DiscoRNNGparser.CLOSE:
+                configuration = self.close_action(configuration,False)
+            elif ref_action == DiscoRNNGparser.OPEN:
+                configuration = self.open_action(configuration)
+            elif ref_action == DiscoRNNGparser.SHIFT:
+                configuration = self.shift_action(configuration)
+            elif ref_action == DiscoRNNGparser.TERMINATE:
+                pass
+            prev_action = ref_action
+            
+        return r_derivation
+
+            
+    
     def encode_words(self,sentence,pos_sequence):
         """
         Runs a backward LSTM on the input sentence.
@@ -1015,7 +1056,7 @@ class DiscoRNNGparser:
             current = current.prev_element
         D.reverse()   
         return D
-
+        
     def parse_corpus(self,istream,ostream=sys.stdout,evalb_mode=False,stats_stream=None,K=5,kbest=1,conditional=True):
         """ 
         Parses a corpus and prints out the trees in a file.
@@ -1033,25 +1074,31 @@ class DiscoRNNGparser:
         N   = 0
         stats_header = True 
         for line in istream:             
-            tree      = DiscoTree.read_tree(line)
-            tag_nodes = tree.pos_nodes()
-            tokens    = [x.children[0].label for x in tag_nodes]
-            tags      = [x.label for x in tag_nodes]
-            results   = self.predict_beam(tokens,K,tags) if conditional else self.predict_beam(tokens,K)
-            if results:
-                for idx,r in enumerate(results):
-                    r_derivation  = DiscoRNNGparser.weighted_derivation(r)
+            tree        = DiscoTree.read_tree(line)
+            tag_nodes   = tree.pos_nodes()
+            tokens      = [x.children[0].label for x in tag_nodes]
+            tags        = [x.label for x in tag_nodes]
+            results     = self.predict_beam(tokens,K,tags) if conditional else self.predict_beam(tokens,K)
+            derivations = [DiscoRNNGparser.weighted_derivation(r) for r in results]
+            
+            if conditional and generative and derivations:                 #reranks the derivations with the generative model
+                derivations = [self.rescore_derivation(deriv,tokens) for deriv in derivations]
+                derivations.sort(lambda deriv:deriv[-1][1],reverse=True)
+                
+            if derivations:
+                for idx,derivation in enumerate(derivations):
                     if idx < kbest:
-                        r_tree = self.deriv2tree([action for action,prob in r_derivation])
+                        r_tree = self.deriv2tree([action for action,prob in derivation])
                         r_tree.expand_unaries()
                         r_tree.add_gold_tags(tag_nodes)
                         if kbest > 1:
-                            print(r_tree,r_derivation[-1][1],file=ostream)
+                            print(r_tree,derivation[-1][1],file=ostream)
                         else:
                             print(r_tree,file=ostream)
             else:
                 print('(())',file=ostream,flush=True)
 
+                
     @staticmethod
     def load_model(model_name):
         """
@@ -1322,7 +1369,7 @@ if __name__ == '__main__':
             os.mkdir(model_name)
         except:
             pass
-        shutil.copyfile(config_file,model_name+'/modelname.conf')
+        shutil.copyfile(config_file,model_name+'/'+modelname+'.conf')
         
         parser = DiscoRNNGparser(config_file=config_file)
         train_stream = open(train_file) 
