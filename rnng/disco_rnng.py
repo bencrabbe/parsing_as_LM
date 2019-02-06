@@ -135,7 +135,6 @@ class DiscoRNNGparser:
         self.read_hyperparams(config_file) 
 
     def read_hyperparams(self,configfilename):
-        print(configfilename)
         
         #defaults
         self.cond_stack_memory_size     = 128
@@ -219,7 +218,7 @@ class DiscoRNNGparser:
         self.gen_structural_W              = self.gen_model.add_parameters((self.actions.size(),self.gen_stack_memory_size))         
         self.gen_structural_b              = self.gen_model.add_parameters((self.actions.size()))
         
-        self.word_softmax                  = dy.ClassFactoredSoftmaxBuilder(self.gen_stack_memory_size,self.brown_file,self.lexicon.words2i,self.gen_model,bias=True)
+        #self.word_softmax                  = dy.ClassFactoredSoftmaxBuilder(self.gen_stack_memory_size,self.brown_file,self.lexicon.words2i,self.gen_model,bias=True)
 
         self.gen_nonterminals_W            = self.gen_model.add_parameters((self.nonterminals.size(),self.gen_stack_memory_size))   
         self.gen_nonterminals_b            = self.gen_model.add_parameters((self.nonterminals.size()))
