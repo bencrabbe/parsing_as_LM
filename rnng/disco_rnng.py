@@ -1116,7 +1116,7 @@ class DiscoRNNGparser:
 
         model_str   = 'discriminative' if conditional else 'generative'
         embed_size  = self.cond_word_embedding_size if conditional else  self.gen_word_embedding_size
-        xstack_size = self.cond_stack_xinput_size   if conditional else  self.gen_stack_xinput_size
+        xstack_size = self.cond_stack_xsymbol_size  if conditional else  self.gen_stack_xsymbol_size
         mem_size    = self.cond_stack_memory_size   if conditional else  self.gen_stack_memory_size 
 
         
