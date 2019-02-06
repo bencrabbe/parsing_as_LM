@@ -1377,7 +1377,7 @@ if __name__ == '__main__':
     if model_name and pred_file:
         
         pred_stream = open(pred_file)
-        out_stream  = open(model_name+'.pred.mrg','w')
+        out_stream  = open(model_name+'/'+model_name+'.pred.mrg','w')
         evalb_flag  = pred_file.endswith('mrg')
 
         parser = DiscoRNNGparser.load_model(model_name+'/'+model_name)
