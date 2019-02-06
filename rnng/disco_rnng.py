@@ -1299,7 +1299,7 @@ if __name__ == '__main__':
         print('bad command line arguments.\naborting...')
         
     for opt, arg in opts:
-        if opt in   ['-t','--train']:
+        if opt   in ['-t','--train']:
             train_file = arg
         elif opt in ['-d','--dev']:
             dev_file = arg
@@ -1317,9 +1317,8 @@ if __name__ == '__main__':
             beam_size  = int(arg)
         elif opt in ['-s','--stats']:
             stats = True
-            
+
     if train_file and dev_file and model_name:
-        
         try:
             os.mkdir(modelname)
         except:
