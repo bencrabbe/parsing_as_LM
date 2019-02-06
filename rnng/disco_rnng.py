@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 import dynet as dy
-import configparser
+import configparser,getopt
 
 from collections import namedtuple
 
@@ -1219,84 +1219,133 @@ class DiscoRNNGparser:
             self.estimate_params(train_treebank,train_tags,dev_treebank,dev_tags,modelname,config_file,True)
         if generative:
             self.estimate_params(train_treebank,train_tags,dev_treebank,dev_tags,modelname,config_file,False)
+
+    def tests():
+         t = DiscoTree.read_tree('(S (NP 0=John) (VP (VB 1=eats) (NP (DT 2=an) (NN 3=apple))) (PONCT 4=.))')
+        print(t)
+        wordlist = t.words()
+        print(wordlist)
+        print()
+
+        p = DiscoRNNGparser()
+        D,C = p.static_oracle(t,t,wordlist)
+        print(D)
+        print(p.deriv2tree(D))
+        print()
+    
+        t = DiscoTree.read_tree('(S (VP (VB 0=is) (JJ 2=rich)) (NP 1=John) (PONCT 3=?))')
+        print(t)
+        wordlist = t.words()
+        print(wordlist)
+        print()
         
+        p = DiscoRNNGparser()
+        D,C = p.static_oracle(t,t,wordlist)
+        print(D)
+        print(p.deriv2tree(D)) 
+        print() 
+    
+        t2 = DiscoTree.read_tree("(ROOT (SBARQ (SQ (VP (WHADVP (WRB 0=Why)) (VB 4=cross) (NP (DT 5=the) (NN 6=road))) (VBD 1=did) (NP (DT 2=the) (NN 3=chicken))) (PONCT 7=?)))")
+        print(t2,'gap_degree',t2.gap_degree())
+        wordlist = t2.words()
+        print(wordlist)
+        print() 
+
+        D,C = p.static_oracle(t2,t2,wordlist)
+        print(D)
+        print(p.deriv2tree(D))
+        print()
+    
+        t3 =  DiscoTree.read_tree('(S (X (A 0=a) (A 3=a))  (Y (B 1=b) (B 4=b)) (Z (C 2=c) (C 5=c)))')
+        print(t3,'gap_degree',t3.gap_degree())
+        wordlist = t3.words()
+        print(wordlist)
+        print()
+
+        D,C = p.static_oracle(t3,t3,wordlist)
+        print(D)
+        print(p.deriv2tree(D))
+        print() 
+
+        #t4 = DiscoTree.read_tree('(ROOT (CS (S (CNP (NP (ART 0=Die) (MPN (NE 1=Rolling) (NE 2=Stones))) (KON 3=oder) (MPN (NE 4=Led) (NE 5=Zeppelin))) (VAFIN 6=haben) (NP (ADV 7=auch) (PIAT 8=keinen) (NE 9=Grammy))) ($, 10=,) (KON 11=und) (S (NP (PDS 12=die) (AP (PIAT 16=mehr) (NP (KOKOM 18=als) (PPER 19=ich)))) (VAFIN 13=hätten) (VP (PPER 14=ihn) (ADV 15=sicherlich) (VVPP 17=verdient)))) (D. 20=.) (D[ 21="))')
+        t4 = DiscoTree.read_tree('(S (NP (PDS 0=die) (AP (PIAT 4=mehr) (NP (KOKOM 6=als) (PPER 7=ich)))) (VAFIN 1=hätten) (VP (PPER 2=ihn) (ADV 3=sicherlich) (VVPP 5=verdient)))')
+        t4.close_unaries()
+        wordlist = t4.words()
+        print(wordlist)
+
+        D,C = p.static_oracle(t4,t4,wordlist)
+        print(D)
+        print(p.deriv2tree(D))
+        print()
+            
                 
 if __name__ == '__main__':
+
+    import shutil,os
     
-    p       = DiscoRNNGparser(config_file='disco_negra_model_generative/negra_model.conf')
-    tstream = open('negra/train.mrg') 
-    dstream = open('negra/dev.mrg')
-    p.train_model(tstream,dstream,'disco_negra_model_generative/negra_model',config_file='disco_negra_model_generative/negra_model.conf',conditional=False,generative=True)
-    tstream.close()
-    dstream.close()
-
-    #p = DiscoRNNGparser.load_model('disco_negra_model/negra_model')
+    modelname      = ''
+    config_file    = ''
+    train_file     = ''
+    dev_file       = ''
+    pred_file      = '' #raw or mrg
+    beam_size      = 32
+    stats          = False
+    discriminative = False
+    generative     = False
     
-    pstream = open('negra/test.mrg')
-    pred_stream = open('disco_negra_model/pred_test.mrg','w')
-    p.parse_corpus(pstream,ostream=pred_stream,evalb_mode=True,K=64,kbest=1)
-    pstream.close()
-    pred_stream.close()
-    exit(0)
+    try:
+        opts, args = getopt.getopt(sys.argv[1:],"ht:d:p:m:b:c:sB:")
+    except getopt.GetoptError:
+        print('bad command line arguments.\naborting...')
+        
+    for opt, arg in opts:
+        if opt in   ['-t','--train']:
+            train_file = arg
+        elif opt in ['-d','--dev']:
+            dev_file = arg
+        elif opt in ['-p','--pred']:
+            pred_file = arg
+        elif opt in ['-c','--config']:
+            config_file = arg
+        elif opt in ['-m','--model']:
+            model_name = arg
+        elif opt in ['-G','--generative']:
+            generative = True
+        elif opt in ['-D','--discriminative']:
+            discriminative = True
+        elif opt in ['-B','--Beam-size']:
+            beam_size  = int(arg)
+        elif opt in ['-s','--stats']:
+            stats = True
+            
+    if train_file and dev_file and model_name:
+        
+        try:
+            os.mkdir(modelname)
+        except:
+            pass
+        shutil.copyfile(config_file,model_name+'/modelname.conf')
+        
+        parser = DiscoRNNGparser(config_file=config_file)
+        train_stream = open(train_file) 
+        dev_stream   = open(dev_file)
+        parser.train_model(train_stream,dev_stream,modelname,config_file=config_file,conditional=discriminative,generative=generative)
+        train_stream.close()
+        dev_stream.close()
 
-    t = DiscoTree.read_tree('(S (NP 0=John) (VP (VB 1=eats) (NP (DT 2=an) (NN 3=apple))) (PONCT 4=.))')
-    print(t)
-    wordlist = t.words()
-    print(wordlist)
-    print()
+    if model_name and pred_file:
+        
+        pred_stream = open(pred_file)
+        out_stream  = open(model_name+'.pred.mrg','w')
+        evalb_flag  = pred_file.endswith('mrg')
 
-    p = DiscoRNNGparser()
-    D,C = p.static_oracle(t,t,wordlist)
-    print(D)
-    print(p.deriv2tree(D))
-    print()
-    
-    t = DiscoTree.read_tree('(S (VP (VB 0=is) (JJ 2=rich)) (NP 1=John) (PONCT 3=?))')
-    print(t)
-    wordlist = t.words()
-    print(wordlist)
-    print()
+        parser = DiscoRNNGparser.load_model(modelname)
+        parser.parse_corpus(pred_stream,ostream=out_stream,evalb_mode=evalb_flag,K=beam_size,kbest=1,conditional=discriminative,generative=generative)
 
-    p = DiscoRNNGparser()
+        pred_stream.close()
+        out_stream.close()
 
-    D,C = p.static_oracle(t,t,wordlist)
-    print(D)
-    print(p.deriv2tree(D)) 
-    print() 
-
-    
-    t2 = DiscoTree.read_tree("(ROOT (SBARQ (SQ (VP (WHADVP (WRB 0=Why)) (VB 4=cross) (NP (DT 5=the) (NN 6=road))) (VBD 1=did) (NP (DT 2=the) (NN 3=chicken))) (PONCT 7=?)))")
-    print(t2,'gap_degree',t2.gap_degree())
-    wordlist = t2.words()
-    print(wordlist)
-    print() 
-
-    D,C = p.static_oracle(t2,t2,wordlist)
-    print(D)
-    print(p.deriv2tree(D))
-    print()
-    
-    t3 =  DiscoTree.read_tree('(S (X (A 0=a) (A 3=a))  (Y (B 1=b) (B 4=b)) (Z (C 2=c) (C 5=c)))')
-    print(t3,'gap_degree',t3.gap_degree())
-    wordlist = t3.words()
-    print(wordlist)
-    print()
-
-    D,C = p.static_oracle(t3,t3,wordlist)
-    print(D)
-    print(p.deriv2tree(D))
-    print() 
-
-    #t4 = DiscoTree.read_tree('(ROOT (CS (S (CNP (NP (ART 0=Die) (MPN (NE 1=Rolling) (NE 2=Stones))) (KON 3=oder) (MPN (NE 4=Led) (NE 5=Zeppelin))) (VAFIN 6=haben) (NP (ADV 7=auch) (PIAT 8=keinen) (NE 9=Grammy))) ($, 10=,) (KON 11=und) (S (NP (PDS 12=die) (AP (PIAT 16=mehr) (NP (KOKOM 18=als) (PPER 19=ich)))) (VAFIN 13=hätten) (VP (PPER 14=ihn) (ADV 15=sicherlich) (VVPP 17=verdient)))) (D. 20=.) (D[ 21="))')
-    t4 = DiscoTree.read_tree('(S (NP (PDS 0=die) (AP (PIAT 4=mehr) (NP (KOKOM 6=als) (PPER 7=ich)))) (VAFIN 1=hätten) (VP (PPER 2=ihn) (ADV 3=sicherlich) (VVPP 5=verdient)))')
-    t4.close_unaries()
-    wordlist = t4.words()
-    print(wordlist)
-
-    D,C = p.static_oracle(t4,t4,wordlist)
-    print(D)
-    print(p.deriv2tree(D))
-    print()
+   
 
 
     
