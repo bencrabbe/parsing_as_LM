@@ -1214,7 +1214,7 @@ class DiscoRNNGparser:
             print()
             if NLL < min_nll:
                 pass
-                self.save_model(modelname) 
+                self.save_model(modelname+'/'+modelname) 
          
     def train_model(self,train_stream,dev_stream,modelname,config_file=None,conditional=True,generative=True):
         """
