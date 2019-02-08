@@ -139,6 +139,7 @@ class DiscoRNNGparser:
         self.cond_stack_xsymbol_size    = 128    
         self.cond_word_embedding_size   = 32
         self.pos_embedding_size         = 16
+        self.history_xsymbol_size       = 16
 
         self.gen_stack_memory_size     = 256
         self.stack_xsymbol_size        = 256 
@@ -154,6 +155,7 @@ class DiscoRNNGparser:
         self.cond_stack_xsymbol_size    = int(config['conditional']['stack_xsymbol_size'])   #size of stack input
         self.cond_word_embedding_size   = int(config['conditional']['word_embedding_size'])
         self.pos_embedding_size         = int(config['conditional']['pos_embedding_size'])
+        self.history_xsymbol_size       = int(config['conditional']['history_xsymbol_size'])
         self.vocab_thresh               = int(config['conditional']['vocab_thresh'])
  
         self.gen_stack_memory_size     = int(config['generative']['stack_memory_size'])
@@ -172,6 +174,7 @@ class DiscoRNNGparser:
         self.cond_nonterminals_embeddings   = self.cond_model.add_lookup_parameters((self.nonterminals.size(),self.cond_stack_xsymbol_size)) 
         self.cond_word_embeddings           = self.cond_model.add_lookup_parameters((self.lexicon.size(),self.cond_word_embedding_size)) 
         self.tag_embeddings                 = self.cond_model.add_lookup_parameters((self.tags.size(),self.pos_embedding_size))
+        self.history_embeddings             = self.cond_model.add_lookup_parameters((self.history_syms.size(),self.history_xsymbol_size))
         ## merge words+tags
         self.cond_lex_W                     = self.cond_model.add_parameters((self.cond_stack_xsymbol_size,self.cond_word_embedding_size+self.pos_embedding_size))            
         self.cond_lex_b                     = self.cond_model.add_parameters((self.cond_stack_xsymbol_size))
@@ -181,13 +184,13 @@ class DiscoRNNGparser:
 
         
         #output params
-        self.cond_structural_W              = self.cond_model.add_parameters((self.actions.size(),self.cond_stack_memory_size*2))         
+        self.cond_structural_W              = self.cond_model.add_parameters((self.actions.size(),self.cond_stack_memory_size*3))         
         self.cond_structural_b              = self.cond_model.add_parameters((self.actions.size())) 
         
-        self.cond_nonterminals_W            = self.cond_model.add_parameters((self.nonterminals.size(),self.cond_stack_memory_size*2))   
+        self.cond_nonterminals_W            = self.cond_model.add_parameters((self.nonterminals.size(),self.cond_stack_memory_size*3))   
         self.cond_nonterminals_b            = self.cond_model.add_parameters((self.nonterminals.size()))
 
-        self.cond_move                      = self.cond_model.add_parameters((1,self.cond_stack_memory_size*2))
+        self.cond_move                      = self.cond_model.add_parameters((1,self.cond_stack_memory_size*3))
 
         #tree embeddings
         self.cond_tree_fwd                  = dy.LSTMBuilder(1,self.cond_stack_xsymbol_size, self.cond_stack_memory_size,self.cond_model)        
@@ -196,8 +199,9 @@ class DiscoRNNGparser:
         self.cond_tree_b                    = self.cond_model.add_parameters((self.cond_stack_xsymbol_size))
  
         #lookahead specific to the cond model
-        self.lexer_rnn_bwd                 = dy.LSTMBuilder(2,self.cond_stack_xsymbol_size,self.cond_stack_memory_size,self.cond_model)   
-
+        self.lexer_rnn_bwd                  = dy.LSTMBuilder(1,self.cond_stack_xsymbol_size,self.cond_stack_memory_size,self.cond_model)   
+        #history specific to the cond model
+        self.history_rnn                    = dy.LSTMBuilder(2,self.history_xsymbol_size,self.cond_stack_memory_size,self.cond_model)   
         
     def allocate_generative_params(self):
         """ 
@@ -246,19 +250,21 @@ class DiscoRNNGparser:
            N   (int): the length of the input sequence
         """
         if conditional:
-            w0_idx      = self.lexicon.index(DiscoRNNGparser.START_TOKEN)
-            w0          = self.cond_word_embeddings[w0_idx] if conditional else self.gen_word_embeddings[w0_idx]        
-            t0_idx      = self.tags.index(DiscoRNNGparser.START_POS)
-            t0          = self.tag_embeddings[t0_idx]    
-            stack_state = self.cond_rnn.initial_state()
-            stack_state = stack_state.add_input(dy.rectify(self.cond_lex_W*dy.concatenate([w0,t0]) + self.cond_lex_b))
+            w0_idx        = self.lexicon.index(DiscoRNNGparser.START_TOKEN)
+            w0            = self.cond_word_embeddings[w0_idx] if conditional else self.gen_word_embeddings[w0_idx]        
+            t0_idx        = self.tags.index(DiscoRNNGparser.START_POS)
+            t0            = self.tag_embeddings[t0_idx]    
+            stack_state   = self.cond_rnn.initial_state()
+            stack_state   = stack_state.add_input(dy.rectify(self.cond_lex_W*dy.concatenate([w0,t0]) + self.cond_lex_b))
+            history_state = self.history_rnn.initial_state()
         else:
-            w0_idx      = self.lexicon.index(DiscoRNNGparser.START_TOKEN)
-            w0          = self.gen_word_embeddings[w0_idx]  
-            stack_state = self.gen_rnn.initial_state()
-            stack_state = stack_state.add_input(w0)
+            w0_idx        = self.lexicon.index(DiscoRNNGparser.START_TOKEN)
+            w0            = self.gen_word_embeddings[w0_idx]  
+            stack_state   = self.gen_rnn.initial_state()
+            stack_state   = stack_state.add_input(w0)
+            history_state = None
             
-        return ([ ] ,tuple(range(N)),0, stack_state, DiscoRNNGparser.NO_LABEL)
+        return ([ ] ,tuple(range(N)),0, stack_state, DiscoRNNGparser.NO_LABEL,history_state)
 
     def shift_action(self,configuration):
         """
@@ -269,8 +275,8 @@ class DiscoRNNGparser:
         Returns: 
            tuple. a configuration resulting from shift 
         """
-        S,B,n,stack_state,lab_state = configuration
-        return (S,B,n,stack_state,DiscoRNNGparser.WORD_LABEL)
+        S,B,n,stack_state,lab_state,history_state = configuration
+        return (S,B,n,stack_state,DiscoRNNGparser.WORD_LABEL,history_state)
 
     def generate_word(self,configuration,sentence,tag_sequence,conditional):
         """
@@ -286,17 +292,18 @@ class DiscoRNNGparser:
         S,B,n,stack_state,lab_state = configuration
         shifted_word     = sentence[ B[0] ]
         if conditional:
-            shifted_tag  = tag_sequence[ B[0] ]
-            wembedding   = self.cond_word_embeddings[self.lexicon.index(shifted_word)]
-            tembedding   = self.tag_embeddings[self.tags.index(shifted_tag)]
-            embedding    = dy.concatenate([wembedding,tembedding])
-            xinput       = dy.rectify(self.cond_lex_W * embedding + self.cond_lex_b)
-            stack_state = stack_state.add_input(xinput)
-            return (S + [StackSymbol(B[0],xinput,predicted=False,sym_range=[B[0]])],B[1:],n,stack_state,DiscoRNNGparser.NO_LABEL)
+            shifted_tag   = tag_sequence[ B[0] ]
+            wembedding    = self.cond_word_embeddings[self.lexicon.index(shifted_word)]
+            tembedding    = self.tag_embeddings[self.tags.index(shifted_tag)]
+            embedding     = dy.concatenate([wembedding,tembedding])
+            xinput        = dy.rectify(self.cond_lex_W * embedding + self.cond_lex_b)
+            stack_state   = stack_state.add_input(xinput)
+            history_state = history_state.add_input(DiscoRNNGparser.SHIFT)
+            return (S + [StackSymbol(B[0],xinput,predicted=False,sym_range=[B[0]])],B[1:],n,stack_state,DiscoRNNGparser.NO_LABEL,history_state)
         else: 
             embedding   = self.gen_word_embeddings[self.lexicon.index(shifted_word)]
             stack_state = stack_state.add_input(embedding)
-            return (S + [StackSymbol(B[0],embedding,predicted=False,sym_range=[B[0]])],B[1:],n,stack_state,DiscoRNNGparser.NO_LABEL)
+            return (S + [StackSymbol(B[0],embedding,predicted=False,sym_range=[B[0]])],B[1:],n,stack_state,DiscoRNNGparser.NO_LABEL,None)
  
     def open_action(self,configuration):
         """
@@ -305,8 +312,8 @@ class DiscoRNNGparser:
         Returns:
            A configuration
         """
-        S,B,n,stack_state,lab_state = configuration
-        return (S,B,n,stack_state,DiscoRNNGparser.NT_LABEL) 
+        S,B,n,stack_state,lab_state,history_state = configuration
+        return (S,B,n,stack_state,DiscoRNNGparser.NT_LABEL,history_state) 
     
     def open_nonterminal(self,configuration,label,conditional):
         """
@@ -319,11 +326,13 @@ class DiscoRNNGparser:
         Returns:
             tuple. A configuration resulting from the labelling
         """
-        S,B,n,stack_state,lab_state = configuration
-        nt_idx      = self.nonterminals.index(label)
-        embedding   = self.cond_nonterminals_embeddings[nt_idx] if conditional else self.gen_nonterminals_embeddings[nt_idx]
-        stack_state = stack_state.add_input(embedding)
-        return (S + [StackSymbol(label,embedding,predicted=True,sym_range=[B[0]])],B,n + 1,stack_state,DiscoRNNGparser.NO_LABEL) 
+        S,B,n,stack_state,lab_state,history_state = configuration
+        nt_idx        = self.nonterminals.index(label)
+        embedding     = self.cond_nonterminals_embeddings[nt_idx] if conditional else self.gen_nonterminals_embeddings[nt_idx]
+        stack_state   = stack_state.add_input(embedding)
+        if conditional:
+            history_state = history_state.add_input(label)
+        return (S + [StackSymbol(label,embedding,predicted=True,sym_range=[B[0]])],B,n + 1,stack_state,DiscoRNNGparser.NO_LABEL,history_state) 
 
     def close_action(self,configuration,conditional): 
         """
@@ -334,7 +343,7 @@ class DiscoRNNGparser:
         Returns:
            tuple. A configuration resulting from closing the constituent
         """
-        S,B,n,stack_state,lab_state = configuration
+        S,B,n,stack_state,lab_state,history_state = configuration
         newS = S[:]
         closed_symbols = []
         moved_symbols  = []
@@ -387,10 +396,12 @@ class DiscoRNNGparser:
             stack_state = stack_state.add_input(SYM.embedding)
             if SYM.predicted:
                 new_n += 1
-        return (newS,B,new_n,stack_state,DiscoRNNGparser.NO_LABEL)
+        if conditional:
+            history_state = history_state.add_input(DiscoRNNGparser.CLOSE)
+        return (newS,B,new_n,stack_state,DiscoRNNGparser.NO_LABEL,history_state) 
 
         
-    def move_action(self,configuration,stack_idx):
+    def move_action(self,configuration,stack_idx,conditional):
         """
         This actually schedules a symbol down in the stack for movement
         Args:
@@ -399,12 +410,14 @@ class DiscoRNNGparser:
         Returns:
            Tuple. A configuration resulting from moving the constituent
         """
-        S,B,n,stack_state,lab_state = configuration
+        S,B,n,stack_state,lab_state,history_state = configuration
         newS = S[:]
         moved_elt =  newS[-stack_idx-1]
         newS[-stack_idx-1] = moved_elt.schedule_movement(True)
         new_n = n-1 if moved_elt.predicted else n
-        return (newS,B,new_n,stack_state,DiscoRNNGparser.NO_LABEL)
+        if conditional:
+            history_state = history_state.add_input(DiscoRNNGparser.MOVE)
+        return (newS,B,new_n,stack_state,DiscoRNNGparser.NO_LABEL,history_state)
 
     def static_oracle(self,ref_root,global_root,sentence,tag_sequence,conditional,configuration=None):
         """
@@ -420,7 +433,7 @@ class DiscoRNNGparser:
         """       
         def occurs_predicted(ref_node,configuration):  # (occur check #1)
             #returns True if predicted node already on the stack
-            S,B,n,stack_state,lab_state = configuration
+            S,B,n,stack_state,lab_state,history_state = configuration
             lc_idx = ref_node.left_corner() 
             for node in reversed(S): 
                 if not node.predicted and min(node.range) == lc_idx: 
@@ -430,7 +443,7 @@ class DiscoRNNGparser:
         def occurs_completed(ref_node,configuration):  # (occur check #2)
             #returns True if completed node already on the stack
 
-            S,B,n,stack_state,lab_state = configuration
+            S,B,n,stack_state,lab_state,history_state = configuration
             for elt in S:
                 if not elt.predicted and ref_node.is_dominated_by(elt.range):
                     return True
@@ -443,9 +456,9 @@ class DiscoRNNGparser:
         if ref_root.is_leaf(): 
             configuration = self.shift_action(configuration)
             configuration = self.generate_word(configuration,sentence,tag_sequence,conditional)
-            S,B,n,stack_state,lab_state = configuration
-            sh_word                     = sentence[S[-1].symbol]
-            act_list                    = [DiscoRNNGparser.SHIFT,sh_word]
+            S,B,n,stack_state,lab_state,history_state = configuration
+            sh_word                                   = sentence[S[-1].symbol]
+            act_list                                  = [DiscoRNNGparser.SHIFT,sh_word]
             return (act_list, configuration) 
         else:
             ##Recursive processing
@@ -473,14 +486,14 @@ class DiscoRNNGparser:
 
 
             #C. Perform moves
-            S,B,n,stack_state,lab_state = configuration
+            S,B,n,stack_state,lab_state,history_state = configuration
             for stack_idx, stack_elt in enumerate(reversed(S)):
                 local = ref_root.dominates(stack_elt.range)
                 if stack_elt.predicted and local:
                     break
                 if not local:
                     #assert(stack_idx > 0) -> nope. there exist cases where this assertion does not hold (!)
-                    configuration = self.move_action(configuration,stack_idx)
+                    configuration = self.move_action(configuration,stack_idx,conditional)
                     act_list.extend([DiscoRNNGparser.MOVE,stack_idx])       
 
             #D. Close
@@ -579,8 +592,12 @@ class DiscoRNNGparser:
             SymbolLexicon. The bijective encoding
         """
         #Structural actions are coded on the first slots
-        #The last slots are implicitly allocated to move actions
         self.actions         = SymbolLexicon([DiscoRNNGparser.SHIFT,DiscoRNNGparser.OPEN,DiscoRNNGparser.CLOSE,DiscoRNNGparser.TERMINATE])
+        sefl.history_syms    = SymbolLexicon(self.nonterminals.i2words+[DiscoRNNGparser.SHIFT,\
+                                                                        DiscoRNNGparser.CLOSE,\
+                                                                        DiscoRNNGparser.MOVE,\
+                                                                        DiscoRNNGparser.TERMINATE])
+        
         return self.actions
  
     def allowed_structural_actions(self,configuration): 
@@ -591,7 +608,7 @@ class DiscoRNNGparser:
         Returns:
            a list. Indexes of the allowed actions
         """
-        S,B,n,stack_state,lab_state = configuration
+        S,B,n,stack_state,lab_state,history_state = configuration
         #Analyze stack top
         children             = []
         children_terminals   = 0
@@ -674,7 +691,7 @@ class DiscoRNNGparser:
         def code2action(act_idx): 
             return (self.MOVE,act_idx-self.actions.size())  if act_idx >= self.actions.size() else  self.actions.wordform(act_idx)
      
-        S,B,n,stack_state,lab_state = configuration
+        S,B,n,stack_state,lab_state,history_state = configuration
 
         if lab_state == DiscoRNNGparser.WORD_LABEL:
             next_word     = (sentence[B[0]])
@@ -734,7 +751,7 @@ class DiscoRNNGparser:
         def code2action(act_idx): 
             return (self.MOVE,act_idx-self.actions.size())  if act_idx >= self.actions.size() else  self.actions.wordform(act_idx)
         
-        S,B,n,stack_state,lab_state = configuration
+        S,B,n,stack_state,lab_state,history_state = configuration
 
         if lab_state == DiscoRNNGparser.WORD_LABEL:
             if conditional:
@@ -808,7 +825,7 @@ class DiscoRNNGparser:
         configuration = self.init_configuration( len(sentence),conditional ) 
         prev_action = None
         for ref_action in ref_derivation:
-            S,B,n,stack_state,lab_state = configuration                
+            S,B,n,stack_state,lab_state,history_state = configuration                
 
             if ref_action ==  DiscoRNNGparser.MOVE: #skips the move
                 prev_action = ref_action
@@ -823,7 +840,7 @@ class DiscoRNNGparser:
             elif lab_state == DiscoRNNGparser.NT_LABEL:
                 configuration = self.open_nonterminal(configuration,ref_action,conditional)
             elif prev_action == DiscoRNNGparser.MOVE:
-                configuration = self.move_action(configuration,int(ref_action))
+                configuration = self.move_action(configuration,int(ref_action),conditional)
             elif ref_action == DiscoRNNGparser.CLOSE:
                 configuration = self.close_action(configuration,conditional)
             elif ref_action == DiscoRNNGparser.OPEN:
@@ -862,7 +879,7 @@ class DiscoRNNGparser:
         configuration = self.init_configuration( len(sentence),conditional )
         
         for action,prob in base_derivation:
-            S,B,n,stack_state,lab_state = configuration
+            S,B,n,stack_state,lab_state,history_state = configuration
             if action ==  DiscoRNNGparser.MOVE: #skips the move
                 prev_action = action
                 continue
@@ -877,7 +894,7 @@ class DiscoRNNGparser:
             elif lab_state == DiscoRNNGparser.NT_LABEL:
                 configuration = self.open_nonterminal(configuration,action,False)
             elif prev_action == DiscoRNNGparser.MOVE:
-                configuration = self.move_action(configuration,int(action))
+                configuration = self.move_action(configuration,int(action),conditional)
             elif ref_action == DiscoRNNGparser.CLOSE:
                 configuration = self.close_action(configuration,False)
             elif ref_action == DiscoRNNGparser.OPEN:
@@ -926,7 +943,7 @@ class DiscoRNNGparser:
 
         dy.renew_cg()
         
-        sentence           = ref_tree.words()
+        sentence = ref_tree.words()
         if conditional:
             word_encodings         = self.encode_words(sentence,ref_tags)
             derivation,last_config = self.static_oracle(ref_tree,ref_tree,sentence,ref_tags,conditional)
@@ -964,7 +981,7 @@ class DiscoRNNGparser:
             beam_elt.configuration = self.init_configuration(len(sentence),conditional)
         else:
             configuration = beam_elt.prev_element.configuration
-            S,B,n,stack_state,lab_state = configuration
+            S,B,n,stack_state,lab_state,history_state = configuration
             
             if lab_state == DiscoRNNGparser.WORD_LABEL:
                 beam_elt.configuration = self.generate_word(configuration,sentence,tag_sequence,conditional)
@@ -972,7 +989,7 @@ class DiscoRNNGparser:
                 beam_elt.configuration = self.open_nonterminal(configuration,beam_elt.prev_action,conditional)
             elif type(beam_elt.prev_action) == tuple :
                 move_label,mov_idx = beam_elt.prev_action
-                beam_elt.configuration = self.move_action(configuration,mov_idx) 
+                beam_elt.configuration = self.move_action(configuration,mov_idx,conditional) 
             elif beam_elt.prev_action == DiscoRNNGparser.CLOSE:
                 beam_elt.configuration = self.close_action(configuration,conditional)
             elif beam_elt.prev_action == DiscoRNNGparser.OPEN:
@@ -1002,7 +1019,7 @@ class DiscoRNNGparser:
         word_encodings = self.encode_words(sentence,tag_sequence) if tag_sequence else None
          
         init = BeamElement.init_element(self.init_configuration(len(sentence),True))
-        beam,successes  = [init],[ ]
+        beam,successes  = [init],[ ] 
 
         while beam :
             beam = DiscoRNNGparser.prune_beam(beam,K) #pruning
@@ -1011,7 +1028,7 @@ class DiscoRNNGparser:
             next_preds = [ ] 
             for elt in beam:
                 configuration = elt.configuration
-                S,B,n,stack_state,lab_state = configuration
+                S,B,n,stack_state,lab_state,history_state = configuration
                 if lab_state == DiscoRNNGparser.WORD_LABEL:
                     for (action, logprob) in self.predict_action_distrib(configuration,sentence,word_encodings,True):
                         next_preds.append(BeamElement(elt,action,elt.prefix_score+logprob))
@@ -1116,7 +1133,7 @@ class DiscoRNNGparser:
         parser.cond_model.populate(model_name+".cond.weights")
         parser.gen_model.populate(model_name+".gen.weights")
         return parser
-                
+                 
     def save_model(self,model_name):
         """
         Saves the model params using the prefix model_name.
@@ -1389,3 +1406,4 @@ if __name__ == '__main__':
 
 
     
+ 
