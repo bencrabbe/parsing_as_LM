@@ -387,7 +387,7 @@ class DiscoRNNGparser:
         b = self.cond_tree_b if conditional else self.gen_tree_b
         tree_embedding = dy.rectify(W * tree_h + b)
         
-        completeNT = completeNT.complete()
+        completeNT           = completeNT.complete()
         completeNT.range     = complete_range 
         completeNT.embedding = tree_embedding
         newS.append(completeNT)
@@ -674,9 +674,9 @@ class DiscoRNNGparser:
         for idx,stack_elt in enumerate(reversed(stack)):
             if conditional:
                 H =  dy.concatenate([local_state.output(),history_state.output(),buffer_embedding])
-                stack_scores.append( self.cond_move * H )
+                stack_scores.append( self.cond_move * self.ifdropout(dy.tanh(H)) )
             else:
-                stack_scores.append( self.gen_move * local_state.output())
+                stack_scores.append( self.gen_move * self.ifdropout(dy.tanh(local_state.output())))
             if stack_elt.predicted and not stack_elt.has_to_move : #check this condition:up to where can we move ?
                 break
             local_state = local_state.prev() 
@@ -706,16 +706,16 @@ class DiscoRNNGparser:
                 return [(next_word,0)] # in the discriminative case words are given and have prob = 1.0
             else:
                 next_word_idx = self.lexicon.index(next_word)
-                return [(next_word,-self.word_softmax.neg_log_softmax(dy.rectify(stack_state.output()),next_word_idx).value())]
+                return [(next_word,-self.word_softmax.neg_log_softmax(dy.tanh(stack_state.output()),next_word_idx).value())]
         elif lab_state == DiscoRNNGparser.NT_LABEL:
             if conditional:
                 word_idx = B[0] if B else -1
                 H = dy.concatenate([stack_state.output(),history_state.output(),word_encodings[word_idx]])
-                logprobs = dy.log_softmax(self.cond_nonterminals_W  * dy.rectify(H)  + self.cond_nonterminals_b).value()
+                logprobs = dy.log_softmax(self.cond_nonterminals_W  * dy.tanh(H)  + self.cond_nonterminals_b).value()
                 return zip(self.nonterminals.i2words,logprobs)
             else:
                 H = stack_state.output()
-                logprobs = dy.log_softmax(self.gen_nonterminals_W  * dy.rectify(H)  + self.gen_nonterminals_b).value()
+                logprobs = dy.log_softmax(self.gen_nonterminals_W  * dy.tanh(H)  + self.gen_nonterminals_b).value()
                 return zip(self.nonterminals.i2words,logprobs)
             
         elif lab_state == DiscoRNNGparser.NO_LABEL :
@@ -725,7 +725,7 @@ class DiscoRNNGparser:
                     word_idx         = B[0] if B else -1
                     buffer_embedding = word_encodings[word_idx] 
                     hidden_input     = dy.concatenate([stack_state.output(),history_state.output(),buffer_embedding])
-                    static_scores    = self.cond_structural_W  * self.ifdropout(dy.rectify(hidden_input))  + self.cond_structural_b
+                    static_scores    = self.cond_structural_W  * self.ifdropout(dy.tanh(hidden_input))  + self.cond_structural_b
                     move_scores      = self.dynamic_move_matrix(S,stack_state,history_state,buffer_embedding,conditional)
                     all_scores       = dy.concatenate([static_scores,move_scores]) if move_scores else static_scores
                     logprobs         = dy.log_softmax(all_scores,restr_mask).value()                     
@@ -734,7 +734,7 @@ class DiscoRNNGparser:
             else:
                 if restr_mask: 
                     hidden_input     = stack_state.output()
-                    static_scores    = self.gen_structural_W  * self.ifdropout(dy.rectify(hidden_input))  + self.gen_structural_b
+                    static_scores    = self.gen_structural_W  * self.ifdropout(dy.tanh(hidden_input))  + self.gen_structural_b
                     move_scores      = self.dynamic_move_matrix(S,stack_state,history_state,buffer_embedding,conditional)
                     all_scores       = dy.concatenate([static_scores,move_scores]) if move_scores else static_scores
                     logprobs         = dy.log_softmax(all_scores,restr_mask).value()                     
@@ -765,7 +765,7 @@ class DiscoRNNGparser:
                 nll = dy.scalarInput(0.0)  #in the discriminative case the word is given and has nll = 0
             else:
                 ref_idx  = self.lexicon.index(ref_action)
-                nll = self.word_softmax.neg_log_softmax(dy.rectify(stack_state.output()),ref_idx)
+                nll = self.word_softmax.neg_log_softmax(dy.tanh(stack_state.output()),ref_idx)
 
         elif lab_state == DiscoRNNGparser.NT_LABEL:
             
@@ -773,10 +773,10 @@ class DiscoRNNGparser:
             if conditional:
                 word_idx = B[0] if B else -1
                 H        = dy.concatenate([stack_state.output(),history_state.output(),word_encodings[word_idx]])
-                nll      = dy.pickneglogsoftmax(self.cond_nonterminals_W  * self.ifdropout(dy.rectify(H)) + self.cond_nonterminals_b,ref_idx)
+                nll      = dy.pickneglogsoftmax(self.cond_nonterminals_W  * self.ifdropout(dy.tanh(H)) + self.cond_nonterminals_b,ref_idx)
             else: 
                 H   = stack_state.output()
-                nll = dy.pickneglogsoftmax(self.gen_nonterminals_W  * dy.rectify(H)  + self.gen_nonterminals_b,ref_idx)
+                nll = dy.pickneglogsoftmax(self.gen_nonterminals_W  * dy.tanh(H)  + self.gen_nonterminals_b,ref_idx)
             
         elif lab_state == DiscoRNNGparser.NO_LABEL:
 
@@ -787,13 +787,13 @@ class DiscoRNNGparser:
                 word_idx         = B[0] if B else -1
                 buffer_embedding = word_encodings[word_idx]
                 hidden_input     = dy.concatenate([stack_state.output(),history_state.output(),buffer_embedding])
-                static_scores    = self.cond_structural_W  * self.ifdropout(dy.rectify(hidden_input))  + self.cond_structural_b
+                static_scores    = self.cond_structural_W  * self.ifdropout(dy.tanh(hidden_input))  + self.cond_structural_b
                 move_scores      = self.dynamic_move_matrix(S,stack_state,history_state,buffer_embedding,conditional)
                 all_scores        = dy.concatenate([static_scores,move_scores]) if move_scores else static_scores
                 nll              = -dy.pick(dy.log_softmax(all_scores,restr_mask),ref_idx)
             else:
                  hidden_input     = stack_state.output()
-                 static_scores    = self.gen_structural_W  * self.ifdropout(dy.rectify(hidden_input))  + self.gen_structural_b
+                 static_scores    = self.gen_structural_W  * self.ifdropout(dy.tanh(hidden_input))  + self.gen_structural_b
                  move_scores      = self.dynamic_move_matrix(S,stack_state,history_state,None,conditional)
                  all_scores       = dy.concatenate([static_scores,move_scores]) if move_scores else static_scores
                  nll              = -dy.pick(dy.log_softmax(all_scores,restr_mask),ref_idx)                    
@@ -909,7 +909,7 @@ class DiscoRNNGparser:
             elif ref_action == DiscoRNNGparser.SHIFT:
                 configuration = self.shift_action(configuration)
             elif ref_action == DiscoRNNGparser.TERMINATE:
-                pass
+                pass 
             prev_action = ref_action
              
         return r_derivation
@@ -922,13 +922,17 @@ class DiscoRNNGparser:
            sentence (list): a list of strings
         Returns list. A list of dynet expressions (the encoded words)
         """
-        lex_state       = self.lexer_rnn_bwd.initial_state()
+        #init
         wembedding      = self.cond_word_embeddings[ self.lexicon.index(DiscoRNNGparser.START_TOKEN) ]
         tembedding      = self.tag_embeddings[ self.tags.index(DiscoRNNGparser.START_POS) ]        
-        lex_state       = lex_state.add_input( dy.rectify(self.cond_lex_W*dy.concatenate([wembedding,tembedding])+ self.cond_lex_b) )
+        lex_state       = self.lexer_rnn_bwd.initial_state()
+        lex_state       = lex_state.add_input( self.cond_lex_W*dy.concatenate([wembedding,tembedding])+ self.cond_lex_b )
+        
+        #recurrence
         word_embeddings = [self.cond_word_embeddings[self.lexicon.index(word)] for word in reversed(sentence) ]
         tag_embeddings  = [self.tag_embeddings[self.tags.index(pos)] for pos in reversed(pos_sequence) ]
-        xinput          = [dy.rectify(self.cond_lex_W*dy.concatenate([wembedding,tembedding])+ self.cond_lex_b) for wembedding,tembedding in zip(word_embeddings,tag_embeddings)]
+
+        xinput          = [self.cond_lex_W*dy.concatenate([wembedding,tembedding]) + self.cond_lex_b for wembedding,tembedding in zip(word_embeddings,tag_embeddings)]
         word_encodings  = lex_state.transduce(xinput)
         word_encodings.reverse()
         return word_encodings
@@ -940,14 +944,13 @@ class DiscoRNNGparser:
         and optionally performs backpropagation. 
         The function either takes a single tree or a batch of trees (as list) for evaluation.
         Args:
-          ref_tree                  (ConsTree) : a reference tree or a single tree.
+          ref_tree                   (ConsTree): a reference tree or a single tree.
         Kwargs:
           conditional                    (bool): a flag telling if we use the conditional or the generative model
           backprop                       (bool): a flag telling if we perform backprop
         Returns:
           RuntimeStats. the model NLL, the word only NLL, the size of the derivations, the number of predicted words on this batch
         """
-
         dy.renew_cg()
         
         sentence = ref_tree.words()
