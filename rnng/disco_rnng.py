@@ -703,7 +703,7 @@ class DiscoRNNGparser:
         elif lab_state == DiscoRNNGparser.NT_LABEL:
             if conditional:
                 word_idx = B[0] if B else -1
-                H = dy.concatenate([stack_state.output(),word_encodings[word_idx]])
+                H = dy.concatenate([stack_state.output(),history_state_output(),word_encodings[word_idx]])
                 logprobs = dy.log_softmax(self.cond_nonterminals_W  * dy.rectify(H)  + self.cond_nonterminals_b).value()
                 return zip(self.nonterminals.i2words,logprobs)
             else:
@@ -717,7 +717,7 @@ class DiscoRNNGparser:
                 if restr_mask:
                     word_idx         = B[0] if B else -1
                     buffer_embedding = word_encodings[word_idx] 
-                    hidden_input     = dy.concatenate([stack_state.output(),buffer_embedding])
+                    hidden_input     = dy.concatenate([stack_state.output(),history_state.output(),buffer_embedding])
                     static_scores    = self.cond_structural_W  * self.ifdropout(dy.rectify(hidden_input))  + self.cond_structural_b
                     move_scores      = self.dynamic_move_matrix(S,stack_state,buffer_embedding,conditional)
                     all_scores       = dy.concatenate([static_scores,move_scores]) if move_scores else static_scores
@@ -765,7 +765,7 @@ class DiscoRNNGparser:
             ref_idx  = self.nonterminals.index(ref_action)
             if conditional:
                 word_idx = B[0] if B else -1
-                H        = dy.concatenate([stack_state.output(),word_encodings[word_idx]])
+                H        = dy.concatenate([stack_state.output(),history_state.output(),word_encodings[word_idx]])
                 nll      = dy.pickneglogsoftmax(self.cond_nonterminals_W  * self.ifdropout(dy.rectify(H)) + self.cond_nonterminals_b,ref_idx)
             else: 
                 H   = stack_state.output()
@@ -779,7 +779,7 @@ class DiscoRNNGparser:
             if conditional:
                 word_idx         = B[0] if B else -1
                 buffer_embedding = word_encodings[word_idx] 
-                hidden_input     = dy.concatenate([stack_state.output(),buffer_embedding])
+                hidden_input     = dy.concatenate([stack_state.output(),history_state.output(),buffer_embedding])
                 static_scores    = self.cond_structural_W  * self.ifdropout(dy.rectify(hidden_input))  + self.cond_structural_b
                 move_scores      = self.dynamic_move_matrix(S,stack_state,buffer_embedding,conditional)
                 all_scores        = dy.concatenate([static_scores,move_scores]) if move_scores else static_scores
