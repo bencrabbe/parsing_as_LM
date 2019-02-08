@@ -710,7 +710,7 @@ class DiscoRNNGparser:
         elif lab_state == DiscoRNNGparser.NT_LABEL:
             if conditional:
                 word_idx = B[0] if B else -1
-                H = dy.concatenate([stack_state.output(),history_state_output(),word_encodings[word_idx]])
+                H = dy.concatenate([stack_state.output(),history_state.output(),word_encodings[word_idx]])
                 logprobs = dy.log_softmax(self.cond_nonterminals_W  * dy.rectify(H)  + self.cond_nonterminals_b).value()
                 return zip(self.nonterminals.i2words,logprobs)
             else:
