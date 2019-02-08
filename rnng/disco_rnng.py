@@ -127,13 +127,13 @@ class DiscoRNNGparser:
     UNKNOWN_TOKEN = '<UNK>'
     START_TOKEN   = '<START>'
     START_POS     = '<START>'
+    START_HISTORY = '<START>'
     
     def __init__(self,config_file):
         
         self.read_hyperparams(config_file) 
 
     def read_hyperparams(self,configfilename):
-        
         #defaults
         self.cond_stack_memory_size     = 128
         self.cond_stack_xsymbol_size    = 128    
@@ -257,6 +257,8 @@ class DiscoRNNGparser:
             stack_state   = self.cond_rnn.initial_state()
             stack_state   = stack_state.add_input(dy.rectify(self.cond_lex_W*dy.concatenate([w0,t0]) + self.cond_lex_b))
             history_state = self.history_rnn.initial_state()
+            hist_embedding = self.history_embeddings[self.history_syms.index(DiscoRNNGparser.START_HISTORY)]
+            history_state = history_state.add_input(hist_embedding)
         else:
             w0_idx        = self.lexicon.index(DiscoRNNGparser.START_TOKEN)
             w0            = self.gen_word_embeddings[w0_idx]  
@@ -289,7 +291,7 @@ class DiscoRNNGparser:
         Returns:
            tuple. a configuration after word generation
         """
-        S,B,n,stack_state,lab_state = configuration
+        S,B,n,stack_state,lab_state,history_state = configuration
         shifted_word     = sentence[ B[0] ]
         if conditional:
             shifted_tag   = tag_sequence[ B[0] ]
@@ -298,7 +300,8 @@ class DiscoRNNGparser:
             embedding     = dy.concatenate([wembedding,tembedding])
             xinput        = dy.rectify(self.cond_lex_W * embedding + self.cond_lex_b)
             stack_state   = stack_state.add_input(xinput)
-            history_state = history_state.add_input(DiscoRNNGparser.SHIFT)
+            shift_embedding = self.history_embeddings[self.history_syms.index(DiscoRNNGparser.SHIFT)]
+            history_state = history_state.add_input(shift_embedding)
             return (S + [StackSymbol(B[0],xinput,predicted=False,sym_range=[B[0]])],B[1:],n,stack_state,DiscoRNNGparser.NO_LABEL,history_state)
         else: 
             embedding   = self.gen_word_embeddings[self.lexicon.index(shifted_word)]
@@ -331,7 +334,8 @@ class DiscoRNNGparser:
         embedding     = self.cond_nonterminals_embeddings[nt_idx] if conditional else self.gen_nonterminals_embeddings[nt_idx]
         stack_state   = stack_state.add_input(embedding)
         if conditional:
-            history_state = history_state.add_input(label)
+            openX_embedding = self.history_embeddings[self.history_syms.index(label)]
+            history_state = history_state.add_input(openX_embedding)
         return (S + [StackSymbol(label,embedding,predicted=True,sym_range=[B[0]])],B,n + 1,stack_state,DiscoRNNGparser.NO_LABEL,history_state) 
 
     def close_action(self,configuration,conditional): 
@@ -397,7 +401,8 @@ class DiscoRNNGparser:
             if SYM.predicted:
                 new_n += 1
         if conditional:
-            history_state = history_state.add_input(DiscoRNNGparser.CLOSE)
+            close_embedding = self.history_embeddings[self.history_syms.index(DiscoRNNGparser.CLOSE)]
+            history_state = history_state.add_input(close_embedding)
         return (newS,B,new_n,stack_state,DiscoRNNGparser.NO_LABEL,history_state) 
 
         
@@ -416,7 +421,8 @@ class DiscoRNNGparser:
         newS[-stack_idx-1] = moved_elt.schedule_movement(True)
         new_n = n-1 if moved_elt.predicted else n
         if conditional:
-            history_state = history_state.add_input(DiscoRNNGparser.MOVE)
+            move_embedding = self.history_embeddings[self.history_syms.index(DiscoRNNGparser.MOVE)]
+            history_state = history_state.add_input(move_embedding)
         return (newS,B,new_n,stack_state,DiscoRNNGparser.NO_LABEL,history_state)
 
     def static_oracle(self,ref_root,global_root,sentence,tag_sequence,conditional,configuration=None):
@@ -593,9 +599,10 @@ class DiscoRNNGparser:
         """
         #Structural actions are coded on the first slots
         self.actions         = SymbolLexicon([DiscoRNNGparser.SHIFT,DiscoRNNGparser.OPEN,DiscoRNNGparser.CLOSE,DiscoRNNGparser.TERMINATE])
-        sefl.history_syms    = SymbolLexicon(self.nonterminals.i2words+[DiscoRNNGparser.SHIFT,\
+        self.history_syms    = SymbolLexicon(self.nonterminals.i2words+[DiscoRNNGparser.SHIFT,\
                                                                         DiscoRNNGparser.CLOSE,\
                                                                         DiscoRNNGparser.MOVE,\
+                                                                        DiscoRNNGparser.START_HISTORY,\
                                                                         DiscoRNNGparser.TERMINATE])
         
         return self.actions
@@ -650,7 +657,7 @@ class DiscoRNNGparser:
         """
         return dy.dropout(expression,self.dropout) if self.dropout > 0.0 else expression
 
-    def dynamic_move_matrix(self,stack,stack_state,buffer_embedding,conditional):
+    def dynamic_move_matrix(self,stack,stack_state,history_state,buffer_embedding,conditional):
         """
         Dynamically computes the score of each possible valid move action
         Args:
@@ -666,7 +673,7 @@ class DiscoRNNGparser:
         
         for idx,stack_elt in enumerate(reversed(stack)):
             if conditional:
-                H =  dy.concatenate([local_state.output(),buffer_embedding])
+                H =  dy.concatenate([local_state.output(),history_state.output(),buffer_embedding])
                 stack_scores.append( self.cond_move * H )
             else:
                 stack_scores.append( self.gen_move * local_state.output())
@@ -695,7 +702,7 @@ class DiscoRNNGparser:
 
         if lab_state == DiscoRNNGparser.WORD_LABEL:
             next_word     = (sentence[B[0]])
-            if conditional:
+            if conditional:    
                 return [(next_word,0)] # in the discriminative case words are given and have prob = 1.0
             else:
                 next_word_idx = self.lexicon.index(next_word)
@@ -719,16 +726,16 @@ class DiscoRNNGparser:
                     buffer_embedding = word_encodings[word_idx] 
                     hidden_input     = dy.concatenate([stack_state.output(),history_state.output(),buffer_embedding])
                     static_scores    = self.cond_structural_W  * self.ifdropout(dy.rectify(hidden_input))  + self.cond_structural_b
-                    move_scores      = self.dynamic_move_matrix(S,stack_state,buffer_embedding,conditional)
+                    move_scores      = self.dynamic_move_matrix(S,stack_state,history_state,buffer_embedding,conditional)
                     all_scores       = dy.concatenate([static_scores,move_scores]) if move_scores else static_scores
                     logprobs         = dy.log_softmax(all_scores,restr_mask).value()                     
                     return [ (code2action(action_idx),logprob) for action_idx,logprob in enumerate(logprobs) if action_idx in restr_mask]
                 #parser trapped, let it crash
             else:
-                if restr_mask:
+                if restr_mask: 
                     hidden_input     = stack_state.output()
                     static_scores    = self.gen_structural_W  * self.ifdropout(dy.rectify(hidden_input))  + self.gen_structural_b
-                    move_scores      = self.dynamic_move_matrix(S,stack_state,buffer_embedding,conditional)
+                    move_scores      = self.dynamic_move_matrix(S,stack_state,history_state,buffer_embedding,conditional)
                     all_scores       = dy.concatenate([static_scores,move_scores]) if move_scores else static_scores
                     logprobs         = dy.log_softmax(all_scores,restr_mask).value()                     
                     return [ (code2action(action_idx),logprob) for action_idx,logprob in enumerate(logprobs) if action_idx in restr_mask]
@@ -778,16 +785,16 @@ class DiscoRNNGparser:
             
             if conditional:
                 word_idx         = B[0] if B else -1
-                buffer_embedding = word_encodings[word_idx] 
+                buffer_embedding = word_encodings[word_idx]
                 hidden_input     = dy.concatenate([stack_state.output(),history_state.output(),buffer_embedding])
                 static_scores    = self.cond_structural_W  * self.ifdropout(dy.rectify(hidden_input))  + self.cond_structural_b
-                move_scores      = self.dynamic_move_matrix(S,stack_state,buffer_embedding,conditional)
+                move_scores      = self.dynamic_move_matrix(S,stack_state,history_state,buffer_embedding,conditional)
                 all_scores        = dy.concatenate([static_scores,move_scores]) if move_scores else static_scores
                 nll              = -dy.pick(dy.log_softmax(all_scores,restr_mask),ref_idx)
             else:
                  hidden_input     = stack_state.output()
                  static_scores    = self.gen_structural_W  * self.ifdropout(dy.rectify(hidden_input))  + self.gen_structural_b
-                 move_scores      = self.dynamic_move_matrix(S,stack_state,None,conditional)
+                 move_scores      = self.dynamic_move_matrix(S,stack_state,history_state,None,conditional)
                  all_scores       = dy.concatenate([static_scores,move_scores]) if move_scores else static_scores
                  nll              = -dy.pick(dy.log_softmax(all_scores,restr_mask),ref_idx)                    
         else: 
