@@ -505,6 +505,8 @@ class DiscoRNNGparser:
             #D. Close
             configuration = self.close_action(configuration,conditional)
             act_list.append(DiscoRNNGparser.CLOSE)
+            if ref_root is global_root:
+                act_list.append(DiscoRNNGparser.TERMINATE)
             return (act_list,configuration)
 
         
@@ -563,9 +565,9 @@ class DiscoRNNGparser:
             known_words.extend(words)
             known_tags.update(tags)
             
-        known_words      = get_known_vocabulary(known_words,vocab_threshold=self.vocab_thresh) #change this
+        known_words      = set(get_known_vocabulary(known_words,vocab_threshold=self.vocab_thresh))
         known_words.add( DiscoRNNGparser.START_TOKEN)
-        self.brown_file  = normalize_brown_file(self.brown_file,set(known_words),self.brown_file+'.unk',UNK_SYMBOL=DiscoRNNGparser.UNKNOWN_TOKEN)
+        self.brown_file  = normalize_brown_file(self.brown_file,known_words,self.brown_file+'.unk',UNK_SYMBOL=DiscoRNNGparser.UNKNOWN_TOKEN)
         self.lexicon     = SymbolLexicon( list(known_words),unk_word=DiscoRNNGparser.UNKNOWN_TOKEN)
 
         known_tags.add(DiscoRNNGparser.START_POS)
@@ -579,7 +581,7 @@ class DiscoRNNGparser:
         
         Args:
            train_treebank   (list) : a list of trees  where to extract the non terminals from
-           dev_treebank   (list) : a list of trees  where to extract the non terminals from
+           dev_treebank     (list) : a list of trees  where to extract the non terminals from
         Returns:
            SymbolLexicon. The bijective encoding
         """
@@ -1231,7 +1233,7 @@ class DiscoRNNGparser:
             NLL,lex_NLL,N,lexN = train_stats.peek()            
             print('\n[Training]   Epoch %d, NLL = %f, lex-NLL = %f, PPL = %f, lex-PPL = %f'%(e,NLL,lex_NLL,np.exp(NLL/N),np.exp(lex_NLL/lexN)),flush=True)
 
-            valid_stats.push_row() 
+            valid_stats.push_row()  
             for idx,(tree,xtags) in enumerate(zip(dev_treebank,dev_tags)):
                 valid_stats += self.eval_sentence(tree,xtags,conditional=conditional,backprop=False)
  
@@ -1280,6 +1282,8 @@ class DiscoRNNGparser:
         self.code_lexicon(train_words,train_tags)
         self.code_nonterminals(train_treebank,dev_treebank)
         self.code_struct_actions()
+
+        print(len(self.lexicon))
 
         self.allocate_conditional_params( ) 
         self.allocate_generative_params( )   
