@@ -1283,8 +1283,6 @@ class DiscoRNNGparser:
         self.code_nonterminals(train_treebank,dev_treebank)
         self.code_struct_actions()
 
-        print(len(self.lexicon))
-
         self.allocate_conditional_params( ) 
         self.allocate_generative_params( )   
         #Training 
