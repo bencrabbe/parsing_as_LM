@@ -382,7 +382,7 @@ class DiscoRNNGparser:
         for SYM in closed_symbols:
             bwd_state = bwd_state.add_input(SYM.embedding)
 
-        tree_h         = dy.concatenate([self.ifdropout(fwd_state.output()),self.ifdropout(bwd_state.output())])
+        tree_h         = self.ifdropout( dy.concatenate([fwd_state.output(),bwd_state.output()]) )
         W = self.cond_tree_W if conditional else self.gen_tree_W
         b = self.cond_tree_b if conditional else self.gen_tree_b
         tree_embedding = dy.rectify(W * tree_h + b)
@@ -565,7 +565,7 @@ class DiscoRNNGparser:
             
         known_words      = get_known_vocabulary(known_words,vocab_threshold=self.vocab_thresh) #change this
         known_words.add( DiscoRNNGparser.START_TOKEN)
-        self.brown_file  = normalize_brown_file(self.brown_file,known_words,self.brown_file+'.unk',UNK_SYMBOL=DiscoRNNGparser.UNKNOWN_TOKEN)
+        self.brown_file  = normalize_brown_file(self.brown_file,set(known_words),self.brown_file+'.unk',UNK_SYMBOL=DiscoRNNGparser.UNKNOWN_TOKEN)
         self.lexicon     = SymbolLexicon( list(known_words),unk_word=DiscoRNNGparser.UNKNOWN_TOKEN)
 
         known_tags.add(DiscoRNNGparser.START_POS)
@@ -705,8 +705,8 @@ class DiscoRNNGparser:
             if conditional:    
                 return [(next_word,0)] # in the discriminative case words are given and have prob = 1.0
             else:
-                next_word_idx = self.lexicon.index(next_word)
-                return [(next_word,-self.word_softmax.neg_log_softmax(dy.tanh(stack_state.output()),next_word_idx).value())]
+                next_word_idx = self.lexicon.index(next_word) 
+                return [(next_word,-self.word_softmax.neg_log_softmax(stack_state.output(),next_word_idx).value())]
         elif lab_state == DiscoRNNGparser.NT_LABEL:
             if conditional:
                 word_idx = B[0] if B else -1
@@ -765,7 +765,7 @@ class DiscoRNNGparser:
                 nll = dy.scalarInput(0.0)  #in the discriminative case the word is given and has nll = 0
             else:
                 ref_idx  = self.lexicon.index(ref_action)
-                nll = self.word_softmax.neg_log_softmax(dy.tanh(stack_state.output()),ref_idx)
+                nll = self.word_softmax.neg_log_softmax(stack_state.output(),ref_idx)
 
         elif lab_state == DiscoRNNGparser.NT_LABEL:
             
