@@ -1096,9 +1096,9 @@ class DiscoRNNGparser:
                                 new_elt = BeamElement(elt,action,elt.prefix_score+logprob)
                                 fringe.append(new_elt)
                                 
-                    fast_track.sort(key=lambda x:x.prefix_gprob,reverse=True)
+                    fast_track.sort(key=lambda x:x.prefix_score,reverse=True)
                     fast_track = fast_track[:Kft]
-                    fringe.sort(key=lambda x:x.prefix_gprob,reverse=True)
+                    fringe.sort(key=lambda x:x.prefix_score,reverse=True)
                     fringe = fringe[:K-len(fast_track)]+fast_track
                     
                     this_word = [ ]
@@ -1112,7 +1112,7 @@ class DiscoRNNGparser:
                             self.exec_beam_action(s,sentence)
                             this_word.append(s)
                             
-            next_word.sort(key=lambda x:x.prefix_gprob,reverse=True)
+            next_word.sort(key=lambda x:x.prefix_score,reverse=True)
             next_word = next_word[:Kw]
             for elt in next_word:
                 self.exec_beam_action(elt,sentence)
