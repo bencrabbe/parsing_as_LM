@@ -1088,7 +1088,7 @@ class DiscoRNNGparser:
                     fast_track = [ ]
                     for elt in this_word:
                         configuration = elt.configuration
-                        for (action, logprob) in self.predict_action_distrib(configuration,sentence):
+                        for (action, logprob) in self.predict_action_distrib(configuration,sentence,None,None):
                             if elt.prev_action == DiscoRNNGparser.SHIFT: 
                                 new_elt = BeamElement(elt,action,elt.prefix_score+logprob)
                                 fast_track.append(new_elt)
