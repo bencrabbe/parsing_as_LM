@@ -1475,7 +1475,7 @@ if __name__ == '__main__':
         evalb_flag  = pred_file.endswith('mrg')
 
         parser = DiscoRNNGparser.load_model(model_name+'/'+model_name)
-        parser.parse_corpus(pred_stream,ostream=out_stream,evalb_mode=evalb_flag,K=beam_size,kbest=10,conditional=discriminative,generative=generative)
+        parser.parse_corpus(pred_stream,ostream=out_stream,evalb_mode=evalb_flag,K=beam_size,kbest=1,conditional=discriminative,generative=generative)
 
         pred_stream.close()
         out_stream.close()
