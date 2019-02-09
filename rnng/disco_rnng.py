@@ -1115,7 +1115,7 @@ class DiscoRNNGparser:
             next_word.sort(key=lambda x:x.prefix_score,reverse=True)
             next_word = next_word[:Kw]
             for elt in next_word:
-                self.exec_beam_action(elt,sentence)
+                self.exec_beam_action(elt,sentence,None,False)
         if successes:
             successes.sort(key=lambda x:x.prefix_gprob,reverse=True)
             successes = successes[:K]
