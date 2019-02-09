@@ -103,7 +103,7 @@ class StackSymbol:
         return s
 
 def print_config(config):
-    S,B,n,stack_state,lab_state = config 
+    S,B,n,stack_state,lab_state,history_state = config 
     return '(%s;%s;%d;%s)'%(','.join([ str(s) for s in S ]),str(B),n,lab_state)
     
 
@@ -163,6 +163,7 @@ class DiscoRNNGparser:
         self.gen_word_embedding_size   = int(config['generative']['word_embedding_size'])
         self.vocab_thresh              = int(config['generative']['vocab_thresh'])
         self.brown_file                = config['generative']['brown_file']
+
         
     def allocate_conditional_params(self):
         """ 
@@ -265,7 +266,7 @@ class DiscoRNNGparser:
             stack_state   = self.gen_rnn.initial_state()
             stack_state   = stack_state.add_input(w0)
             history_state = None
-            
+
         return ([ ] ,tuple(range(N)),0, stack_state, DiscoRNNGparser.NO_LABEL,history_state)
 
     def shift_action(self,configuration):
@@ -349,15 +350,14 @@ class DiscoRNNGparser:
         """
         S,B,n,stack_state,lab_state,history_state = configuration
         newS = S[:]
-        closed_symbols = []
-        moved_symbols  = []
+        closed_symbols = [ ]
+        moved_symbols  = [ ]
         complete_range = set() 
-        
-        while not (newS[-1].predicted and not newS[-1].has_to_move):
 
+        while not (newS[-1].predicted and not newS[-1].has_to_move):
+            
             stack_state = stack_state.prev()
             symbol = newS.pop() 
-
             if symbol.has_to_move:
                 symbol = symbol.schedule_movement(False)
                 moved_symbols.append(symbol)
@@ -367,8 +367,8 @@ class DiscoRNNGparser:
                     complete_range = complete_range | set(symbol.range)
 
         stack_state = stack_state.prev()      
-        completeNT = newS.pop()  
- 
+        completeNT = newS.pop()
+        
         #computes the tree embedding of the completed stuff
         nt_idx    = self.nonterminals.index(completeNT.symbol)
 
@@ -385,7 +385,7 @@ class DiscoRNNGparser:
         tree_h         = self.ifdropout( dy.concatenate([fwd_state.output(),bwd_state.output()]) )
         W = self.cond_tree_W if conditional else self.gen_tree_W
         b = self.cond_tree_b if conditional else self.gen_tree_b
-        tree_embedding = dy.rectify(W * tree_h + b)
+        tree_embedding = dy.tanh(W * tree_h + b)
         
         completeNT           = completeNT.complete()
         completeNT.range     = complete_range 
@@ -818,6 +818,7 @@ class DiscoRNNGparser:
         Returns:
           RuntimeStats. the model NLL, the word only NLL, the size of the derivations, the number of predicted words 
         """
+        
         dropout = self.dropout
         if not backprop:
             self.dropout = 0.0
@@ -1013,21 +1014,22 @@ class DiscoRNNGparser:
             else:
                 print('oops')
         
-    def predict_beam(self,sentence,K,tag_sequence=None):
+    def predict_beam(self,sentence,K,tag_sequence):
         """
         Performs parsing and returns an ordered list of successful beam elements.
+        Discriminative version.
+
         The default search strategy amounts to sample the search space with discriminative probs and to rank the succesful states with generative probs.
         The alternative search strategy amounts to explore the search space with a conventional K-argmax pruning method (on disc probs) and to rank the results with generative probs.
         Args: 
               sentence      (list): list of strings (tokens)
               K              (int): beam width
-        KwArgs:
               tag_sequence  (list): a list of strings (tags)
         Returns:
              list. List of BeamElements.
         """
         dy.renew_cg()
-
+        
         word_encodings = self.encode_words(sentence,tag_sequence) if tag_sequence else None
          
         init = BeamElement.init_element(self.init_configuration(len(sentence),True))
@@ -1058,7 +1060,69 @@ class DiscoRNNGparser:
             successes.sort(key=lambda x:x.prefix_score,reverse=True)
             successes = successes[:K]
         return successes
-     
+
+    def predict_beam_generative(self,sentence,K):
+        """
+        Performs generative parsing and returns an ordered list of successful beam elements.
+        This is direct generative parsing. 
+        Args:
+              sentence      (list): list of strings (tokens)
+              K              (int): beam width 
+        Returns:
+             list. List of BeamElements. 
+        """
+        Kw  = int(K/10)
+        Kft = int(K/100)
+        
+        dy.renew_cg()
+        
+        init = BeamElement.init_element(self.init_configuration(len(sentence),False))
+        next_word,successes  = [init],[ ]
+        
+        while next_word:
+            
+            this_word = next_word
+            next_word = [ ]            
+            while this_word and len(next_word) < K:
+                    fringe     = [ ]
+                    fast_track = [ ]
+                    for elt in this_word:
+                        configuration = elt.configuration
+                        for (action, logprob) in self.predict_action_distrib(configuration,sentence):
+                            if elt.prev_action == DiscoRNNGparser.SHIFT: 
+                                new_elt = BeamElement(elt,action,elt.prefix_score+logprob)
+                                fast_track.append(new_elt)
+                            else:
+                                new_elt = BeamElement(elt,action,elt.prefix_score+logprob)
+                                fringe.append(new_elt)
+                                
+                    fast_track.sort(key=lambda x:x.prefix_gprob,reverse=True)
+                    fast_track = fast_track[:Kft]
+                    fringe.sort(key=lambda x:x.prefix_gprob,reverse=True)
+                    fringe = fringe[:K-len(fast_track)]+fast_track
+                    
+                    this_word = [ ]
+                    for s in fringe:
+                        prev_prev_action    = s.prev_element.prev_action
+                        if prev_prev_action == DiscoRNNGparser.SHIFT: #<=> tests if we currently generate a word
+                            next_word.append(s)
+                        elif s.prev_action ==  DiscoRNNGparser.TERMINATE:
+                            successes.append(s)
+                        else:
+                            self.exec_beam_action(s,sentence)
+                            this_word.append(s)
+                            
+            next_word.sort(key=lambda x:x.prefix_gprob,reverse=True)
+            next_word = next_word[:Kw]
+            for elt in next_word:
+                self.exec_beam_action(elt,sentence)
+        if successes:
+            successes.sort(key=lambda x:x.prefix_gprob,reverse=True)
+            successes = successes[:K]
+        return successes
+
+
+    
     @staticmethod
     def weighted_derivation(success_elt):
         """
@@ -1102,7 +1166,7 @@ class DiscoRNNGparser:
             tag_nodes   = tree.pos_nodes()
             tokens      = [x.children[0].label for x in tag_nodes]
             tags        = [x.label for x in tag_nodes]
-            results     = self.predict_beam(tokens,K,tags) if conditional else self.predict_beam(tokens,K)
+            results     = self.predict_beam(tokens,K,tags) if conditional else self.predict_beam_generative(tokens,K)
             derivations = [DiscoRNNGparser.weighted_derivation(r) for r in results]
             
             if conditional and generative and derivations:                 #reranks the derivations with the generative model
@@ -1190,8 +1254,7 @@ class DiscoRNNGparser:
         xstack_size = self.cond_stack_xsymbol_size  if conditional else  self.gen_stack_xsymbol_size
         mem_size    = self.cond_stack_memory_size   if conditional else  self.gen_stack_memory_size 
 
-        
-        return '\n'.join(['----------------------------',\
+        summary_items = ['----------------------------',\
                           '* Training %s model *'%(model_str,),\
                           'Vocabulary   size   : %d'%(self.lexicon.size()),\
                           '# Nonterminals      : %d'%(self.nonterminals.size()),\
@@ -1202,10 +1265,13 @@ class DiscoRNNGparser:
                           '# validation trees  : %d'%(dev_bank_size),\
                           '# epochs            : %d'%(epochs),\
                           'Learning rate       : %.3f'%(learning_rate),\
-                          'Dropout             : %.3f'%(self.dropout),\
-                          '----------------------------']) 
-    
-    
+                          'Dropout             : %.3f'%(self.dropout)]
+        if conditional: 
+            summary_items.extend(['POS embedding size  : %d'%(self.pos_embedding_size,),\
+                                  'Hist embedding size : %d'%(self.history_xsymbol_size)])
+        summary_items.append('----------------------------')
+        return '\n'.join(summary_items)
+                                  
     def estimate_params(self,train_treebank,train_tags,dev_treebank,dev_tags,modelname,config_file,conditional):
         """
         Estimates the parameters of a model from a treebank.
@@ -1409,7 +1475,7 @@ if __name__ == '__main__':
         evalb_flag  = pred_file.endswith('mrg')
 
         parser = DiscoRNNGparser.load_model(model_name+'/'+model_name)
-        parser.parse_corpus(pred_stream,ostream=out_stream,evalb_mode=evalb_flag,K=beam_size,kbest=1,conditional=discriminative,generative=generative)
+        parser.parse_corpus(pred_stream,ostream=out_stream,evalb_mode=evalb_flag,K=beam_size,kbest=10,conditional=discriminative,generative=generative)
 
         pred_stream.close()
         out_stream.close()
