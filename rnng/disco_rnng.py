@@ -1109,7 +1109,7 @@ class DiscoRNNGparser:
                         elif s.prev_action ==  DiscoRNNGparser.TERMINATE:
                             successes.append(s)
                         else:
-                            self.exec_beam_action(s,sentence)
+                            self.exec_beam_action(s,sentence,None,False)
                             this_word.append(s)
                             
             next_word.sort(key=lambda x:x.prefix_score,reverse=True)
