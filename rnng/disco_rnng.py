@@ -728,7 +728,7 @@ class DiscoRNNGparser:
                     buffer_embedding = word_encodings[word_idx] 
                     hidden_input     = dy.concatenate([stack_state.output(),history_state.output(),buffer_embedding])
                     static_scores    = self.cond_structural_W  * self.ifdropout(dy.tanh(hidden_input))  + self.cond_structural_b
-                    move_scores      = self.dynamic_move_matrix(S,stack_state,history_state,buffer_embedding,conditional)
+                    move_scores      = self.dynamic_move_matrix(S,stack_state,history_state,buffer_embedding,True)
                     all_scores       = dy.concatenate([static_scores,move_scores]) if move_scores else static_scores
                     logprobs         = dy.log_softmax(all_scores,restr_mask).value()                     
                     return [ (code2action(action_idx),logprob) for action_idx,logprob in enumerate(logprobs) if action_idx in restr_mask]
@@ -737,7 +737,7 @@ class DiscoRNNGparser:
                 if restr_mask: 
                     hidden_input     = stack_state.output()
                     static_scores    = self.gen_structural_W  * self.ifdropout(dy.tanh(hidden_input))  + self.gen_structural_b
-                    move_scores      = self.dynamic_move_matrix(S,stack_state,history_state,buffer_embedding,conditional)
+                    move_scores      = self.dynamic_move_matrix(S,stack_state,history_state,None,False)
                     all_scores       = dy.concatenate([static_scores,move_scores]) if move_scores else static_scores
                     logprobs         = dy.log_softmax(all_scores,restr_mask).value()                     
                     return [ (code2action(action_idx),logprob) for action_idx,logprob in enumerate(logprobs) if action_idx in restr_mask]
