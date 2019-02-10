@@ -817,10 +817,12 @@ class DiscoRNNGparser:
           RuntimeStats. the model NLL, the word only NLL, the size of the derivations, the number of predicted words 
         """
         
-        dropout = self.dropout
+        dropout,word_dropout = self.dropout,self.word_dropout
+        
         if not backprop:
             self.dropout = 0.0
-         
+            self.word_dropout = 0.0
+            
         runstats = RuntimeStats('NLL','lexNLL','N','lexN')
         runstats.push_row() 
         
@@ -872,8 +874,8 @@ class DiscoRNNGparser:
             except RuntimeError:
                 print('\nGradient exploded, batch update aborted...')
         else:
-            self.dropout = dropout
-            
+            self.dropout,self.word_dropout = dropout,word_dropout
+        
         return runstats
 
     def rescore_derivation(self,base_derivation,sentence):
@@ -1155,8 +1157,7 @@ class DiscoRNNGparser:
            K               (int): the size of the beam
            kbest           (int): the number of parses hypotheses outputted per sentence (<= K)
         """         
-        self.dropout      = 0.0
-        self.word_dropout = 0.0
+        self.dropout,self.word_dropout  = 0.0,0.0
         NLL = 0
         N   = 0
         stats_header = True 
@@ -1293,7 +1294,6 @@ class DiscoRNNGparser:
         
         for e in range(epochs):
             
-            self.word_dropout = word_dropout
             train_stats.push_row() 
             for idx,(tree,xtags) in enumerate(zip(train_treebank,train_tags)):
                 train_stats += self.eval_sentence(tree,xtags,conditional=conditional,backprop=True)
@@ -1302,7 +1302,6 @@ class DiscoRNNGparser:
             NLL,lex_NLL,N,lexN = train_stats.peek()            
             print('\n[Training]   Epoch %d, NLL = %f, lex-NLL = %f, PPL = %f, lex-PPL = %f'%(e,NLL,lex_NLL,np.exp(NLL/N),np.exp(lex_NLL/lexN)),flush=True)
 
-            self.word_dropout = 0.0
             valid_stats.push_row()  
             for idx,(tree,xtags) in enumerate(zip(dev_treebank,dev_tags)):
                 valid_stats += self.eval_sentence(tree,xtags,conditional=conditional,backprop=False)
