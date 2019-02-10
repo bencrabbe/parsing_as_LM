@@ -1269,7 +1269,7 @@ class DiscoRNNGparser:
         if conditional: 
             summary_items.extend(['POS embedding size  : %d'%(self.pos_embedding_size,),\
                                   'Hist embedding size : %d'%(self.history_xsymbol_size),\
-                                  'Word dropout(alpha) : %d'%(self.alpha_vocab)])
+                                  'Word dropout(alpha) : %d'%(self.word_dropout)])
         summary_items.append('----------------------------')
         return '\n'.join(summary_items)
                                   
