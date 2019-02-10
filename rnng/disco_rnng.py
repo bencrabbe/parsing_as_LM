@@ -1027,9 +1027,7 @@ class DiscoRNNGparser:
               tag_sequence  (list): a list of strings (tags)
         Returns:
              list. List of BeamElements.
-        """
-        from math import exp
-        
+        """        
         dy.renew_cg()
         
         word_encodings = self.encode_words(sentence,tag_sequence) if tag_sequence else None
