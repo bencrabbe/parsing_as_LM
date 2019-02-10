@@ -156,12 +156,10 @@ class DiscoRNNGparser:
         self.cond_word_embedding_size   = int(config['conditional']['word_embedding_size'])
         self.pos_embedding_size         = int(config['conditional']['pos_embedding_size'])
         self.history_xsymbol_size       = int(config['conditional']['history_xsymbol_size'])
-        self.word_dropout               = float(config['conditional']['word_dropout'])
  
         self.gen_stack_memory_size     = int(config['generative']['stack_memory_size'])
         self.gen_stack_xsymbol_size    = int(config['generative']['stack_xsymbol_size'])
         self.gen_word_embedding_size   = int(config['generative']['word_embedding_size'])
-        self.word_dropout              = float(config['generative']['word_dropout'])
         self.brown_file                = config['generative']['brown_file']
 
         
@@ -916,7 +914,7 @@ class DiscoRNNGparser:
             prev_action = ref_action
              
         return r_derivation
- 
+  
     def encode_words(self,sentence,pos_sequence):
         """
         Runs a backward LSTM on the input sentence.
@@ -931,7 +929,7 @@ class DiscoRNNGparser:
         lex_state       = self.lexer_rnn_bwd.initial_state()
         lex_state       = lex_state.add_input( self.cond_lex_W*dy.concatenate([wembedding,tembedding])+ self.cond_lex_b )
         
-        #recurrence
+        #recurrence 
         word_embeddings = [self.cond_word_embeddings[self.lexicon.index(word,alpha_dropout=self.word_dropout)] for word in reversed(sentence) ]
         tag_embeddings  = [self.tag_embeddings[self.tags.index(pos)] for pos in reversed(pos_sequence) ]
 
@@ -967,7 +965,7 @@ class DiscoRNNGparser:
             return self.eval_derivation(derivation,sentence,None,word_encodings,conditional,backprop)
 
     @staticmethod
-    def prune_beam(beam,K):
+    def prune_beam(beam,K): 
         """
         Prunes the beam to the top K elements using the *discriminative* probability (performs a K-Argmax).
         Inplace destructive operation on the beam.
@@ -1230,11 +1228,11 @@ class DiscoRNNGparser:
 
         section = 'conditional' if conditional else 'generative'
         
-        lr      = float(config[section]['learning_rate'])
-        epochs  = int(config[section]['num_epochs'])
-        dropout = float(config[section]['dropout'])
-
-        return lr,epochs,dropout
+        lr           = float(config[section]['learning_rate'])
+        epochs       = int(config[section]['num_epochs'])
+        dropout      = float(config[section]['dropout'])
+        word_dropout = float(config[section]['word_dropout'])
+        return lr,epochs,dropout,word_dropout
 
     
     def summary(self,train_bank_size,dev_bank_size,learning_rate,epochs,conditional):
@@ -1278,11 +1276,12 @@ class DiscoRNNGparser:
         """
         Estimates the parameters of a model from a treebank.
         """
-        lr,epochs,dropout = self.read_learning_params(config_file,conditional)
+        lr,epochs,dropout,word_dropout = self.read_learning_params(config_file,conditional)
         
-        self.dropout = dropout
-        self.trainer = dy.SimpleSGDTrainer(self.cond_model,learning_rate=lr) if conditional else dy.SimpleSGDTrainer(self.gen_model,learning_rate=lr)
-        min_nll      = np.inf
+        self.dropout      = dropout
+        self.word_dropout = word_dropout
+        self.trainer      = dy.SimpleSGDTrainer(self.cond_model,learning_rate=lr) if conditional else dy.SimpleSGDTrainer(self.gen_model,learning_rate=lr)
+        min_nll           = np.inf
 
         ntrain_sentences = len(train_treebank)
         ndev_sentences   = len(dev_treebank)
@@ -1293,7 +1292,9 @@ class DiscoRNNGparser:
         valid_stats = RuntimeStats('NLL','lexNLL','N','lexN')
         
         for e in range(epochs):
-            train_stats.push_row()
+            
+            self.word_dropout = word_dropout
+            train_stats.push_row() 
             for idx,(tree,xtags) in enumerate(zip(train_treebank,train_tags)):
                 train_stats += self.eval_sentence(tree,xtags,conditional=conditional,backprop=True)
                 sys.stdout.write('\r===> processed %d training trees'%(idx+1))
@@ -1301,6 +1302,7 @@ class DiscoRNNGparser:
             NLL,lex_NLL,N,lexN = train_stats.peek()            
             print('\n[Training]   Epoch %d, NLL = %f, lex-NLL = %f, PPL = %f, lex-PPL = %f'%(e,NLL,lex_NLL,np.exp(NLL/N),np.exp(lex_NLL/lexN)),flush=True)
 
+            self.word_dropout = 0.0
             valid_stats.push_row()  
             for idx,(tree,xtags) in enumerate(zip(dev_treebank,dev_tags)):
                 valid_stats += self.eval_sentence(tree,xtags,conditional=conditional,backprop=False)
