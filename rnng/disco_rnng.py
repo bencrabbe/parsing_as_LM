@@ -3,7 +3,7 @@
 import dynet as dy
 import configparser,getopt
 
-from collections import namedtuple
+from collections import namedtuple,Counter
 
 from lexicons  import *
 from discotree import *
@@ -146,7 +146,7 @@ class DiscoRNNGparser:
         self.gen_word_embedding_size   = 256
         assert(self.stack_xsymbol_size == self.gen_word_embedding_size)
         
-        self.vocab_thresh              = 1
+        self.word_dropout          = 0.5
 
         config = configparser.ConfigParser()
         config.read(configfilename)
@@ -156,14 +156,14 @@ class DiscoRNNGparser:
         self.cond_word_embedding_size   = int(config['conditional']['word_embedding_size'])
         self.pos_embedding_size         = int(config['conditional']['pos_embedding_size'])
         self.history_xsymbol_size       = int(config['conditional']['history_xsymbol_size'])
-        self.vocab_thresh               = int(config['conditional']['vocab_thresh'])
+        self.word_dropout               = int(config['conditional']['word_dropout'])
  
         self.gen_stack_memory_size     = int(config['generative']['stack_memory_size'])
         self.gen_stack_xsymbol_size    = int(config['generative']['stack_xsymbol_size'])
         self.gen_word_embedding_size   = int(config['generative']['word_embedding_size'])
-        self.vocab_thresh              = int(config['generative']['vocab_thresh'])
+        self.word_dropout              = int(config['generative']['word_dropout'])
         self.brown_file                = config['generative']['brown_file']
-
+ 
         
     def allocate_conditional_params(self):
         """ 
@@ -296,7 +296,7 @@ class DiscoRNNGparser:
         shifted_word     = sentence[ B[0] ]
         if conditional:
             shifted_tag   = tag_sequence[ B[0] ]
-            wembedding    = self.cond_word_embeddings[self.lexicon.index(shifted_word)]
+            wembedding    = self.cond_word_embeddings[self.lexicon.index(shifted_word,alpha_dropout=self.word_dropout)]
             tembedding    = self.tag_embeddings[self.tags.index(shifted_tag)]
             embedding     = dy.concatenate([wembedding,tembedding])
             xinput        = dy.rectify(self.cond_lex_W * embedding + self.cond_lex_b)
@@ -382,7 +382,7 @@ class DiscoRNNGparser:
         for SYM in closed_symbols:
             bwd_state = bwd_state.add_input(SYM.embedding)
 
-        tree_h         = self.ifdropout( dy.concatenate([fwd_state.output(),bwd_state.output()]) )
+        tree_h         = dy.concatenate([fwd_state.output(),bwd_state.output()])
         W = self.cond_tree_W if conditional else self.gen_tree_W
         b = self.cond_tree_b if conditional else self.gen_tree_b
         tree_embedding = dy.tanh(W * tree_h + b)
@@ -559,16 +559,15 @@ class DiscoRNNGparser:
         """
         Builds indexes for word symbols found in the treebank
         """        
-        known_words = [ ]
+        known_words = Counter()
         known_tags  = set([ ])
         for words,tags in zip(train_words,train_tags):
-            known_words.extend(words)
+            known_words.update(words)
             known_tags.update(tags)
             
-        known_words      = set(get_known_vocabulary(known_words,vocab_threshold=self.vocab_thresh))
-        known_words.add( DiscoRNNGparser.START_TOKEN)
-        self.brown_file  = normalize_brown_file(self.brown_file,known_words,self.brown_file+'.unk',UNK_SYMBOL=DiscoRNNGparser.UNKNOWN_TOKEN)
-        self.lexicon     = SymbolLexicon( list(known_words),unk_word=DiscoRNNGparser.UNKNOWN_TOKEN)
+        known_words.update([DiscoRNNGparser.START_TOKEN])
+        self.brown_file  = normalize_brown_file(self.brown_file,set(known_words.keys()),self.brown_file+'.unk',UNK_SYMBOL=DiscoRNNGparser.UNKNOWN_TOKEN)
+        self.lexicon     = SymbolLexicon(known_words,unk_word=DiscoRNNGparser.UNKNOWN_TOKEN)
 
         known_tags.add(DiscoRNNGparser.START_POS)
         self.tags = SymbolLexicon( list(known_tags))
@@ -676,9 +675,9 @@ class DiscoRNNGparser:
         for idx,stack_elt in enumerate(reversed(stack)):
             if conditional:
                 H =  dy.concatenate([local_state.output(),history_state.output(),buffer_embedding])
-                stack_scores.append( self.cond_move * self.ifdropout(dy.tanh(H)) )
+                stack_scores.append( self.cond_move * dy.tanh(H) )
             else:
-                stack_scores.append( self.gen_move * self.ifdropout(dy.tanh(local_state.output())))
+                stack_scores.append( self.gen_move * dy.tanh(local_state.output()))
             if stack_elt.predicted and not stack_elt.has_to_move : #check this condition:up to where can we move ?
                 break
             local_state = local_state.prev() 
@@ -727,7 +726,7 @@ class DiscoRNNGparser:
                     word_idx         = B[0] if B else -1
                     buffer_embedding = word_encodings[word_idx] 
                     hidden_input     = dy.concatenate([stack_state.output(),history_state.output(),buffer_embedding])
-                    static_scores    = self.cond_structural_W  * self.ifdropout(dy.tanh(hidden_input))  + self.cond_structural_b
+                    static_scores    = self.cond_structural_W  * dy.tanh(hidden_input)  + self.cond_structural_b
                     move_scores      = self.dynamic_move_matrix(S,stack_state,history_state,buffer_embedding,True)
                     all_scores       = dy.concatenate([static_scores,move_scores]) if move_scores else static_scores
                     logprobs         = dy.log_softmax(all_scores,restr_mask).value()                     
@@ -736,7 +735,7 @@ class DiscoRNNGparser:
             else:
                 if restr_mask: 
                     hidden_input     = stack_state.output()
-                    static_scores    = self.gen_structural_W  * self.ifdropout(dy.tanh(hidden_input))  + self.gen_structural_b
+                    static_scores    = self.gen_structural_W  * dy.tanh(hidden_input)  + self.gen_structural_b
                     move_scores      = self.dynamic_move_matrix(S,stack_state,history_state,None,False)
                     all_scores       = dy.concatenate([static_scores,move_scores]) if move_scores else static_scores
                     logprobs         = dy.log_softmax(all_scores,restr_mask).value()                     
@@ -775,7 +774,7 @@ class DiscoRNNGparser:
             if conditional:
                 word_idx = B[0] if B else -1
                 H        = dy.concatenate([stack_state.output(),history_state.output(),word_encodings[word_idx]])
-                nll      = dy.pickneglogsoftmax(self.cond_nonterminals_W  * self.ifdropout(dy.tanh(H)) + self.cond_nonterminals_b,ref_idx)
+                nll      = dy.pickneglogsoftmax(self.cond_nonterminals_W  * dy.tanh(H) + self.cond_nonterminals_b,ref_idx)
             else: 
                 H   = stack_state.output()
                 nll = dy.pickneglogsoftmax(self.gen_nonterminals_W  * dy.tanh(H)  + self.gen_nonterminals_b,ref_idx)
@@ -789,13 +788,13 @@ class DiscoRNNGparser:
                 word_idx         = B[0] if B else -1
                 buffer_embedding = word_encodings[word_idx]
                 hidden_input     = dy.concatenate([stack_state.output(),history_state.output(),buffer_embedding])
-                static_scores    = self.cond_structural_W  * self.ifdropout(dy.tanh(hidden_input))  + self.cond_structural_b
+                static_scores    = self.cond_structural_W  * dy.tanh(hidden_input)  + self.cond_structural_b
                 move_scores      = self.dynamic_move_matrix(S,stack_state,history_state,buffer_embedding,conditional)
                 all_scores        = dy.concatenate([static_scores,move_scores]) if move_scores else static_scores
                 nll              = -dy.pick(dy.log_softmax(all_scores,restr_mask),ref_idx)
             else:
                  hidden_input     = stack_state.output()
-                 static_scores    = self.gen_structural_W  * self.ifdropout(dy.tanh(hidden_input))  + self.gen_structural_b
+                 static_scores    = self.gen_structural_W  * dy.tanh(hidden_input)  + self.gen_structural_b
                  move_scores      = self.dynamic_move_matrix(S,stack_state,history_state,None,conditional)
                  all_scores       = dy.concatenate([static_scores,move_scores]) if move_scores else static_scores
                  nll              = -dy.pick(dy.log_softmax(all_scores,restr_mask),ref_idx)                    
@@ -932,7 +931,7 @@ class DiscoRNNGparser:
         lex_state       = lex_state.add_input( self.cond_lex_W*dy.concatenate([wembedding,tembedding])+ self.cond_lex_b )
         
         #recurrence
-        word_embeddings = [self.cond_word_embeddings[self.lexicon.index(word)] for word in reversed(sentence) ]
+        word_embeddings = [self.cond_word_embeddings[self.lexicon.index(word,alpha_dropout=self.word_dropout)] for word in reversed(sentence) ]
         tag_embeddings  = [self.tag_embeddings[self.tags.index(pos)] for pos in reversed(pos_sequence) ]
 
         xinput          = [self.cond_lex_W*dy.concatenate([wembedding,tembedding]) + self.cond_lex_b for wembedding,tembedding in zip(word_embeddings,tag_embeddings)]
@@ -1157,7 +1156,8 @@ class DiscoRNNGparser:
            K               (int): the size of the beam
            kbest           (int): the number of parses hypotheses outputted per sentence (<= K)
         """         
-        self.dropout = 0.0
+        self.dropout      = 0.0
+        self.word_dropout = 0.0
         NLL = 0
         N   = 0
         stats_header = True 
@@ -1268,7 +1268,8 @@ class DiscoRNNGparser:
                           'Dropout             : %.3f'%(self.dropout)]
         if conditional: 
             summary_items.extend(['POS embedding size  : %d'%(self.pos_embedding_size,),\
-                                  'Hist embedding size : %d'%(self.history_xsymbol_size)])
+                                  'Hist embedding size : %d'%(self.history_xsymbol_size),\
+                                  'Word dropout(alpha) : %d'%(self.alpha_vocab)])
         summary_items.append('----------------------------')
         return '\n'.join(summary_items)
                                   

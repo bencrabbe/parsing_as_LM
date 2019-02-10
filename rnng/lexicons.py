@@ -1,6 +1,7 @@
 #! /usr/bin/env python
 
 from collections import Counter
+from random import random
 import json
 import sys
 import numpy as np
@@ -8,7 +9,7 @@ import numpy as np
 """
 These are various lexer style utilities for coding strings to integers
 and vice versa.
-"""
+""" 
 class SymbolLexicon:
     """
     This class manages encoding of a lexicon as a set of finite size, including unknown words
@@ -23,10 +24,15 @@ class SymbolLexicon:
         if unk_word:
             wordlist.append(unk_word)
 
-        #wordlist = list(set(wordlist))
-        self.words2i  = dict([ (w,idx) for idx,w in enumerate(wordlist)])
-        self.i2words  = wordlist
-        self.unk_word = unk_word
+        if type(wordlist) == Counter:
+            self.i2words       = list(wordlist.keys())
+            self.word2i        = dict([ (w,idx) for idx,w in enumerate(self.i2words)])
+            self.unk_word      = unk_word
+            self.word_counts   = wordlist
+        else:
+            self.words2i  = dict([ (w,idx) for idx,w in enumerate(wordlist)])
+            self.i2words  = wordlist
+            self.unk_word = unk_word
 
 
         
@@ -65,19 +71,22 @@ class SymbolLexicon:
         """
         return len(self.i2words)
         
-    def normal_wordform(self,token):
+    def normal_wordform(self,token,alpha_dropout=0.0):
         """
         @param token: a string
         @return a string, the token or the UNK word code
         """
+        if alpha_dropout:
+            if random() < alpha_dropout/self.counts[token]:
+                return self.unk_word
         return token if token in self.words2i else self.unk_word
     
-    def index(self,token):
+    def index(self,token,alpha_dropout=0.0):
         """
         @param token: a string
         @return the index of the word in this lexicon
         """
-        return self.words2i[ self.normal_wordform(token) ]
+        return self.words2i[ self.normal_wordform(token,alpha_dropout) ]
 
     def unk_index(self):
         """
