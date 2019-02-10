@@ -163,7 +163,8 @@ class DiscoRNNGparser:
         self.gen_word_embedding_size   = int(config['generative']['word_embedding_size'])
         self.word_dropout              = float(config['generative']['word_dropout'])
         self.brown_file                = config['generative']['brown_file']
- 
+
+        
         
     def allocate_conditional_params(self):
         """ 
