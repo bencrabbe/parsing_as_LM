@@ -25,7 +25,7 @@ class SymbolLexicon:
             if unk_word:
                 wordlist.update([unk_word])
             self.i2words       = list(wordlist.keys())
-            self.word2i        = dict([ (w,idx) for idx,w in enumerate(self.i2words)])
+            self.words2i       = dict([ (w,idx) for idx,w in enumerate(self.i2words)])
             self.unk_word      = unk_word
             self.word_counts   = wordlist
         else:
