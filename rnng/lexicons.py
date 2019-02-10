@@ -78,7 +78,7 @@ class SymbolLexicon:
         @return a string, the token or the UNK word code
         """
         if alpha_dropout:
-            if random() < alpha_dropout/self.counts[token]:
+            if random() < alpha_dropout/self.word_counts[token]:
                 return self.unk_word
         return token if token in self.words2i else self.unk_word
     
