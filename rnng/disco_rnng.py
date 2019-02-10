@@ -723,7 +723,7 @@ class DiscoRNNGparser:
             if conditional:                
                 if restr_mask:
                     word_idx         = B[0] if B else -1
-                    buffer_embedding = word_encodings[word_idx] 
+                    buffer_embedding = word_encodings[word_idx]
                     hidden_input     = dy.concatenate([stack_state.output(),history_state.output(),buffer_embedding])
                     static_scores    = self.cond_structural_W  * dy.tanh(hidden_input)  + self.cond_structural_b
                     move_scores      = self.dynamic_move_matrix(S,stack_state,history_state,buffer_embedding,True)
@@ -1028,6 +1028,8 @@ class DiscoRNNGparser:
         Returns:
              list. List of BeamElements.
         """
+        from math import exp
+        
         dy.renew_cg()
         
         word_encodings = self.encode_words(sentence,tag_sequence) if tag_sequence else None
@@ -1045,15 +1047,18 @@ class DiscoRNNGparser:
                 S,B,n,stack_state,lab_state,history_state = configuration
                 if lab_state == DiscoRNNGparser.WORD_LABEL:
                     for (action, logprob) in self.predict_action_distrib(configuration,sentence,word_encodings,True):
+                        print(action,exp(logprob))
                         next_preds.append(BeamElement(elt,action,elt.prefix_score+logprob))
                 elif lab_state == DiscoRNNGparser.NT_LABEL:
                     for (action, logprob) in self.predict_action_distrib(configuration,sentence,word_encodings,True):
+                        print(action,exp(logprob))
                         next_preds.append(BeamElement(elt,action,elt.prefix_score+logprob))
                 else:
                     for (action, logprob) in self.predict_action_distrib(configuration,sentence,word_encodings,True):
+                        print(action,exp(logprob))
                         if action == DiscoRNNGparser.TERMINATE:
                             successes.append(BeamElement(elt,action,elt.prefix_score+logprob))
-                        else:
+                        else: 
                             next_preds.append(BeamElement(elt,action,elt.prefix_score+logprob))
             beam = next_preds 
         if successes:
@@ -1121,8 +1126,6 @@ class DiscoRNNGparser:
             successes = successes[:K]
         return successes
 
-
-    
     @staticmethod
     def weighted_derivation(success_elt):
         """
@@ -1281,7 +1284,9 @@ class DiscoRNNGparser:
         
         self.dropout      = dropout
         self.word_dropout = word_dropout
-        self.trainer      = dy.SimpleSGDTrainer(self.cond_model,learning_rate=lr) if conditional else dy.SimpleSGDTrainer(self.gen_model,learning_rate=lr)
+        #self.trainer      = dy.SimpleSGDTrainer(self.cond_model,learning_rate=lr) if conditional else dy.SimpleSGDTrainer(self.gen_model,learning_rate=lr)
+        #experimental : add lr param if it works
+        self.trainer      = dy.AdamTrainer(self.cond_model) if conditional else dy.SimpleSGDTrainer(self.gen_model,learning_rate=lr)
         min_nll           = np.inf
 
         ntrain_sentences = len(train_treebank)
