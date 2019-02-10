@@ -156,12 +156,12 @@ class DiscoRNNGparser:
         self.cond_word_embedding_size   = int(config['conditional']['word_embedding_size'])
         self.pos_embedding_size         = int(config['conditional']['pos_embedding_size'])
         self.history_xsymbol_size       = int(config['conditional']['history_xsymbol_size'])
-        self.word_dropout               = int(config['conditional']['word_dropout'])
+        self.word_dropout               = float(config['conditional']['word_dropout'])
  
         self.gen_stack_memory_size     = int(config['generative']['stack_memory_size'])
         self.gen_stack_xsymbol_size    = int(config['generative']['stack_xsymbol_size'])
         self.gen_word_embedding_size   = int(config['generative']['word_embedding_size'])
-        self.word_dropout              = int(config['generative']['word_dropout'])
+        self.word_dropout              = float(config['generative']['word_dropout'])
         self.brown_file                = config['generative']['brown_file']
  
         
