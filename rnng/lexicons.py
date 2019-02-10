@@ -21,15 +21,16 @@ class SymbolLexicon:
         @param wordlist       : a list of strings or a collections.Counter
         @param unk_word       : a token string for unknown words
         """
-        if unk_word:
-            wordlist.append(unk_word)
-
         if type(wordlist) == Counter:
+            if unk_word:
+                wordlist.update([unk_word])
             self.i2words       = list(wordlist.keys())
             self.word2i        = dict([ (w,idx) for idx,w in enumerate(self.i2words)])
             self.unk_word      = unk_word
             self.word_counts   = wordlist
         else:
+            if unk_word:
+                wordlist.append(unk_word)
             self.words2i  = dict([ (w,idx) for idx,w in enumerate(wordlist)])
             self.i2words  = wordlist
             self.unk_word = unk_word
