@@ -944,9 +944,6 @@ class DiscoRNNGparser:
         Returns:
           RuntimeStats. the model NLL, the word only NLL, the size of the derivations, the number of predicted words on this batch
         """
-
-
-        
         dy.renew_cg()
 
         dropout,word_dropout = self.dropout,self.word_dropout
@@ -966,7 +963,7 @@ class DiscoRNNGparser:
 
         if not backprop:
             self.dropout,self.word_dropout = dropout,word_dropout
-
+        return stats
             
     @staticmethod
     def prune_beam(beam,K): 
