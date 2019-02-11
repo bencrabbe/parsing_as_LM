@@ -816,13 +816,6 @@ class DiscoRNNGparser:
         Returns:
           RuntimeStats. the model NLL, the word only NLL, the size of the derivations, the number of predicted words 
         """
-        
-        dropout,word_dropout = self.dropout,self.word_dropout
-        
-        if not backprop:
-            self.dropout = 0.0
-            self.word_dropout = 0.0
-            
         runstats = RuntimeStats('NLL','lexNLL','N','lexN')
         runstats.push_row() 
         
@@ -872,10 +865,7 @@ class DiscoRNNGparser:
             try:
                 self.trainer.update()
             except RuntimeError:
-                print('\nGradient exploded, batch update aborted...')
-        else:
-            self.dropout,self.word_dropout = dropout,word_dropout
-        
+                print('\nGradient exploded, batch update aborted...')        
         return runstats
 
     def rescore_derivation(self,base_derivation,sentence):
@@ -954,18 +944,30 @@ class DiscoRNNGparser:
         Returns:
           RuntimeStats. the model NLL, the word only NLL, the size of the derivations, the number of predicted words on this batch
         """
-        dy.renew_cg()
+
+
         
+        dy.renew_cg()
+
+        dropout,word_dropout = self.dropout,self.word_dropout
+        
+        if not backprop:
+            self.dropout,self.word_dropout = 0.0,0.0
+              
         sentence = ref_tree.words()
         if conditional:
             word_encodings         = self.encode_words(sentence,ref_tags)
             derivation,last_config = self.static_oracle(ref_tree,ref_tree,sentence,ref_tags,conditional)
-            return self.eval_derivation(derivation,sentence,ref_tags,word_encodings,conditional,backprop)
+            stats = self.eval_derivation(derivation,sentence,ref_tags,word_encodings,conditional,backprop)
         else:
             word_encodings         = None
             derivation,last_config = self.static_oracle(ref_tree,ref_tree,sentence,None,conditional)
-            return self.eval_derivation(derivation,sentence,None,word_encodings,conditional,backprop)
+            stats = self.eval_derivation(derivation,sentence,None,word_encodings,conditional,backprop)
 
+        if not backprop:
+            self.dropout,self.word_dropout = dropout,word_dropout
+
+            
     @staticmethod
     def prune_beam(beam,K): 
         """
