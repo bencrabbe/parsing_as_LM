@@ -141,13 +141,16 @@ def normalize_brown_file(brown_filename,lexical_set,out_filename,UNK_SYMBOL='<UN
     @param outfilename  : the new Brown cluster file
     @param UNK_SYMBOL.  : the UNK word symbol 
     """
+    print(len(lexical_set))
     istream = open(brown_filename)
     ostream = open(out_filename,'w')
     for line in istream:
         clsID,word,freq = line.split()
         if word in lexical_set:
             print('\t'.join([clsID,word,freq]),file = ostream)
-
+        else:
+            print('dropped',word)
+            
     #THE UNK CLUSTER GETS ID 0
     uclsID = 0
     s = istream.read() + '%d\t%s\t%d'%(uclsID,UNK_SYMBOL,1)

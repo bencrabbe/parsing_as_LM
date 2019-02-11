@@ -1283,7 +1283,7 @@ class DiscoRNNGparser:
         self.word_dropout = word_dropout
         #self.trainer      = dy.SimpleSGDTrainer(self.cond_model,learning_rate=lr) if conditional else dy.SimpleSGDTrainer(self.gen_model,learning_rate=lr)
         #experimental : add lr param if it works
-        self.trainer      = dy.AdamTrainer(self.cond_model) if conditional else dy.SimpleSGDTrainer(self.gen_model,learning_rate=lr)
+        self.trainer      = dy.AdamTrainer(self.cond_model,learning_rate=lr) if conditional else dy.SimpleSGDTrainer(self.gen_model,learning_rate=lr)
         min_nll           = np.inf
 
         ntrain_sentences = len(train_treebank)
