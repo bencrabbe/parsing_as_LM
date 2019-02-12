@@ -170,7 +170,7 @@ def get_known_vocabulary(text,vocab_threshold=1):
     Returns:
           A set of string. The vocabulary 
     """
-    lexicon = Counter()
+    lexicon = Counter() 
     for line in text:
         if type(line) == str:
             lexicon.update(line.split())

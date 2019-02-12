@@ -542,7 +542,7 @@ class DiscoRNNGparser:
                     node = stack.pop()
                     if node.predicted and not node.has_to_move:
                         stack.append( StackElt(symbol=DiscoTree(node.symbol,children),predicted=False,has_to_move=False) )
-                        stack.extend(reversed(moved)) 
+                        stack.extend(reversed(moved) ) 
                         break 
                     if node.has_to_move:
                         sym,pred,mov = node
@@ -1044,15 +1044,15 @@ class DiscoRNNGparser:
                 S,B,n,stack_state,lab_state,history_state = configuration
                 if lab_state == DiscoRNNGparser.WORD_LABEL:
                     for (action, logprob) in self.predict_action_distrib(configuration,sentence,word_encodings,True):
-                        print(action,exp(logprob))
+                        #print(action,exp(logprob))
                         next_preds.append(BeamElement(elt,action,elt.prefix_score+logprob))
                 elif lab_state == DiscoRNNGparser.NT_LABEL:
                     for (action, logprob) in self.predict_action_distrib(configuration,sentence,word_encodings,True):
-                        print(action,exp(logprob))
+                        #print(action,exp(logprob))
                         next_preds.append(BeamElement(elt,action,elt.prefix_score+logprob))
                 else:
                     for (action, logprob) in self.predict_action_distrib(configuration,sentence,word_encodings,True):
-                        print(action,exp(logprob))
+                        #print(action,exp(logprob))
                         if action == DiscoRNNGparser.TERMINATE:
                             successes.append(BeamElement(elt,action,elt.prefix_score+logprob))
                         else: 
