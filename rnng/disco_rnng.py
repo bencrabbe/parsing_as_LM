@@ -773,7 +773,7 @@ class DiscoRNNGparser:
             if conditional:
                 word_idx = B[0] if B else -1
                 H        = dy.concatenate([stack_state.output(),history_state.output(),word_encodings[word_idx]])
-                nll      = dy.pickneglogsoftmax(self.cond_nonterminals_W  * dy.tanh(H) + self.cond_nonterminals_b,ref_idx)
+                nll      = dy.pickneglogsoftmax(self.cond_nonterminals_W  * self.ifdropout(dy.tanh(H)) + self.cond_nonterminals_b,ref_idx)
             else: 
                 H   = stack_state.output()
                 nll = dy.pickneglogsoftmax(self.gen_nonterminals_W  * dy.tanh(H)  + self.gen_nonterminals_b,ref_idx)
@@ -787,7 +787,7 @@ class DiscoRNNGparser:
                 word_idx         = B[0] if B else -1
                 buffer_embedding = word_encodings[word_idx]
                 hidden_input     = dy.concatenate([stack_state.output(),history_state.output(),buffer_embedding])
-                static_scores    = self.cond_structural_W  * dy.tanh(hidden_input)  + self.cond_structural_b
+                static_scores    = self.cond_structural_W  * self.ifdropout(dy.tanh(hidden_input))  + self.cond_structural_b
                 move_scores      = self.dynamic_move_matrix(S,stack_state,history_state,buffer_embedding,conditional)
                 all_scores        = dy.concatenate([static_scores,move_scores]) if move_scores else static_scores
                 nll              = -dy.pick(dy.log_softmax(all_scores,restr_mask),ref_idx)
