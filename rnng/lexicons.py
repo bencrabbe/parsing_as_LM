@@ -149,7 +149,8 @@ def normalize_brown_file(brown_filename,lexical_set,out_filename,UNK_SYMBOL='<UN
         if word in lexical_set:
             print('\t'.join([clsID,word,freq]),file = ostream)
         else:
-            print('dropped',word)
+            pass
+            #print('dropped',word)
             
     #THE UNK CLUSTER GETS ID 0
     uclsID = 0
