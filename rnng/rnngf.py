@@ -75,6 +75,11 @@ class BeamElement:
         self.prefix_gprob = prefix_gprob
         self.prefix_dprob = prefix_dprob
         self.configuration = None
+
+        #stats backtrack flags
+        self.succ_recorded     = False
+        self.fail_recorded     = False
+        self.overall_recorded  = False
         
     @staticmethod
     def init_element(configuration):
@@ -86,7 +91,10 @@ class BeamElement:
            BeamElement to be used at init
         """
         b =  BeamElement(None,None,0,0)
-        b.configuration = configuration
+        b.configuration       = configuration
+        b.succ_recorded       = True
+        b.fail_recorded       = True
+        b.overall_recorded    = True
         return b
     
     def is_initial_element(self):
@@ -322,7 +330,7 @@ class RNNGparser:
         Returns:
            tuple. A configuration resulting from opening the constituent
         """
-        S,B,n,stack_state,lab_state = configuration
+        S,B,n,stack_state,lab_state = configuration 
         return (S,B,n,stack_state,RNNGparser.NT_LABEL)
 
     def close_action(self,configuration):
@@ -364,7 +372,6 @@ class RNNGparser:
         
         return (newS,B,n-1,stack_state.add_input(tree_embedding),RNNGparser.NO_LABEL)
 
-    
     def open_nonterminal(self,configuration,Xlabel):
         """
         The nonterminal labelling action. This adds an open nonterminal on the stack under the stack top (left corner style inference)
@@ -757,7 +764,7 @@ class RNNGparser:
              sentence         (list): a list of strings, the tokens.
         """
         
-        if  beam_elt.is_initial_element():
+        if  beam_elt.is_initial_element(): 
             beam_elt.configuration = self.init_configuration(len(sentence))
         else:
             configuration = beam_elt.prev_element.configuration
@@ -829,79 +836,94 @@ class RNNGparser:
         return D
 
     @staticmethod
-    def deriv2stats(weighted_derivation):
+    def beam2stats(success,failures,marginal_prob,prefix_entropy):
         """
-        Computes statistical indicators of interest from a derivation.
+        Computes statistical indicators of interest from a beam at some timestep t
         Args:
-           weighted_derivation (list): a list [ (Action,logprob)_0 ... (Action,logprob)_m ].
+           success        (list): a list of successful BeamElements returned by the parser's search method at time step t
+           failures       (list): a list of failures BeamElements returned by the parser's search method at time step t
+           marginal_prob (float): log probability of the prefix string at timestep t-1
+           prefix_entropy(float): entropy at time step t-1
         Returns:
-           A pandas DataFrame. Dataframe with word aligned stats collected on a single derivation.
-           The stats collected are the number of OPEN CLOSE since last word and log P(a_1...a_K) 
+           A dictionary with collected stats names and their values
         """
+        def backtrack_succ(deriv_elt):
+            #that's a backtrack with a memo functionality
+            c = 0
+            while not deriv_elt.succ_recorded:
+                c += 1
+                deriv_elt.succ_recorded = True
+                deriv_elt = deriv_elt.prev_element
+            return c
+        
+        def backtrack_fail(deriv_elt):
+            #that's a backtrack with a memo functionality
+            c = 0
+            while not deriv_elt.fail_recorded:
+                c += 1
+                deriv_elt.fail_recorded = True
+                deriv_elt = deriv_elt.prev_element
+            return c
 
-        header = ("nOPEN","nCLOSE","logp") #logp = P(a_1,... a_K)
-        data         = []
-        nOp, nCl     = 0.0,0.0
-        prev_action  = None
-        for action,logprob in weighted_derivation:
-            if prev_action == RNNGparser.SHIFT:
-                datum     = (nOp,nCl,logprob)
-                data.append(datum)
-                nOp, nCl     = 0.0,0.0
-            elif action == RNNGparser.OPEN:
-                nOp +=1
-            elif action == RNNGparser.CLOSE:
-                nCl +=1
-            prev_action = action
-            
-        return pda.DataFrame.from_records(data,columns=header)
+        def backtrack_overall(deriv_elt):
+            #that's a backtrack with a memo functionality
+            c = 0
+            while not deriv_elt.overall_recorded:
+                c += 1
+                deriv_elt.overall_recorded = True
+                deriv_elt = deriv_elt.prev_element
+            return c
 
-    def aggregate_stats(self,derivation_list,sentence):
+        #structural metrics
+        beam_size          = len(success)
+        succ_activity      = sum([ backtrack_succ(elt) for elt in success])
+        fail_activity      = sum([ backtrack_fail(elt) for elt in failures])
+        overall_activity   = sum([ backtrack_overall(elt) for elt in failures])
+
+        #information theoretic metrics
+        logprobs2              = [elt.prefix_gprob/np.log(2) for elt in success] #change logprobs from base e to base 2
+        marginal_logprob       = np.logaddexp2.reduce(logprobs)
+        cond_logprobs2         = [elt-marginal_logprob for elt in logprobs2]
+
+        entropy                = - sum( [np.exp(logp2)*logp2 for logp2 in cond_logprobs2] ) / np.log2(beam_size)
+        entropy_reduction      = max(0, prefix_entropy - entropy)
+        surprisal              = (marginal_logprob-marginal_prob)
+        
+        return {"beam_size":beam_size,"succ_activity":succ_activity,"fail_activity":fail_activity,"overall_activity":overall_activity,'prefix_logprob':marginal_logprob, 'surprisal':surprisal,'entropy',entropy,'entropy_reduction':entropy_reduction}
+
+    def gather_stats(self,sentence,successes,failures):
         """
-        Aggregates statistics from multiple derivations
+        Gathers statistics from the beam
         Args:
-           derivation_list (list): a list of derivations
-           sentence        (list): a list o strings, the input tokens
+           sentence         (list): a list o strings, the input tokens
+           successes(list of list): a list of list of beam elements
+           failures (list of list): a list of list of beam elements
         Returns:
            (NLL, pandas DataFrame). a couple with the Negative LoglikeLihood of the sentence and a Dataframe with word aligned stats aggregated over the list of derivations. 
            The stats collected are such as avg number of OPEN CLOSE since last word, P(w_i| w_i<)...
         """
-        N            = len(derivation_list)
+        N        = len(sentence)
+        assert(N == len(successes) == len(failures)) 
 
-        df = RNNGparser.deriv2stats(derivation_list[0])
-        agg_OP     = df["nOPEN"].values
-        agg_CL     = df["nCLOSE"].values
-        logpX      = df["logp"].values
-        entropy    = logpX/np.log(2) * np.exp(logpX)
+        marginal_prob  = 1.0
+        prefix_entropy = 0.0
+        datalines      = [ ]
+        nll            = 0.0
+        for idx,token in enumerate(sentence):
+            stats_dic           = self.beam2stats(success[idx],failures[idx],marginal_prob,prefix_entropy)
+            stats_dic['word']   = token
+            stats_dic['is_unk'] = token in self.lexicon
+            datalines.append(stats_dic)
+            
+            nll                += (marginal_prob - stats_dic['prefix_logprob'])   
 
-        for deriv in derivation_list[1:]:
-            df         = RNNGparser.deriv2stats(deriv)
-            agg_OP    += df["nOPEN"].values
-            agg_CL    += df["nCLOSE"].values
-            logp       = df["logp"].values
-            logpX      = np.logaddexp(logpX,logp)
-            entropy   += logp/np.log(2) * np.exp(logp)
+            marginal_prob       = stats_dic['prefix_logprob']
+            prefix_entropy      = stats_dic['entropy']
+            
+        df = pda.DataFrame(datalines)
+        return (nll,df)
 
-        agg_OP        /= N            #unweighted mean
-        agg_CL        /= N            #unweighted mean
-        entropy        = -entropy
-        prev_logpX     = [0.0] + list(logpX)[:-1]
-
-        neg_cond_probs = np.array([prev_logp-logp for logp,prev_logp in zip(logpX,prev_logpX)])
-        surprisals     = neg_cond_probs / np.log(2) #change from base e to base 2
-        unks           = np.array([not (token in self.lexicon) for token in sentence])
-        cond_probs     = -neg_cond_probs
-        
-        df = pda.DataFrame({'tokens':sentence,\
-                            'mean_OPEN':agg_OP,\
-                            'mean_CLOSE':agg_CL,\
-                            'cond_logprob':cond_probs,\
-                            'surprisal':surprisals,\
-                            'entropy':entropy,\
-                            'is_unk':unks},columns=['tokens','mean_OPEN','mean_CLOSE','cond_logprob','surprisal','entropy','is_unk'])
-        return (neg_cond_probs.sum(),df)
     
-        
     @staticmethod
     def deriv2tree(weighted_derivation):
         """
@@ -947,17 +969,48 @@ class RNNGparser:
               alpha        (float): the smoothing constant exponentiating the selection step \in [0,1].
                                     the closer to 0,the more uniform the weight distrib, the closer to 1, the more peaked the weight distrib.
         Returns:
-              list. List of BeamElements. 
+              (list,list,list). (List of BeamElements, the successes ;  List of list BeamElements local successes ,   List of list BeamElements global failures) 
         """
         dy.renew_cg()
 
-        init = BeamElement.init_element(self.init_configuration(len(sentence)))
+        init   = BeamElement.init_element(self.init_configuration(len(sentence)))
         init.K = K
-        nextword,beam,successes = [init], [ ] , [ ]
+        beam                   = [init]
+        nextword, nextfailures = [ ], [ ]
+        successes              = [ ]
         
         while nextword:
-          #select
+          nextword.append([ ])
+          nextfailures.append([ ])
+          while beam:                                                               #search step
+            elt = beam.pop()
+            configuration = elt.configuration
+            predictions  = list(self.predict_action_distrib(configuration,sentence))
+            #probs   = [ exp(logprob) for action,logprob in fringe]                   #useful for deficient prob distrib (avoids dropping some particle mass)     
+            #Z       = sum(probs) 
+            #weights = [p / Z for p in probs]
+            has_succ = False
+            for action,logprob in predictions:
 
+              new_K = round( exp( log(elt.K) + logprob ) )
+              if new_K > 0.0:
+                new_elt   = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)
+                new_elt.K = new_K
+                has_succ = True
+                if elt.prev_action == RNNGparser.SHIFT:
+                  self.exec_beam_action(new_elt,sentence)    
+                  nextword[-1].append(new_elt)
+                elif action == RNNGparser.TERMINATE: 
+                  self.exec_beam_action(new_elt,sentence)    
+                  successes.append(new_elt)
+                else:
+                  self.exec_beam_action(new_elt,sentence)    
+                  beam.append(new_elt)
+                  
+            if not has_succ:
+                nextfailures[-1].append(elt)
+                
+         #select
           #print("beam width before selection",len(nextword),flush=True)
           beam.clear()
           weights = [ exp(elt.prefix_gprob + log(elt.K))**alpha for elt in nextword]
@@ -967,38 +1020,11 @@ class RNNGparser:
             elt.K = round(K * weight)
             if elt.K > 0.0:
               beam.append(elt)
-          #print("beam width after selection",len(beam),flush=True)
-
-          #search
-          nextword.clear()
-          while beam:
-            elt = beam.pop()
-            configuration = elt.configuration
-            fringe  = list(self.predict_action_distrib(configuration,sentence))
-            probs   = [ exp(logprob) for action,logprob in fringe]                   #useful for deficient prob distrib (avoids dropping some particle mass)     
-            Z       = sum(probs)
-            weights = [p / Z for p in probs]
-            
-            for (action,logprob),weight in zip(fringe,weights):
-              
-              new_elt = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)
-              new_elt.K = round( elt.K * weight )
-              
-              if elt.prev_action == RNNGparser.SHIFT and new_elt.K > 0.0:
-                  self.exec_beam_action(new_elt,sentence)    
-                  nextword.append(new_elt)
-              elif new_elt.K > 0.0:
-                  self.exec_beam_action(new_elt,sentence)    
-                  if new_elt.prev_action == RNNGparser.TERMINATE:     #parse success
-                      successes.append(new_elt)
-                  else:
-                      beam.append(new_elt)
-
-                      
         successes.sort(key=lambda x:x.prefix_gprob,reverse=True)
         print('#succ',len(successes))
-        return successes
-                        
+        return successes,nextword,nextfailures
+
+    
     def predict_beam_generative(self,sentence,K):
         """
         Performs generative parsing and returns an ordered list of successful beam elements.
@@ -1258,33 +1284,23 @@ class RNNGparser:
         stats_header = True 
         for line in istream:
 
-                results = None
+                results,words,fails    = None
                 if evalb_mode:
                     tree               = ConsTree.read_tree(line)
                     wordsXtags         = tree.pos_tags()
                     tokens             = [tagnode.get_child().label for tagnode in wordsXtags]
                     tags               = [tagnode.label for tagnode in wordsXtags]
-                    results            = self.predict_beam_generative(tokens,K)
+                    #results            = self.predict_beam_generative(tokens,K)
                     #results            = self.predict_beam_naive(tokens,K)
-                    #results            =  self.particle_beam_search(tokens,K)
+                    results,successes,fails =  self.particle_beam_search(tokens,K)
                     #results = self.oracle_mode(tree,K)
                 else:
-                    tokens             = line.split()
-                    #results            =  self.particle_beam_search(tokens,K)
-                    results            = self.predict_beam_generative(tokens,K)
+                    tokens                  = line.split()
+                    results,successes,fails =  self.particle_beam_search(tokens,K)
+                    #results            = self.predict_beam_generative(tokens,K)
                         
                 if results:
-                    derivation_set     = []
-                    for idx,r in enumerate(results):
-                        r_derivation  = RNNGparser.weighted_derivation(r)
-                        derivation_set.append(r_derivation)
-                        if idx < kbest:
-                            r_tree        = RNNGparser.deriv2tree(r_derivation)
-                            r_tree.expand_unaries()
-                            if evalb_mode:
-                                r_tree.add_gold_tags(tags)
-                            print(r_tree,file=ostream,flush=True)
-                    nll,df = self.aggregate_stats(derivation_set,tokens)
+                    nll,df = self.gather_stats(tokens,successes,fails)
                     NLL += nll
                     N   += len(tokens)
                     if stats_stream:# writes out the stats
