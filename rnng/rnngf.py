@@ -889,7 +889,14 @@ class RNNGparser:
         entropy_reduction      = max(0, prefix_entropy - entropy)
         surprisal              = (marginal_logprob-marginal_prob)
         
-        return {"beam_size":beam_size,"succ_activity":succ_activity,"fail_activity":fail_activity,"overall_activity":overall_activity,'prefix_logprob':marginal_logprob, 'surprisal':surprisal,'entropy',entropy,'entropy_reduction':entropy_reduction}
+        return {"beam_size":beam_size,\
+                "succ_activity":succ_activity,\
+                "fail_activity":fail_activity,\
+                "overall_activity":overall_activity,\
+                'prefix_logprob':marginal_logprob,\
+                'surprisal':surprisal,\
+                'entropy':entropy,\
+                'entropy_reduction':entropy_reduction}
 
     def gather_stats(self,sentence,successes,failures):
         """
@@ -1312,7 +1319,7 @@ class RNNGparser:
                             print('\t'.join([str(v) for v in row]),file=stats_stream,flush=True)
                         stats_header = False
                 else:
-                    print('(())',file=ostream,flush=True)
+                    print('(())',file=ostream,flush=True) 
         print("NLL = %d, PPL = %f"%(NLL,np.exp(NLL/N)),file=sys.stderr)
 
 
