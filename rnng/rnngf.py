@@ -910,6 +910,7 @@ class RNNGparser:
            The stats collected are such as avg number of OPEN CLOSE since last word, P(w_i| w_i<)...
         """
         N        = len(sentence)
+        print(N,len(successes),len(failures))
         assert(N == len(successes) == len(failures)) 
 
         marginal_prob  = 1.0
