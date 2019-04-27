@@ -985,7 +985,8 @@ class RNNGparser:
         beam                   = [init]
         nextword, nextfailures = [ ], [ ]
         successes              = [ ]
-        
+
+        print(sentence,K)
         while nextword:
           nextword.append([ ])
           nextfailures.append([ ])
@@ -1295,6 +1296,7 @@ class RNNGparser:
 
                 results,words,fails    = None,None,None
                 if evalb_mode:
+                    print('evalb mode')
                     tree               = ConsTree.read_tree(line) 
                     wordsXtags         = tree.pos_tags()
                     tokens             = [tagnode.get_child().label for tagnode in wordsXtags]
