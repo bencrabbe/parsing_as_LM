@@ -885,6 +885,7 @@ class RNNGparser:
         marginal_logprob       = np.logaddexp2.reduce(logprobs2)
         cond_logprobs2         = [elt-marginal_logprob for elt in logprobs2]
 
+        entropy_norm           = np.log2(beam_size) if beam_size > 1 else 1
         entropy                = - sum( [np.exp(logp2)*logp2 for logp2 in cond_logprobs2] ) / np.log2(beam_size)
         entropy_reduction      = max(0, prefix_entropy - entropy)
         surprisal              = (marginal_logprob-marginal_prob)
