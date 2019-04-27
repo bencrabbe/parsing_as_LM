@@ -237,8 +237,8 @@ class RNNGparser:
                             char_embedding_size=hyperparams['char_embedding_size'],\
                             char_memory_size=hyperparams['char_memory_size'])
 
-        parser.lexicon      = SymbolLexicon.load(model_name+'.lex')
-        parser.nonterminals = SymbolLexicon.load(model_name+'.nt')
+        parser.lexicon      = SymbolLexicon.load(model_name+'.lex') 
+        parser.nonterminals = SymbolLexicon.load(model_name+'.nt')  
         parser.charset      = SymbolLexicon.load(model_name+'.char')
         parser.code_struct_actions()
         parser.allocate_structure()
@@ -920,7 +920,8 @@ class RNNGparser:
         for idx,token in enumerate(sentence):
             stats_dic           = self.beam2stats(successes[idx],failures[idx],marginal_prob,prefix_entropy)
             stats_dic['word']   = token
-            stats_dic['is_unk'] = token in self.lexicon
+            stats_dic['is_unk'] = (token in self.lexicon)
+            print(token,token in self.lexicon)
             datalines.append(stats_dic)
 
             nll                += (marginal_prob - stats_dic['prefix_logprob'])   
