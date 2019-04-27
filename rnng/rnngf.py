@@ -878,7 +878,7 @@ class RNNGparser:
         beam_size          = len(success)
         succ_activity      = sum([ backtrack_succ(elt) for elt in success])
         fail_activity      = sum([ backtrack_fail(elt) for elt in failures])
-        overall_activity   = sum([ backtrack_overall(elt) for elt in failures])
+        overall_activity   = sum([ backtrack_overall(elt) for elt in success+failures])
 
         #information theoretic metrics
         logprobs2              = [elt.prefix_gprob/np.log(2) for elt in success] #change logprobs from base e to base 2
