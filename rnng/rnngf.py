@@ -1004,10 +1004,11 @@ class RNNGparser:
               Z            = np.logaddexp.reduce([logprob for action,logprob in predictions])         
               predictions  = [(action,logprob-Z) for action,logprob in predictions]
 
+              print('root K',elt.K)
               for action,logprob in predictions:
-                new_K = round( exp( log(elt.K) + logprob ))
+                new_K = round(elt.K * exp(logprob))
                 if new_K > 0.0:
-                  print(new_K)
+                  print(' child K ',new_K)
                   new_elt   = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)
                   new_elt.K = new_K
                   has_succ = True
