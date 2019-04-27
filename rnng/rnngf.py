@@ -888,7 +888,7 @@ class RNNGparser:
         entropy_norm           = np.log2(beam_size) if beam_size > 1 else 1
         entropy                = - sum( [np.exp(logp2)*logp2 for logp2 in cond_logprobs2] ) / entropy_norm
         entropy_reduction      = max(0, prefix_entropy - entropy)
-        surprisal              = (marginal_logprob-marginal_prob)
+        surprisal              = -(marginal_logprob-marginal_prob)
         
         return {"beam_size":beam_size,\
                 "succ_activity":succ_activity,\
