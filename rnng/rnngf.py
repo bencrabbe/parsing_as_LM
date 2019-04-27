@@ -1291,7 +1291,7 @@ class RNNGparser:
         stats_header = True 
         for line in istream:
 
-                results,words,fails    = None
+                results,words,fails    = None,None,None
                 if evalb_mode:
                     tree               = ConsTree.read_tree(line)
                     wordsXtags         = tree.pos_tags()
