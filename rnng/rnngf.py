@@ -982,13 +982,13 @@ class RNNGparser:
 
         init   = BeamElement.init_element(self.init_configuration(len(sentence)))
         init.K = K
-        beam                   = [init]
-        nextword, nextfailures = [ ], [ ]
+        beam                   = [ init ]
+        nextword, nextfailures = [      ], [ ]
         successes              = [ ]
 
         print(sentence,K)
-        while nextword:
-          print(len(nextword[-1]))
+        while beam:
+          print(len(beam))
           nextword.append([ ])
           nextfailures.append([ ])
           while beam:                                                               #search step
