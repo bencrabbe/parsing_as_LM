@@ -1316,6 +1316,11 @@ class RNNGparser:
                     nll,df = self.gather_stats(tokens,successes,fails)
                     NLL += nll
                     N   += len(tokens)
+                    deriv = RNNGparser.weighted_derivation(results[0])
+                    tree  = RNNGparser.deriv2tree(deriv)
+                    tree.expand_unaries()
+                    tree.add_gold_tags(tags)
+                    print(str(tree),file=ostream,flush=True)
                     if stats_stream:# writes out the stats
                         #hacked up, but pandas built-in output support for csv  currently hangs on my machine (!?)
                         if stats_header:
