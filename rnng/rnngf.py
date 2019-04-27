@@ -998,7 +998,7 @@ class RNNGparser:
             predictions  = list(self.predict_action_distrib(configuration,sentence))
 
             #renormalize here so that it sums to 1 : useful for deficient prob distrib (avoids dropping some particle mass)     
-            Z            = np.logaddexp([logprob for action,logprob in predictions])         
+            Z            = np.logaddexp.reduce([logprob for action,logprob in predictions])         
             predictions  = [(action,logprob-Z) for action,logprob in predictions]
 
             has_succ     = False
