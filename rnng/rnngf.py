@@ -990,15 +990,17 @@ class RNNGparser:
           nextword.append([ ])
           nextfailures.append([ ])
           while beam:                                                               #search step
+
             elt = beam.pop()
             configuration = elt.configuration
             predictions  = list(self.predict_action_distrib(configuration,sentence))
-            #probs   = [ exp(logprob) for action,logprob in fringe]                   #useful for deficient prob distrib (avoids dropping some particle mass)     
-            #Z       = sum(probs) 
-            #weights = [p / Z for p in probs]
-            has_succ = False
-            for action,logprob in predictions:
 
+            #renormalize here so that it sums to 1 : useful for deficient prob distrib (avoids dropping some particle mass)     
+            Z            = np.logaddexp([logprob for action,logprob in predictions])         
+            predictions  = [(action,logprob-Z) for action,logprob in predictions]
+
+            has_succ     = False
+            for action,logprob in predictions:
               new_K = round( exp( log(elt.K) + logprob ) )
               if new_K > 0.0:
                 new_elt   = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)
