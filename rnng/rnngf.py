@@ -1033,12 +1033,14 @@ class RNNGparser:
           Z       = sum(weights)
           weights = [w/Z for w in weights]
           print('-----')
+          S = °
           for elt,weight in zip(nextword[-1],weights):
             elt.K = round(K * weight)
             if elt.K > 0.0:
               print(elt.K)
+              S+=elt.K
               beam.append(elt)
-          print('-----')
+          print('-----',S)
         successes.sort(key=lambda x:x.prefix_gprob,reverse=True)
         print('#succ',len(successes))
         return successes,nextword,nextfailures
