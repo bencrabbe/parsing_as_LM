@@ -60,7 +60,7 @@ class BeamElement:
     This class is a place holder for elements in the beam.
     """
 
-    __slots__ = ['prev_element', 'prev_action','prefix_gprob','prefix_dprob','configuration','K']
+    __slots__ = ['prev_element', 'prev_action','prefix_gprob','prefix_dprob','configuration','K','succ_recorded','fail_recorded','overall_recorded']
     
     def __init__(self,prev_element,prev_action,prefix_gprob,prefix_dprob):
         """
@@ -1293,7 +1293,7 @@ class RNNGparser:
 
                 results,words,fails    = None,None,None
                 if evalb_mode:
-                    tree               = ConsTree.read_tree(line)
+                    tree               = ConsTree.read_tree(line) 
                     wordsXtags         = tree.pos_tags()
                     tokens             = [tagnode.get_child().label for tagnode in wordsXtags]
                     tags               = [tagnode.label for tagnode in wordsXtags]
