@@ -1333,7 +1333,7 @@ class RNNGparser:
                     
                 break
         print (NLL,N)
-        print("NLL = %d, PPL = %f"%(NLL,np.exp(NLL/N)),file=sys.stderr)
+        print("NLL = %f, PPL = %f"%(NLL,np.exp(NLL/N)),file=sys.stderr)
 
 
 def read_config(filename=None):
