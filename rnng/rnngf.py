@@ -983,7 +983,7 @@ class RNNGparser:
         init   = BeamElement.init_element(self.init_configuration(len(sentence)))
         init.K = K
         beam                   = [ init ]
-        nextword, nextfailures = [      ], [ ]
+        nextword, nextfailures = [      ],[ ]
         successes              = [ ]
 
         print(sentence,K)
@@ -995,28 +995,31 @@ class RNNGparser:
 
             elt = beam.pop()
             configuration = elt.configuration
+            has_succ     = False
+
+            
             predictions  = list(self.predict_action_distrib(configuration,sentence))
 
-            #renormalize here so that it sums to 1 : useful for deficient prob distrib (avoids dropping some particle mass)     
-            Z            = np.logaddexp.reduce([logprob for action,logprob in predictions])         
-            predictions  = [(action,logprob-Z) for action,logprob in predictions]
+            if predictions:
+              #renormalize here so that it sums to 1 : useful for deficient prob distrib (avoids dropping some particle mass)     
+              Z            = np.logaddexp.reduce([logprob for action,logprob in predictions])         
+              predictions  = [(action,logprob-Z) for action,logprob in predictions]
 
-            has_succ     = False
-            for action,logprob in predictions:
-              new_K = round( exp( log(elt.K) + logprob ) )
-              if new_K > 0.0:
-                new_elt   = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)
-                new_elt.K = new_K
-                has_succ = True
-                if elt.prev_action == RNNGparser.SHIFT:
-                  self.exec_beam_action(new_elt,sentence)    
-                  nextword[-1].append(new_elt)
-                elif action == RNNGparser.TERMINATE: 
-                  self.exec_beam_action(new_elt,sentence)    
-                  successes.append(new_elt)
-                else:
-                  self.exec_beam_action(new_elt,sentence)    
-                  beam.append(new_elt)
+              for action,logprob in predictions:
+                new_K = round( exp( log(elt.K) + logprob ) )
+                if new_K > 0.0:
+                  new_elt   = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)
+                  new_elt.K = new_K
+                  has_succ = True
+                  if elt.prev_action == RNNGparser.SHIFT:
+                    self.exec_beam_action(new_elt,sentence)    
+                    nextword[-1].append(new_elt)
+                  elif action == RNNGparser.TERMINATE: 
+                    self.exec_beam_action(new_elt,sentence)    
+                    successes.append(new_elt)
+                  else:
+                    self.exec_beam_action(new_elt,sentence)    
+                    beam.append(new_elt)
                   
             if not has_succ:
                 nextfailures[-1].append(elt)
