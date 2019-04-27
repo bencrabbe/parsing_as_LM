@@ -1033,7 +1033,7 @@ class RNNGparser:
           Z       = sum(weights)
           weights = [w/Z for w in weights]
           print('-----')
-          S = °
+          S = 0
           for elt,weight in zip(nextword[-1],weights):
             elt.K = round(K * weight)
             if elt.K > 0.0:
