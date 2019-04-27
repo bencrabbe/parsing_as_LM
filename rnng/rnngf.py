@@ -920,8 +920,7 @@ class RNNGparser:
         for idx,token in enumerate(sentence):
             stats_dic           = self.beam2stats(successes[idx],failures[idx],marginal_prob,prefix_entropy)
             stats_dic['word']   = token
-            stats_dic['is_unk'] = (token in self.lexicon)
-            print(token,token in self.lexicon)
+            stats_dic['is_unk'] = token not in self.lexicon
             datalines.append(stats_dic)
 
             nll                += (marginal_prob - stats_dic['prefix_logprob'])   
