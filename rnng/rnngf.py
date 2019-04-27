@@ -1321,7 +1321,9 @@ class RNNGparser:
                             print('\t'.join([str(v) for v in row]),file=stats_stream,flush=True)
                         stats_header = False
                 else:
-                    print('(())',file=ostream,flush=True) 
+                    print('(())',file=ostream,flush=True)
+                    
+                break
         print("NLL = %d, PPL = %f"%(NLL,np.exp(NLL/N)),file=sys.stderr)
 
 
