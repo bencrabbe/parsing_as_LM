@@ -1024,10 +1024,10 @@ class RNNGparser:
          #select
           #print("beam width before selection",len(nextword),flush=True)
           beam.clear()
-          weights = [ exp(elt.prefix_gprob + log(elt.K))**alpha for elt in nextword]
+          weights = [ exp(elt.prefix_gprob + log(elt.K))**alpha for elt in nextword[-1]]
           Z       = sum(weights)
           weights = [w/Z for w in weights]
-          for elt,weight in zip(nextword,weights):
+          for elt,weight in zip(nextword[-1],weights):
             elt.K = round(K * weight)
             if elt.K > 0.0:
               beam.append(elt)
