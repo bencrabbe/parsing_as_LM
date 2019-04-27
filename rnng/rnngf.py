@@ -1038,7 +1038,7 @@ class RNNGparser:
             if elt.K > 0.0:
               print(elt.K)
               beam.append(elt)
-        print('-----')
+          print('-----')
         successes.sort(key=lambda x:x.prefix_gprob,reverse=True)
         print('#succ',len(successes))
         return successes,nextword,nextfailures
