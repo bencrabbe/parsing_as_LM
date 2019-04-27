@@ -914,7 +914,7 @@ class RNNGparser:
         print(N,len(successes),len(failures))
         #assert(N == len(successes) == len(failures)) 
 
-        marginal_prob  = 1.0
+        marginal_prob  = 0.0
         prefix_entropy = 0.0
         datalines      = [ ]
         nll            = 0.0
@@ -923,7 +923,8 @@ class RNNGparser:
             stats_dic['word']   = token
             stats_dic['is_unk'] = token in self.lexicon
             datalines.append(stats_dic)
-            
+
+            print(nll)
             nll                += (marginal_prob - stats_dic['prefix_logprob'])   
 
             marginal_prob       = stats_dic['prefix_logprob']
