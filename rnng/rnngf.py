@@ -1005,7 +1005,8 @@ class RNNGparser:
               predictions  = [(action,logprob-Z) for action,logprob in predictions]
 
               for action,logprob in predictions:
-                new_K = round( exp( log(elt.K) + logprob ) )
+                new_K = round( exp( log(elt.K) + logprob ))
+                print(new_K)
                 if new_K > 0.0:
                   new_elt   = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)
                   new_elt.K = new_K
@@ -1019,7 +1020,8 @@ class RNNGparser:
                   else:
                     self.exec_beam_action(new_elt,sentence)    
                     beam.append(new_elt)
-                  
+                print()
+                
             if not has_succ:
                 nextfailures[-1].append(elt)
                 
@@ -1296,7 +1298,6 @@ class RNNGparser:
         N   = 0
         stats_header = True 
         for line in istream:
-
                 results,words,fails    = None,None,None
                 if evalb_mode:
                     tree               = ConsTree.read_tree(line) 
@@ -1331,7 +1332,7 @@ class RNNGparser:
                         stats_header = False
                 else:
                     print('(())',file=ostream,flush=True)
-                    
+                break  
         print("NLL = %f, PPL = %f"%(NLL,np.exp(NLL/N)),file=sys.stderr)
 
 
