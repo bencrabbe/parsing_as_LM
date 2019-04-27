@@ -924,7 +924,7 @@ class RNNGparser:
             stats_dic['is_unk'] = token in self.lexicon
             datalines.append(stats_dic)
 
-            print(nll)
+            print('NLL',nll)
             nll                += (marginal_prob - stats_dic['prefix_logprob'])   
 
             marginal_prob       = stats_dic['prefix_logprob']
@@ -1332,6 +1332,7 @@ class RNNGparser:
                     print('(())',file=ostream,flush=True)
                     
                 break
+        print (NLL,N)
         print("NLL = %d, PPL = %f"%(NLL,np.exp(NLL/N)),file=sys.stderr)
 
 
