@@ -1006,8 +1006,8 @@ class RNNGparser:
 
               for action,logprob in predictions:
                 new_K = round( exp( log(elt.K) + logprob ))
-                print(new_K)
                 if new_K > 0.0:
+                  print(new_K)
                   new_elt   = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)
                   new_elt.K = new_K
                   has_succ = True
