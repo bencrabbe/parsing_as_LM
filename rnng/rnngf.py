@@ -911,14 +911,14 @@ class RNNGparser:
         """
         N        = len(sentence)
         print(N,len(successes),len(failures))
-        assert(N == len(successes) == len(failures)) 
+        #assert(N == len(successes) == len(failures)) 
 
         marginal_prob  = 1.0
         prefix_entropy = 0.0
         datalines      = [ ]
         nll            = 0.0
         for idx,token in enumerate(sentence):
-            stats_dic           = self.beam2stats(success[idx],failures[idx],marginal_prob,prefix_entropy)
+            stats_dic           = self.beam2stats(successes[idx],failures[idx],marginal_prob,prefix_entropy)
             stats_dic['word']   = token
             stats_dic['is_unk'] = token in self.lexicon
             datalines.append(stats_dic)
