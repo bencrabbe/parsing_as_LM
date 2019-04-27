@@ -911,7 +911,6 @@ class RNNGparser:
            The stats collected are such as avg number of OPEN CLOSE since last word, P(w_i| w_i<)...
         """
         N        = len(sentence)
-        print(N,len(successes),len(failures))
         #assert(N == len(successes) == len(failures)) 
 
         marginal_prob  = 0.0
@@ -990,7 +989,6 @@ class RNNGparser:
 
         print(sentence,K)
         while beam:
-          print(len(beam))
           nextword.append([ ])
           nextfailures.append([ ])
           while beam:                                                               #search step
@@ -999,7 +997,6 @@ class RNNGparser:
             configuration = elt.configuration
             has_succ     = False
 
-            
             predictions  = list(self.predict_action_distrib(configuration,sentence))
 
             if predictions:
