@@ -533,7 +533,8 @@ class RNNGparser:
         if lab_state == RNNGparser.WORD_LABEL:
             next_word     = (sentence[B[0]])
             next_word_idx = self.lexicon.index(next_word)
-            return [(next_word,-self.word_softmax.neg_log_softmax(dy.rectify(stack_state.output()),next_word_idx).value())]
+            R = [(next_word,-self.word_softmax.neg_log_softmax(dy.rectify(stack_state.output()),next_word_idx).value())]
+            print(R[0])
         elif lab_state == RNNGparser.NT_LABEL :
             logprobs = dy.log_softmax(self.nonterminals_W  * dy.rectify(stack_state.output())  + self.nonterminals_b).value()
             return zip(self.nonterminals.i2words,logprobs)
