@@ -882,8 +882,6 @@ class RNNGparser:
 
         #information theoretic metrics
         logprobs2              = [elt.prefix_gprob/np.log(2) for elt in success] #change logprobs from base e to base 2
-        for elt in success:
-            print(config2str(elt.configuration))
         marginal_logprob       = np.logaddexp2.reduce(logprobs2)
         cond_logprobs2         = [elt-marginal_logprob for elt in logprobs2]
 
