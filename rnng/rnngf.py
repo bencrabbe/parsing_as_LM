@@ -1009,13 +1009,13 @@ class RNNGparser:
             if predictions:
               #renormalize here so that it sums to 1 : useful for deficient prob distrib (avoids dropping some particle mass)     
               Z            = np.logaddexp.reduce([logprob for action,logprob in predictions])         
-              predictions  = [(action,logprob-Z) for action,logprob in predictions]
 
-              print('root K',elt.K)
               for action,logprob in predictions:
-                new_K = round(elt.K * exp(logprob))
+
+                importance_weight  = logprob-Z
+                new_K = round(elt.K * exp(importance_weight))
+                
                 if new_K > 0.0:
-                  print(' child K ',new_K)
                   new_elt   = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)
                   new_elt.K = new_K
                   has_succ = True
@@ -1029,7 +1029,6 @@ class RNNGparser:
                     self.exec_beam_action(new_elt,sentence)    
                     beam.append(new_elt)
 
-            print()
             if not has_succ:
                 nextfailures[-1].append(elt)
                 
