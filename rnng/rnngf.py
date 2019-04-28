@@ -836,7 +836,7 @@ class RNNGparser:
             current = current.prev_element
         D.reverse()
         for state in D:
-            print(state.prev_action,state.prefix_gprob)
+            print(state)
         return D
 
     @staticmethod
