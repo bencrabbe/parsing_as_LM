@@ -1331,6 +1331,7 @@ class RNNGparser:
                         tree.expand_unaries()
                         tree.add_gold_tags(tags)
                         print(str(tree),results[idx].prefix_gprob,file=ostream,flush=True)
+                        idx+=1
                     if stats_stream:# writes out the stats
                         #hacked up, but pandas built-in output support for csv  currently hangs on my machine (!?)
                         if stats_header:
