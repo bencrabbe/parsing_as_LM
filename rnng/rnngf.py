@@ -533,9 +533,7 @@ class RNNGparser:
         if lab_state == RNNGparser.WORD_LABEL:
             next_word     = (sentence[B[0]])
             next_word_idx = self.lexicon.index(next_word)
-            R = [(next_word,-self.word_softmax.neg_log_softmax(dy.rectify(stack_state.output()),next_word_idx).value())]
-            print(R[0])
-            return R
+            return [(next_word,-self.word_softmax.neg_log_softmax(dy.rectify(stack_state.output()),next_word_idx).value())]
         elif lab_state == RNNGparser.NT_LABEL :
             logprobs = dy.log_softmax(self.nonterminals_W  * dy.rectify(stack_state.output())  + self.nonterminals_b).value()
             return zip(self.nonterminals.i2words,logprobs)
@@ -835,8 +833,6 @@ class RNNGparser:
             D.append((current.prev_action,current.prefix_gprob))
             current = current.prev_element
         D.reverse()
-        for state in D:
-            print(state)
         return D
 
     @staticmethod
@@ -886,7 +882,6 @@ class RNNGparser:
 
         #information theoretic metrics
         logprobs2              = [elt.prefix_gprob/np.log(2) for elt in success] #change logprobs from base e to base 2
-        print('prefix logprob',[elt.prefix_gprob for elt in success])
         for elt in success:
             print(config2str(elt.configuration))
         marginal_logprob       = np.logaddexp2.reduce(logprobs2)
@@ -994,7 +989,6 @@ class RNNGparser:
         nextword, nextfailures = [      ],[ ]
         successes              = [ ]
 
-        print(sentence,K)
         while beam:
           nextword.append([ ])
           nextfailures.append([ ])
@@ -1038,15 +1032,10 @@ class RNNGparser:
           weights = [ exp(elt.prefix_gprob + log(elt.K))**alpha for elt in nextword[-1]]
           Z       = sum(weights)
           weights = [w/Z for w in weights]
-          print('-----')
-          S = 0
           for elt,weight in zip(nextword[-1],weights):
             elt.K = round(K * weight)
             if elt.K > 0.0:
-              print(elt.K)
-              S+=elt.K
               beam.append(elt)
-          print('-----',S)
         successes.sort(key=lambda x:x.prefix_gprob,reverse=True)
         print('#succ',len(successes))
         return successes,nextword,nextfailures
@@ -1330,14 +1319,11 @@ class RNNGparser:
                     NLL += nll
                     N   += len(tokens)
 
-                    idx = 0
-                    while idx < len(results) and idx < 10: 
-                        deriv = RNNGparser.weighted_derivation(results[idx])
-                        tree  = RNNGparser.deriv2tree(deriv)
-                        tree.expand_unaries()
-                        tree.add_gold_tags(tags)
-                        print(str(tree),results[idx].prefix_gprob,file=ostream,flush=True)
-                        idx+=1
+                    deriv = RNNGparser.weighted_derivation(results[0])
+                    tree  = RNNGparser.deriv2tree(deriv)
+                    tree.expand_unaries()
+                    tree.add_gold_tags(tags)
+                    print(str(tree),file=ostream,flush=True)
                     if stats_stream:# writes out the stats
                         #hacked up, but pandas built-in output support for csv  currently hangs on my machine (!?)
                         if stats_header:
