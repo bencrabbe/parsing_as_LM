@@ -836,14 +836,14 @@ class RNNGparser:
         return D
 
     @staticmethod
-    def beam2stats(success,failures,marginal_prob,prefix_entropy):
+    def beam2stats(success,failures,prefix_prob2,prefix_entropy2):
         """
         Computes statistical indicators of interest from a beam at some timestep t
         Args:
-           success        (list): a list of successful BeamElements returned by the parser's search method at time step t
-           failures       (list): a list of failures BeamElements returned by the parser's search method at time step t
-           marginal_prob (float): log probability of the prefix string at timestep t-1
-           prefix_entropy(float): entropy at time step t-1
+           success         (list): a list of successful BeamElements returned by the parser's search method at time step t
+           failures        (list): a list of failures BeamElements returned by the parser's search method at time step t
+           prefix_prob2   (float): log probability of the prefix string at timestep t-1
+           prefix_entropy2(float): entropy at time step t-1
         Returns:
            A dictionary with collected stats names and their values
         """
@@ -880,21 +880,22 @@ class RNNGparser:
         fail_activity      = sum([ backtrack_fail(elt) for elt in failures])
         overall_activity   = sum([ backtrack_overall(elt) for elt in success+failures])
 
-        #information theoretic metrics
+        #Log likelihood etc...
         logprobs2              = [elt.prefix_gprob/np.log(2) for elt in success] #change logprobs from base e to base 2
-        marginal_logprob       = np.logaddexp2.reduce(logprobs2)
-        cond_logprobs2         = [elt-marginal_logprob for elt in logprobs2]
+        marginal_logprob2      = np.logaddexp2.reduce(logprobs2)   
+        cond_logprobs2         = [elt-marginal_logprob2 for elt in logprobs2]
 
+        #information theoretic metrics
         entropy_norm           = np.log2(beam_size) if beam_size > 1 else 1
-        entropy                = - sum( [np.exp(logp2)*logp2 for logp2 in cond_logprobs2] ) / entropy_norm
-        entropy_reduction      = max(0, prefix_entropy - entropy)
-        surprisal              = -(marginal_logprob-marginal_prob)
+        entropy                = - sum( [np.exp2(logp2)*logp2 for logp2 in cond_logprobs2] ) / entropy_norm
+        entropy_reduction      = max(0, prefix_entropy2 - entropy)
+        surprisal              = -(marginal_logprob2-prefix_prob2)
         
         return {"beam_size":beam_size,\
                 "succ_activity":succ_activity,\
                 "fail_activity":fail_activity,\
                 "overall_activity":overall_activity,\
-                'prefix_logprob':marginal_logprob,\
+                'prefix_logprob':marginal_logprob2,\
                 'surprisal':surprisal,\
                 'entropy':entropy,\
                 'entropy_reduction':entropy_reduction}
@@ -907,29 +908,29 @@ class RNNGparser:
            successes(list of list): a list of list of beam elements
            failures (list of list): a list of list of beam elements
         Returns:
-           (NLL, pandas DataFrame). a couple with the Negative LoglikeLihood of the sentence and a Dataframe with word aligned stats aggregated over the list of derivations. 
+           (NLL2, pandas DataFrame). a couple with the Negative LoglikeLihood (in base 2 !!!) of the sentence and a Dataframe with word aligned stats aggregated over the list of derivations. 
            The stats collected are such as avg number of OPEN CLOSE since last word, P(w_i| w_i<)...
         """
-        N        = len(sentence)
+        N        = len(sentence) 
         #assert(N == len(successes) == len(failures)) 
 
         marginal_prob  = 0.0
         prefix_entropy = 0.0
         datalines      = [ ]
-        nll            = 0.0
+        nll2           = 0.0
         for idx,token in enumerate(sentence):
             stats_dic           = self.beam2stats(successes[idx],failures[idx],marginal_prob,prefix_entropy)
             stats_dic['word']   = token
             stats_dic['is_unk'] = token not in self.lexicon
             datalines.append(stats_dic)
 
-            nll                += (marginal_prob - stats_dic['prefix_logprob'])   
+            nll2               += (marginal_prob - stats_dic['prefix_logprob'])   
 
             marginal_prob       = stats_dic['prefix_logprob']
             prefix_entropy      = stats_dic['entropy']
             
         df = pda.DataFrame(datalines)
-        return (nll,df)
+        return (nll2,df)
 
     
     @staticmethod
@@ -1006,7 +1007,6 @@ class RNNGparser:
 
                 importance_weight  = logprob-Z
                 new_K = round(elt.K * exp(importance_weight))
-                
                 if new_K > 0.0:
                   new_elt   = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)
                   new_elt.K = new_K
@@ -1035,7 +1035,6 @@ class RNNGparser:
             if elt.K > 0.0:
               beam.append(elt)
         successes.sort(key=lambda x:x.prefix_gprob,reverse=True)
-        print('#succ',len(successes))
         return successes,nextword,nextfailures
 
     
@@ -1293,7 +1292,7 @@ class RNNGparser:
            evalb_mode     (bool): take an ptb bracketed .mrg file as input and reinserts the pos tags as a post processing step. evalb requires pos tags
         """        
         self.dropout = 0.0
-        NLL = 0
+        NLL2 = 0
         N   = 0
         stats_header = True 
         for line in istream:
@@ -1313,8 +1312,8 @@ class RNNGparser:
                     #results            = self.predict_beam_generative(tokens,K)
                         
                 if results:
-                    nll,df = self.gather_stats(tokens,successes,fails)
-                    NLL += nll
+                    nll2,df = self.gather_stats(tokens,successes,fails)
+                    NLL2 += nll2
                     N   += len(tokens)
 
                     deriv = RNNGparser.weighted_derivation(results[0])
@@ -1333,7 +1332,7 @@ class RNNGparser:
                         stats_header = False
                 else:
                     print('(())',file=ostream,flush=True)
-        print("NLL = %f, PPL = %f"%(NLL,np.exp(NLL/N)),file=sys.stderr)
+        print("NLL = %f, PPL = %f"%(NLL2,np.exp2(NLL2/N)),file=sys.stdout)
 
 
 def read_config(filename=None):

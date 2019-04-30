@@ -40,9 +40,10 @@ train_rnng( ){
    # $1 = word embedding size $2 = lstm memory size $3 = dropout
    NAME="rnng-$1-$2-$3" 
    mkdir -p $NAME
-   make_config "$NAME/$NAME" $1 $2 $3 
+   make_config "$NAME/$NAME" $1 $2 $3
    source activate py36
-   nohup python rnngf.py -m $NAME/$NAME -t ptb_train.mrg -d ptb_dev.mrg -b ptb-250.brown -c "$NAME/$NAME.conf" -p ptb_test.mrg -s -B 5000 > "nohup.$NAME.out"  &
+   python rnngf.py -t tgv_test.mrg -d tgv_test.mrg -m $NAME/$NAME -b ptb-250.brown -c "$NAME/$NAME.conf" -B1000 -s
+   #nohup python rnngf.py -m $NAME/$NAME -t ptb_train.mrg -d ptb_dev.mrg -b ptb-250.brown -c "$NAME/$NAME.conf" -p ptb_test.mrg -s -B 5000 > "nohup.$NAME.out"  &
    #python rnngf.py -m $NAME/$NAME -p prince/prince.en.txt -s >> "nohup.$NAME.out") &
 }
 
@@ -62,5 +63,4 @@ train_rnnlm( ){
 
 #train_rnng 250 300 0.4
 #train_rnng 250 300 0.2
-train_rnng 300 300 0.4
-train_rnng 300 300 0.3
+train_rnng 250 250 0.3
