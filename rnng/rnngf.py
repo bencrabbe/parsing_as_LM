@@ -1088,7 +1088,7 @@ class RNNGparser:
                   else:
                     self.exec_beam_action(new_elt,sentence)    
                     beam.append(new_elt)
-                print()
+            print()
                 
             if not has_succ:
                 nextfailures[-1].append(elt)
