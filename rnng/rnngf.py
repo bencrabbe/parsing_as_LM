@@ -1110,6 +1110,7 @@ class RNNGparser:
             #elt.prefix_dprob = 0
             if elt.K > 0.0:
               beam.append(elt)
+          print('-----')
         successes.sort(key=lambda x:x.prefix_gprob,reverse=True)
         return successes,nextword,nextfailures
 
