@@ -1073,7 +1073,7 @@ class RNNGparser:
               Z            = np.logaddexp.reduce([logprob for action,logprob in predictions])         
 
               for action,logprob in predictions:
-                importance_prob  = logprob-Z
+                importance_prob  = logprob-Z 
                 new_K = round(elt.K * exp(importance_prob)) 
                 if new_K > 0.0:
                   new_elt   = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+importance_prob)
@@ -1095,8 +1095,8 @@ class RNNGparser:
          #select
           #print("beam width before selection",len(nextword),flush=True)
           beam.clear()
-          #weights = [ exp(elt.prefix_gprob + log(elt.K))**alpha for elt in nextword[-1]]
-          weights = [ exp(elt.prefix_gprob - elt.prefix_dprob)**alpha for elt in nextword[-1]]
+          weights = [ exp(elt.prefix_gprob + log(elt.K))**alpha for elt in nextword[-1]]
+          #weights = [ exp(elt.prefix_gprob - elt.prefix_dprob)**alpha for elt in nextword[-1]]
           Z       = sum(weights)
           weights = [w/Z for w in weights]
           for elt,weight in zip(nextword[-1],weights):
