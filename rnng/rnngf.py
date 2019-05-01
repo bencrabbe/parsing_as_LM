@@ -1094,8 +1094,8 @@ class RNNGparser:
          #select
           beam.clear()
           #weights = [ exp(elt.prefix_gprob + log(elt.K))**alpha for elt in nextword[-1]]
-          weights = [ exp(elt.prefix_gprob)**alpha for elt in nextword[-1] ]
-          #weights = [ exp(elt.prefix_gprob - elt.prefix_dprob) for elt in nextword[-1] ]
+          weights = [ exp(elt.prefix_gprob+log(elt.K))**alpha for elt in nextword[-1] ]
+          #weights = [ exp(elt.prefix_gprob - elt.prefix_dprob+log(elt.K)) for elt in nextword[-1] ]
           Z       = sum(weights)
           weights = [w/Z for w in weights]
           for elt,weight in zip(nextword[-1],weights):
