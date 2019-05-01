@@ -1070,8 +1070,7 @@ class RNNGparser:
 
             if predictions:
               #renormalize here so that it sums to 1 : useful for deficient prob distrib (avoids dropping some particle mass)     
-              Z            = np.logaddexp.reduce([logprob for action,logprob in predictions])         
-
+              Z            = np.logaddexp.reduce([logprob for action,logprob in predictions])
               for action,logprob in predictions:
                 importance_prob  = logprob-Z 
                 new_K = round(elt.K * exp(importance_prob)) 
@@ -1096,12 +1095,13 @@ class RNNGparser:
           #print("beam width before selection",len(nextword),flush=True)
           beam.clear()
           #weights = [ exp(elt.prefix_gprob + log(elt.K))**alpha for elt in nextword[-1]]
-          weights = [ exp(elt.prefix_gprob)**alpha for elt in nextword[-1]]
-          #weights = [ exp(elt.prefix_gprob - elt.prefix_dprob)**alpha for elt in nextword[-1]]
+          #weights = [ exp(elt.prefix_gprob)**alpha for elt in nextword[-1] ]
+          weights = [ exp(elt.prefix_gprob - elt.prefix_dprob)**alpha for elt in nextword[-1]]
           Z       = sum(weights)
           weights = [w/Z for w in weights]
           for elt,weight in zip(nextword[-1],weights):
             elt.K = round(K * weight)
+            elt.prefix_dprob = 0
             if elt.K > 0.0:
               beam.append(elt)
         successes.sort(key=lambda x:x.prefix_gprob,reverse=True)
