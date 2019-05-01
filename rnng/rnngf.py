@@ -1106,7 +1106,7 @@ class RNNGparser:
           print(weights)
           for elt,weight in zip(nextword[-1],weights):
             elt.K = round(K * weight)
-            elt.prefix_dprob = 0
+            #elt.prefix_dprob = 0
             if elt.K > 0.0:
               beam.append(elt)
         successes.sort(key=lambda x:x.prefix_gprob,reverse=True)
