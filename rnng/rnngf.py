@@ -1037,7 +1037,7 @@ class RNNGparser:
     #     successes.sort(key=lambda x:x.prefix_gprob,reverse=True)
     #     return successes,nextword,nextfailures
 
-    def particle_beam_search(self,sentence,K=10000,alpha=0.5):
+    def particle_beam_search(self,sentence,K=100,alpha=0.5):
         """
         Particle filter inspired beam search.
         Args:
@@ -1074,7 +1074,7 @@ class RNNGparser:
 
               for action,logprob in predictions:
                 importance_prob  = logprob-Z
-                new_K = round(elt.K * exp(importance_prob))
+                new_K = round(elt.K * exp(importance_prob)) 
                 if new_K > 0.0:
                   new_elt   = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+importance_prob)
                   new_elt.K = new_K
@@ -1096,7 +1096,7 @@ class RNNGparser:
           #print("beam width before selection",len(nextword),flush=True)
           beam.clear()
           #weights = [ exp(elt.prefix_gprob + log(elt.K))**alpha for elt in nextword[-1]]
-          weights = [ exp(elt.prefix_gprob - elt.prefix_dprob) for elt in nextword[-1]]
+          weights = [ exp(elt.prefix_gprob - elt.prefix_dprob)**alpha for elt in nextword[-1]]
           Z       = sum(weights)
           weights = [w/Z for w in weights]
           for elt,weight in zip(nextword[-1],weights):
