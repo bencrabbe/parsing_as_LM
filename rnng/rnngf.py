@@ -968,6 +968,75 @@ class RNNGparser:
         assert(not stack and flag)
         return root
 
+    # def particle_beam_search(self,sentence,K=10000,alpha=0.5):
+    #     """
+    #     Particle filter inspired beam search.
+    #     Args:
+    #           sentence      (list): list of strings (tokens)
+    #     Kwargs:
+    #           K              (int): the number of particles to use
+    #           alpha        (float): the smoothing constant exponentiating the selection step \in [0,1].
+    #                                 the closer to 0,the more uniform the weight distrib, the closer to 1, the more peaked the weight distrib.
+    #     Returns:
+    #           (list,list,list). (List of BeamElements, the successes ;  List of list BeamElements local successes ,   List of list BeamElements global failures) 
+    #     """
+    #     dy.renew_cg()
+
+    #     init   = BeamElement.init_element(self.init_configuration(len(sentence)))
+    #     init.K = K
+    #     beam                   = [ init ]
+    #     nextword, nextfailures = [      ],[ ]
+    #     successes              = [ ]
+
+    #     while beam:
+    #       nextword.append([ ])
+    #       nextfailures.append([ ])
+    #       while beam:                                                               #search step
+
+    #         elt = beam.pop()
+    #         configuration = elt.configuration
+    #         has_succ     = False
+
+    #         predictions  = list(self.predict_action_distrib(configuration,sentence))
+
+    #         if predictions:
+    #           #renormalize here so that it sums to 1 : useful for deficient prob distrib (avoids dropping some particle mass)     
+    #           Z            = np.logaddexp.reduce([logprob for action,logprob in predictions])         
+
+    #           for action,logprob in predictions:
+
+    #             importance_weight  = logprob-Z
+    #             new_K = round(elt.K * exp(importance_weight))
+    #             if new_K > 0.0:
+    #               new_elt   = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)
+    #               new_elt.K = new_K
+    #               has_succ = True
+    #               if elt.prev_action == RNNGparser.SHIFT:
+    #                 self.exec_beam_action(new_elt,sentence)    
+    #                 nextword[-1].append(new_elt)
+    #               elif action == RNNGparser.TERMINATE: 
+    #                 self.exec_beam_action(new_elt,sentence)    
+    #                 successes.append(new_elt)
+    #               else:
+    #                 self.exec_beam_action(new_elt,sentence)    
+    #                 beam.append(new_elt)
+
+    #         if not has_succ:
+    #             nextfailures[-1].append(elt)
+                
+    #      #select
+    #       #print("beam width before selection",len(nextword),flush=True)
+    #       beam.clear()
+    #       weights = [ exp(elt.prefix_gprob + log(elt.K))**alpha for elt in nextword[-1]]
+    #       Z       = sum(weights)
+    #       weights = [w/Z for w in weights]
+    #       for elt,weight in zip(nextword[-1],weights):
+    #         elt.K = round(K * weight)
+    #         if elt.K > 0.0:
+    #           beam.append(elt)
+    #     successes.sort(key=lambda x:x.prefix_gprob,reverse=True)
+    #     return successes,nextword,nextfailures
+
     def particle_beam_search(self,sentence,K=10000,alpha=0.5):
         """
         Particle filter inspired beam search.
@@ -1004,11 +1073,10 @@ class RNNGparser:
               Z            = np.logaddexp.reduce([logprob for action,logprob in predictions])         
 
               for action,logprob in predictions:
-
-                importance_weight  = logprob-Z
-                new_K = round(elt.K * exp(importance_weight))
+                importance_prob  = logprob-Z
+                new_K = round(elt.K * exp(importance_prob))
                 if new_K > 0.0:
-                  new_elt   = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)
+                  new_elt   = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+importance_prob)
                   new_elt.K = new_K
                   has_succ = True
                   if elt.prev_action == RNNGparser.SHIFT:
@@ -1027,15 +1095,17 @@ class RNNGparser:
          #select
           #print("beam width before selection",len(nextword),flush=True)
           beam.clear()
-          weights = [ exp(elt.prefix_gprob + log(elt.K))**alpha for elt in nextword[-1]]
+          #weights = [ exp(elt.prefix_gprob + log(elt.K))**alpha for elt in nextword[-1]]
+          weights = [ exp(elt.prefix_gprob - elt.prefix_dprob) for elt in nextword[-1]]
           Z       = sum(weights)
           weights = [w/Z for w in weights]
           for elt,weight in zip(nextword[-1],weights):
-            elt.K = round(K * weight)
+            elt.K = round(K * weight * elt.K)
             if elt.K > 0.0:
               beam.append(elt)
         successes.sort(key=lambda x:x.prefix_gprob,reverse=True)
         return successes,nextword,nextfailures
+
 
     
     def predict_beam_generative(self,sentence,K):
