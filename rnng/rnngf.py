@@ -1037,7 +1037,7 @@ class RNNGparser:
     #     successes.sort(key=lambda x:x.prefix_gprob,reverse=True)
     #     return successes,nextword,nextfailures
 
-    def particle_beam_search(self,sentence,K=100,alpha=0.5):
+    def particle_beam_search(self,sentence,K=100,alpha=0.4):
         """
         Particle filter inspired beam search.
         Args:
