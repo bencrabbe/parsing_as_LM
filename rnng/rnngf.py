@@ -1099,13 +1099,14 @@ class RNNGparser:
           #weights = [ exp(elt.prefix_gprob + log(elt.K))**alpha for elt in nextword[-1]]
           #weights = [ exp(elt.prefix_gprob)**alpha for elt in nextword[-1] ]
           weights = [ exp(elt.prefix_gprob - elt.prefix_dprob) for elt in nextword[-1] ]
-          print('------')
-          print(weights)
+          #print('------')
+          #print(weights)
           Z       = sum(weights)
           weights = [w/Z for w in weights]
-          print(weights)
+          #print(weights)
           for elt,weight in zip(nextword[-1],weights):
             elt.K = round(K * weight)
+            print(elt.prefix_gprob,elt.prefix_dprob)
             #elt.prefix_dprob = 0
             if elt.K > 0.0:
               beam.append(elt)
