@@ -1073,7 +1073,7 @@ class RNNGparser:
               Z            = np.logaddexp.reduce([logprob for action,logprob in predictions])
               for action,logprob in predictions:
                 importance_prob  = logprob-Z
-                print(action,'P=',exp(logprob),'P*=',exp(importance_prob),"Z = ",Z)
+                print(action,'P=',exp(logprob),'P*=',exp(importance_prob),"Z = ",exp(Z))
                 new_K = round(elt.K * exp(importance_prob)) 
                 if new_K > 0.0:
                   new_elt   = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+importance_prob)
