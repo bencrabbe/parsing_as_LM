@@ -1073,7 +1073,7 @@ class RNNGparser:
               Z            = np.logaddexp.reduce([logprob for action,logprob in predictions])
               for action,logprob in predictions:
                 importance_prob  = logprob-Z
-                print(action,'P=',exp(logprob),'P*=',exp(importance_prob),"Z = ",exp(Z))
+                #print(action,'P=',exp(logprob),'P*=',exp(importance_prob),"Z = ",exp(Z))
                 new_K = round(elt.K * exp(importance_prob)) 
                 if new_K > 0.0:
                   new_elt   = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+importance_prob)
@@ -1088,7 +1088,7 @@ class RNNGparser:
                   else:
                     self.exec_beam_action(new_elt,sentence)    
                     beam.append(new_elt)
-            print()
+            #print()
                 
             if not has_succ:
                 nextfailures[-1].append(elt)
@@ -1098,7 +1098,7 @@ class RNNGparser:
           beam.clear()
           #weights = [ exp(elt.prefix_gprob + log(elt.K))**alpha for elt in nextword[-1]]
           #weights = [ exp(elt.prefix_gprob)**alpha for elt in nextword[-1] ]
-          weights = [ exp(elt.prefix_gprob - elt.prefix_dprob)**alpha for elt in nextword[-1] ]
+          weights = [ exp(elt.prefix_gprob - elt.prefix_dprob) for elt in nextword[-1] ]
           print('------')
           print(weights)
           Z       = sum(weights)
