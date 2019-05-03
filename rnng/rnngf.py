@@ -968,75 +968,6 @@ class RNNGparser:
         assert(not stack and flag)
         return root
 
-    # def particle_beam_search(self,sentence,K=10000,alpha=0.5):
-    #     """
-    #     Particle filter inspired beam search.
-    #     Args:
-    #           sentence      (list): list of strings (tokens)
-    #     Kwargs:
-    #           K              (int): the number of particles to use
-    #           alpha        (float): the smoothing constant exponentiating the selection step \in [0,1].
-    #                                 the closer to 0,the more uniform the weight distrib, the closer to 1, the more peaked the weight distrib.
-    #     Returns:
-    #           (list,list,list). (List of BeamElements, the successes ;  List of list BeamElements local successes ,   List of list BeamElements global failures) 
-    #     """
-    #     dy.renew_cg()
-
-    #     init   = BeamElement.init_element(self.init_configuration(len(sentence)))
-    #     init.K = K
-    #     beam                   = [ init ]
-    #     nextword, nextfailures = [      ],[ ]
-    #     successes              = [ ]
-
-    #     while beam:
-    #       nextword.append([ ])
-    #       nextfailures.append([ ])
-    #       while beam:                                                               #search step
-
-    #         elt = beam.pop()
-    #         configuration = elt.configuration
-    #         has_succ     = False
-
-    #         predictions  = list(self.predict_action_distrib(configuration,sentence))
-
-    #         if predictions:
-    #           #renormalize here so that it sums to 1 : useful for deficient prob distrib (avoids dropping some particle mass)     
-    #           Z            = np.logaddexp.reduce([logprob for action,logprob in predictions])         
-
-    #           for action,logprob in predictions:
-
-    #             importance_weight  = logprob-Z
-    #             new_K = round(elt.K * exp(importance_weight))
-    #             if new_K > 0.0:
-    #               new_elt   = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)
-    #               new_elt.K = new_K
-    #               has_succ = True
-    #               if elt.prev_action == RNNGparser.SHIFT:
-    #                 self.exec_beam_action(new_elt,sentence)    
-    #                 nextword[-1].append(new_elt)
-    #               elif action == RNNGparser.TERMINATE: 
-    #                 self.exec_beam_action(new_elt,sentence)    
-    #                 successes.append(new_elt)
-    #               else:
-    #                 self.exec_beam_action(new_elt,sentence)    
-    #                 beam.append(new_elt)
-
-    #         if not has_succ:
-    #             nextfailures[-1].append(elt)
-                
-    #      #select
-    #       #print("beam width before selection",len(nextword),flush=True)
-    #       beam.clear()
-    #       weights = [ exp(elt.prefix_gprob + log(elt.K))**alpha for elt in nextword[-1]]
-    #       Z       = sum(weights)
-    #       weights = [w/Z for w in weights]
-    #       for elt,weight in zip(nextword[-1],weights):
-    #         elt.K = round(K * weight)
-    #         if elt.K > 0.0:
-    #           beam.append(elt)
-    #     successes.sort(key=lambda x:x.prefix_gprob,reverse=True)
-    #     return successes,nextword,nextfailures
-
     def particle_beam_search(self,sentence,K=100,alpha=0.75):
         """
         Particle filter inspired beam search.
@@ -1091,10 +1022,10 @@ class RNNGparser:
             if not has_succ:
                 nextfailures[-1].append(elt)
         
-         #select
+          #select
           beam.clear()
-          #weights = [ exp(elt.prefix_gprob)**alpha for elt in nextword[-1] ]
-          weights = [ (elt.K * exp(elt.prefix_gprob - elt.prefix_dprob))**alpha for elt in nextword[-1] ]
+          weights = [ exp(elt.prefix_gprob)**alpha for elt in nextword[-1] ]
+          #weights = [ (elt.K * exp(elt.prefix_gprob - elt.prefix_dprob))**alpha for elt in nextword[-1] ]
           Z       = sum(weights)
           if Z > 0:
             weights = [w/Z for w in weights]
@@ -1104,7 +1035,6 @@ class RNNGparser:
                 beam.append(elt)
         successes.sort(key=lambda x:x.prefix_gprob,reverse=True)
         return successes,nextword,nextfailures
-
 
     
     def predict_beam_generative(self,sentence,K):
@@ -1122,12 +1052,13 @@ class RNNGparser:
         
         dy.renew_cg()
         init = BeamElement.init_element(self.init_configuration(len(sentence)))
-        beam,successes  = [[init]],[ ]
+        beam,successes,failures  = [ [init] ],[ ],[ [ ] ]
         
         while beam[-1]:
             
-            this_word = beam[-1]
-            next_word = [ ]            
+            this_word     = beam[-1]
+            next_failures = [ ]
+            next_word     = [ ]            
             while this_word and len(next_word) < K:
                     fringe     = [ ]
                     fast_track = [ ]
@@ -1144,7 +1075,19 @@ class RNNGparser:
                     fast_track.sort(key=lambda x:x.prefix_gprob,reverse=True)
                     fast_track = fast_track[:Kft]
                     fringe.sort(key=lambda x:x.prefix_gprob,reverse=True)
-                    fringe = fringe[:K-len(fast_track)]+fast_track
+                    fringe = fringe[:K-len(fast_track)]+fast_track 
+
+                    #here compare this_word and fringe : those elements of
+                    #this_word with no successors are failures
+                    for elt in this_word:
+                        has_succ = False
+                        for succ in fringe:
+                            if succ.prev_element is elt: #! address itentity
+                                    has_succ = True
+                                    break
+                        if not has_succ:
+                            next_failures.append(elt)
+                    ####
                     
                     this_word = [ ]
                     for s in fringe:
@@ -1162,68 +1105,11 @@ class RNNGparser:
             for elt in next_word:
                 self.exec_beam_action(elt,sentence)
             beam.append(next_word)
+            failures.append(next_failures)
         if successes:
             successes.sort(key=lambda x:x.prefix_gprob,reverse=True)
             successes = successes[:K]
-        return successes
-
-    def predict_beam_naive(self,sentence,K):
-        """ 
-        Performs generative parsing and returns an ordered list of successful beam elements.
-        This is the direct naive generative parsing without fast track. 
-        Args:
-              sentence      (list): list of strings (tokens)
-              K              (int): beam width 
-        Returns:
-             list. List of BeamElements. 
-        """
-        Kw  = int(K/10)
-        
-        dy.renew_cg()
-        
-        init = BeamElement.init_element(self.init_configuration(len(sentence)))
-        beam,successes  = [[init]],[ ]
-        
-        while beam[-1]:
-            
-            this_word = beam[-1]
-            next_word = [ ]            
-            while this_word and len(next_word) < K:
-                fringe = []
-                for elt in this_word:
-                    configuration = elt.configuration
-                    for (action, logprob) in self.predict_action_distrib(configuration,sentence):
-                        if elt.prev_action == RNNGparser.SHIFT: #<=> we currently generate a word
-                            new_elt = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob)
-                            fringe.append(new_elt)
-                        else:
-                            new_elt = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)
-                            fringe.append(new_elt)
-                            
-                fringe.sort(key=lambda x:x.prefix_gprob,reverse=True)
-                fringe = fringe[:K]
-                
-                this_word = [ ]
-                for elt in fringe:
-                    prev_prev_action    = elt.prev_element.prev_action
-                    if prev_prev_action == RNNGparser.SHIFT: #<=> tests if we currently generate a word
-                        next_word.append(elt)
-                    elif elt.prev_action ==  RNNGparser.TERMINATE:
-                        successes.append(elt)
-                    else:
-                        self.exec_beam_action(elt,sentence)
-                        this_word.append(elt)
-                    
-            next_word.sort(key=lambda x:x.prefix_gprob,reverse=True)
-            next_word = next_word[:Kw]
-            for elt in next_word:
-                self.exec_beam_action(elt,sentence)
-            beam.append(next_word)
-            
-        if successes:
-            successes.sort(key=lambda x:x.prefix_gprob,reverse=True)
-            successes = successes[:K]
-        return successes
+        return (successes,beam,failures)
 
     
     def predict_greedy(self,sentence):
@@ -1266,52 +1152,7 @@ class RNNGparser:
                     self.exec_beam_action(next_elt,sentence)
             current = next_elt
         return None
-            
-    def predict_beam(self,sentence,K,sample_search=True):
-        """
-        Performs generative parsing and returns an ordered list of successful beam elements.
-        The default search strategy amounts to sample the search space with discriminative probs and to rank the succesful states with generative probs.
-        The alternative search strategy amounts to explore the search space with a conventional K-argmax pruning method (on disc probs) and to rank the results with generative probs.
-        Args: 
-              sentence      (list): list of strings (tokens)
-              K              (int): beam width
-        Kwargs:
-              sample_search (bool): if true samples the search space for pruning, else uses a conventional K-argmax
-        Returns:
-             list. List of BeamElements.
-        """
-        dy.renew_cg()
-        init = BeamElement.init_element(self.init_configuration(len(sentence)))
-        beam,successes  = [[init]],[ ]
-
-        while beam[-1]:
-            beam = RNNGparser.sample_dprob(beam,K) if sample_search else RNNGparser.prune_dprob(beam,K) #pruning
-            for elt in beam[-1]:
-                self.exec_beam_action(elt,sentence) #lazily builds configs
-                
-            next_preds = [] 
-            for elt in beam[-1]: 
-                configuration               = elt.configuration
-                S,B,n,stack_state,lab_state = configuration
-                if lab_state == RNNGparser.WORD_LABEL:
-                    for (action, logprob) in self.predict_action_distrib(configuration,sentence):                    
-                        next_preds.append(BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob)) #does not update dprob (!)
-                elif lab_state == RNNGparser.NT_LABEL:
-                    for (action, logprob) in self.predict_action_distrib(configuration,sentence):                    
-                        next_preds.append(BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob))
-                else:
-                    for (action, logprob) in self.predict_action_distrib(configuration,sentence):
-                        if action == RNNGparser.TERMINATE:
-                            successes.append(BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob)) #really add these terminate probs to the prefix ?
-                        else:
-                            next_preds.append(BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+logprob))
-            beam.append(next_preds)
-        if successes:
-            successes.sort(key=lambda x:x.prefix_gprob,reverse=True)
-            successes = successes[:K]
-        return successes
-
-
+          
     def oracle_mode(self,tree,K):
         """
         Parses a sentence in gold oracle mode.
@@ -1371,14 +1212,14 @@ class RNNGparser:
                     wordsXtags         = tree.pos_tags()
                     tokens             = [tagnode.get_child().label for tagnode in wordsXtags]
                     tags               = [tagnode.label for tagnode in wordsXtags]
-                    #results            = self.predict_beam_generative(tokens,K)
+                    results            = self.predict_beam_generative(tokens,K)
                     #results            = self.predict_beam_naive(tokens,K)
-                    results,successes,fails =  self.particle_beam_search(tokens,K)
+                    #results,successes,fails =  self.particle_beam_search(tokens,K)
                     #results = self.oracle_mode(tree,K)
                 else:
                     tokens                  = line.split()
-                    results,successes,fails =  self.particle_beam_search(tokens,K)
-                    #results            = self.predict_beam_generative(tokens,K)
+                    #results,successes,fails =  self.particle_beam_search(tokens,K)
+                    results            = self.predict_beam_generative(tokens,K)
                         
                 if results:
                     nll2,df = self.gather_stats(tokens,successes,fails)
