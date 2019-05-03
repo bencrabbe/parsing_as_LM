@@ -968,7 +968,7 @@ class RNNGparser:
         assert(not stack and flag)
         return root
 
-    def particle_beam_search(self,sentence,K=100,alpha=2.5):
+    def particle_beam_search(self,sentence,K=100,alpha=1.75):
         """
         Particle filter inspired beam search.
         Args:
