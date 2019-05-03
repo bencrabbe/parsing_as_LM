@@ -1219,7 +1219,7 @@ class RNNGparser:
                 else:
                     tokens                  = line.split()
                     #results,successes,fails =  self.particle_beam_search(tokens,K)
-                    results            = self.predict_beam_generative(tokens,K)
+                    results,successes,fails  = self.predict_beam_generative(tokens,K)
                         
                 if results:
                     nll2,df = self.gather_stats(tokens,successes,fails)
