@@ -1204,7 +1204,7 @@ class RNNGparser:
         self.dropout = 0.0
         NLL2 = 0
         N   = 0
-        stats_header = True 
+        stats_header = True  
         for line in istream:
                 results,words,fails    = None,None,None
                 if evalb_mode:
