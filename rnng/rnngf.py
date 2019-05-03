@@ -851,7 +851,7 @@ class RNNGparser:
             #that's a backtrack with a memo functionality
             c = 0
             while not deriv_elt.succ_recorded:
-                c += 1
+                c =  c + 1  if deriv_elt.prev_action in [RNNGparser.SHIFT,RNNGparser.OPEN,RNNGparser.CLOSE] else c
                 deriv_elt.succ_recorded = True
                 deriv_elt = deriv_elt.prev_element
             return c
@@ -860,7 +860,7 @@ class RNNGparser:
             #that's a backtrack with a memo functionality
             c = 0
             while not deriv_elt.fail_recorded:
-                c += 1
+                c =  c + 1  if deriv_elt.prev_action in [RNNGparser.SHIFT,RNNGparser.OPEN,RNNGparser.CLOSE] else c
                 deriv_elt.fail_recorded = True
                 deriv_elt = deriv_elt.prev_element
             return c
@@ -869,7 +869,7 @@ class RNNGparser:
             #that's a backtrack with a memo functionality
             c = 0
             while not deriv_elt.overall_recorded:
-                c += 1
+                c =  c + 1  if deriv_elt.prev_action in [RNNGparser.SHIFT,RNNGparser.OPEN,RNNGparser.CLOSE] else c
                 deriv_elt.overall_recorded = True
                 deriv_elt = deriv_elt.prev_element
             return c
@@ -1075,8 +1075,8 @@ class RNNGparser:
                     fast_track.sort(key=lambda x:x.prefix_gprob,reverse=True)
                     fast_track = fast_track[:Kft]
                     fringe.sort(key=lambda x:x.prefix_gprob,reverse=True)
-                    fringe = fringe[:K-len(fast_track)]+fast_track 
-
+                    fringe = fringe[:K-len(fast_track)]+fast_track
+                    
                     #here compare this_word and fringe : those elements of
                     #this_word with no successors are failures
                     for elt in this_word:
@@ -1088,7 +1088,6 @@ class RNNGparser:
                         if not has_succ:
                             next_failures.append(elt)
                     ####
-                    
                     this_word = [ ]
                     for s in fringe:
                         prev_prev_action    = s.prev_element.prev_action
@@ -1101,6 +1100,7 @@ class RNNGparser:
                             this_word.append(s)
                             
             next_word.sort(key=lambda x:x.prefix_gprob,reverse=True)
+            next_failures.extend(next_word[Kw:])
             next_word = next_word[:Kw]
             for elt in next_word:
                 self.exec_beam_action(elt,sentence)
