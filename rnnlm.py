@@ -415,10 +415,10 @@ if __name__ == '__main__':
     lm.save_model('final_model')
 
     test_treebank =  ptb_reader('rnng/ptb_test.mrg')
-    print(lm.eval_dataset(test_treebank))
+    print('ptb test',lm.eval_dataset(test_treebank))
 
     prince_treebank =  ptb_reader('rnng/prince/prince.en.txt')
-    print(lm.eval_dataset(prince_treebank))
+    print('prince test',lm.eval_dataset(prince_treebank))
     
     #lm = RNNLanguageModel.load_model('final_model')
     #for s in test_treebank[:20]:
