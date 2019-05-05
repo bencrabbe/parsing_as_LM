@@ -722,7 +722,7 @@ class RNNGparser:
             print()
             if NLL < min_nll:
                 self.save_model(modelname)
-
+        self.save_model(modelname+'.final')
                 
     def summary(self,train_bank_size,dev_bank_size,learning_rate,batch_size,epochs):
         """
@@ -968,7 +968,7 @@ class RNNGparser:
         assert(not stack and flag)
         return root
 
-    def particle_beam_search(self,sentence,K=100,alpha=1.5):
+    def particle_beam_search(self,sentence,K=100,alpha=1.25):
         """
         Particle filter inspired beam search.
         Args:
