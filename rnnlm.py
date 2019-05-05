@@ -246,7 +246,7 @@ class RNNLanguageModel:
         #I do not do masking (just padding)
             
         xgen    =  training_generator.next_batch()
-        trainer = dy.SimpleSGDTrainer(self.model,lr=lr)
+        trainer = dy.SimpleSGDTrainer(self.model,learning_rate=lr)
         min_nll = float('inf')
         history_log = []
         for e in range(max_epochs):
