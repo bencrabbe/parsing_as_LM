@@ -35,7 +35,7 @@ class RNNLanguageModel:
         self.embedding_size   = embedding_size
         self.hidden_size      = hidden_size
         
-        self.lexicon_size     = 0    #TBD at train time or at param loading        
+        self.lexicon_size     = 0     #TBD at train time or at param loading        
         self.word_codes       = None  #TBD at train time or at param loading
         self.rev_word_codes   = None  #TBD at train time or at param loading
         self.tied             = tiedIO
@@ -208,7 +208,7 @@ class RNNLanguageModel:
                     validation_sentences,\
                     lr=0.001,\
                     hidden_dropout=0.1,\
-                    num_rnn_layers=1,\
+                    num_rnn_layers=2,\
                     batch_size=100,\
                     max_epochs=100,\
                     glove_file=None):
@@ -246,7 +246,7 @@ class RNNLanguageModel:
         #I do not do masking (just padding)
             
         xgen    =  training_generator.next_batch()
-        trainer = dy.AdamTrainer(self.model,alpha=lr)
+        trainer = dy.SimpleSGDTrainer(self.model,alpha=lr)
         min_nll = float('inf')
         history_log = []
         for e in range(max_epochs):
@@ -407,15 +407,19 @@ class RNNLanguageModel:
 if __name__ == '__main__':
 
     #read penn treebank
-    ttreebank =  ptb_reader('ptb/ptb_train_50w.txt')
-    dtreebank =  ptb_reader('ptb/ptb_valid.txt')
+    ttreebank =  ptb_reader('rnng/ptb_train.mrg')
+    dtreebank =  ptb_reader('rnng/ptb_dev.mrg')
 
     lm = RNNLanguageModel(hidden_size=300,embedding_size=300,tiedIO=False)
-    lm.train_rnn_lm(ttreebank,dtreebank,lr=0.0001,hidden_dropout=0.5,batch_size=64,max_epochs=200,glove_file='glove/glove.6B.300d.txt')
+    lm.train_rnn_lm(ttreebank,dtreebank,lr=0.1,hidden_dropout=0.5,batch_size=64,max_epochs=200,glove_file=None)
     lm.save_model('final_model')
 
-    test_treebank =  ptb_reader('ptb/ptb_test.txt')
+    test_treebank =  ptb_reader('rnng/ptb_test.mrg')
     print(lm.eval_dataset(test_treebank))
+
+    prince_treebank =  ptb_reader('rnng/prince/prince.en.txt')
+    print(lm.eval_dataset(prince_treebank))
+    
     #lm = RNNLanguageModel.load_model('final_model')
     #for s in test_treebank[:20]:
     #    print(lm.predict_sentence(s))

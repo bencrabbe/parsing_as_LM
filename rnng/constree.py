@@ -490,7 +490,7 @@ class PennTreebank:
         """
         print('Generating PTB data...',file=sys.stderr)
         train_dirs = ['0%d'%(elt,) for elt in range(2,10)] + [str(elt) for elt in range(10,22)]
-        dev_dir    = str(24)
+        dev_dir    = str(22)
         test_dir   = str(23)
 
         train_file = open(os.path.join(out_data_dir,'ptb_train.mrg'),'w')
@@ -537,9 +537,9 @@ class PennTreebank:
 if __name__ == '__main__':
     #Generates Penn TB with classical setup
     #PennTreebank.generate_standard_split('/data/Corpus/ptb/treebank_3/parsed/mrg/wsj','/home/bcrabbe/parsing_as_LM/rnng')
-    #PennTreebank.generate_standard_split('/Users/bcrabbe/Desktop/ptb/treebank_3/parsed/mrg/wsj','/Users/bcrabbe/parsing_as_LM/rnng')
+    PennTreebank.generate_standard_split('/Users/bcrabbe/Desktop/treebank_3/parsed/mrg/wsj','/Users/bcrabbe/parsing_as_LM/rnng')
 
-    FrenchTreebank.generate_standard_split('/data/Corpus/FRENCH_SPMRL/gold/ptb','/home/bcrabbe/parsing_as_LM/rnng')
+    #FrenchTreebank.generate_standard_split('/data/Corpus/FRENCH_SPMRL/gold/ptb','/home/bcrabbe/parsing_as_LM/rnng')
     
     #c = PennTreebank.count_categories('ptb_train.mrg')
     #for cat,count in c.items():
