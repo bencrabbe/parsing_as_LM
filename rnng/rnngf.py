@@ -162,7 +162,7 @@ class RNNGparser:
         """
         
         known_vocabulary = []
-        charset = set([])
+        charset          = set([ ])
         for tree in treebank:
             tokens = tree.tokens()
             for word in tokens:
@@ -968,7 +968,7 @@ class RNNGparser:
         assert(not stack and flag)
         return root
 
-    def particle_beam_search(self,sentence,K=100,alpha=1.25):
+    def particle_beam_search(self,sentence,K=100,alpha=1.25,upper_lex_size=1000):
         """
         Particle filter inspired beam search.
         Args:
@@ -977,6 +977,7 @@ class RNNGparser:
               K              (int): the number of particles to use
               alpha        (float): the smoothing constant exponentiating the selection step \in [0,1].
                                     the closer to 0,the more uniform the weight distrib, the closer to 1, the more peaked the weight distrib.
+              upper_lex_size(int) : an upper bound on the size of the lex beam (in principle never reached) to prevent search explosion in case of adversarial examples.
         Returns:
               (list,list,list). (List of BeamElements, the successes ;  List of list BeamElements local successes ,   List of list BeamElements global failures) 
         """
@@ -1033,6 +1034,9 @@ class RNNGparser:
               elt.K = round(K * weight)
               if elt.K > 0.0:
                 beam.append(elt)
+          if len(beam) > upper_lex_size:
+              beam = [ ]
+              print('Beam exploded',file=sys.stderr)
         successes.sort(key=lambda x:x.prefix_gprob,reverse=True)
         return successes,nextword,nextfailures
 
