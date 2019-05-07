@@ -968,7 +968,7 @@ class RNNGparser:
         assert(not stack and flag)
         return root
 
-    def particle_beam_search(self,sentence,K=100,alpha=1.0,upper_lex_size=5000):
+    def particle_beam_search(self,sentence,K=100,alpha=1.25,upper_lex_size=5000):
         """
         Particle filter inspired beam search.
         Args:
@@ -1039,6 +1039,7 @@ class RNNGparser:
           for elt,weight in weighted_elts:
               elt.K = round(K * weight)
               beam.append(elt)
+              
         successes.sort(key=lambda x:x.prefix_gprob,reverse=True)
         return successes,nextword,nextfailures
 
