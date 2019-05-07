@@ -968,7 +968,7 @@ class RNNGparser:
         assert(not stack and flag)
         return root
 
-    def particle_beam_search(self,sentence,K=100,alpha=1.0,upper_lex_size=1000):
+    def particle_beam_search(self,sentence,K=100,alpha=1.0,upper_lex_size=5000):
         """
         Particle filter inspired beam search.
         Args:
@@ -1002,16 +1002,16 @@ class RNNGparser:
 
             if predictions:
               #renormalize here so that it sums to 1 : useful for deficient prob distrib (avoids dropping some particle mass)     
-              Z            = np.logaddexp.reduce([logprob for action,logprob in predictions])
+              Z            = np.logaddexp.reduce( [logprob for action,logprob in predictions] )
               for action,logprob in predictions:
                 importance_prob  = logprob-Z
-                new_K = round(elt.K * exp(importance_prob)) 
+                new_K = round(elt.K * exp(importance_prob) ) 
                 if new_K > 0.0:
                   new_elt   = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+importance_prob)
                   new_elt.K = new_K
                   has_succ = True
                   if elt.prev_action == RNNGparser.SHIFT:
-                    self.exec_beam_action(new_elt,sentence)    
+                    self.exec_beam_action(new_elt,sentence)     
                     nextword[-1].append(new_elt) 
                   elif action == RNNGparser.TERMINATE: 
                     self.exec_beam_action(new_elt,sentence)    
@@ -1024,19 +1024,21 @@ class RNNGparser:
                 nextfailures[-1].append(elt)
         
           #select
-          beam.clear()
           weights = [ exp(elt.prefix_gprob)**alpha for elt in nextword[-1] ]
           #weights = [ (elt.K * exp(elt.prefix_gprob - elt.prefix_dprob))**alpha for elt in nextword[-1] ]
           Z       = sum(weights)
           if Z > 0:
-            weights = [w/Z for w in weights]
-            for elt,weight in zip(nextword[-1],weights):
+            weights        = [w/Z for w in weights]
+            weighted_elts  = [ (elt,weight) for elt,weight in zip(nextword[-1],weights) if round(K * weight) > 0 ] #filtering
+            if len(weighted_elts) > upper_lex_size: #truncates extra large beams
+              print('Beam exploded ! ',len(weighted_elts),file=sys.stderr)
+              weighted_elts.sort(key=lambda x,y: y,reverse=True)
+              weighted_elts = weighted_elts[:upper_lex_size]
+
+          beam.clear()
+          for elt,weight in weighted_elts:
               elt.K = round(K * weight)
-              if elt.K > 0.0:
-                beam.append(elt)
-          if len(beam) > upper_lex_size:
-              beam = [ ]
-              print('Beam exploded',file=sys.stderr)
+              beam.append(elt)
         successes.sort(key=lambda x:x.prefix_gprob,reverse=True)
         return successes,nextword,nextfailures
 
