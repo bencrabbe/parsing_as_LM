@@ -1027,6 +1027,7 @@ class RNNGparser:
           weights = [ exp(elt.prefix_gprob)**alpha for elt in nextword[-1] ]
           #weights = [ (elt.K * exp(elt.prefix_gprob - elt.prefix_dprob))**alpha for elt in nextword[-1] ]
           Z       = sum(weights)
+          beam.clear()
           if Z > 0:
             weights        = [w/Z for w in weights]
             weighted_elts  = [ (elt,weight) for elt,weight in zip(nextword[-1],weights) if round(K * weight) > 0 ] #filtering
@@ -1035,8 +1036,7 @@ class RNNGparser:
               weighted_elts.sort(key=lambda x,y: y,reverse=True)
               weighted_elts = weighted_elts[:upper_lex_size]
 
-          beam.clear()
-          for elt,weight in weighted_elts:
+            for elt,weight in weighted_elts:
               elt.K = round(K * weight)
               beam.append(elt)
               
