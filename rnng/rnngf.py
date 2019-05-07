@@ -968,7 +968,7 @@ class RNNGparser:
         assert(not stack and flag)
         return root
 
-    def particle_beam_search(self,sentence,K=100,alpha=1.25,upper_lex_size=5000):
+    def particle_beam_search(self,sentence,K=100,alpha=1.00,upper_lex_size=5000):
         """
         Particle filter inspired beam search.
         Args:
@@ -1031,7 +1031,7 @@ class RNNGparser:
           if Z > 0:
             weights        = [w/Z for w in weights]
             weighted_elts  = [ (elt,weight) for elt,weight in zip(nextword[-1],weights) if round(K * weight) > 0 ] #filtering
-            if len(weighted_elts) > upper_lex_size: #truncates extra large beams
+            if len(weighted_elts) > upper_lex_size:                                                                #truncates extra large beams
               print('Beam exploded ! ',len(weighted_elts),file=sys.stderr)
               weighted_elts.sort(key=lambda x,y: y,reverse=True)
               weighted_elts = weighted_elts[:upper_lex_size]
