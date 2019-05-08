@@ -167,7 +167,7 @@ class RNNGparser:
             tokens = tree.tokens()
             for word in tokens:
                 charset.update(list(word))
-            known_vocabulary.extend(tokens)
+            known_vocabulary.extend(tokens) 
         known_vocabulary = get_known_vocabulary(known_vocabulary,vocab_threshold=1)
         known_vocabulary.add(RNNGparser.START_TOKEN)
         self.brown_file  = normalize_brown_file(self.brown_file,known_vocabulary,self.brown_file+'.unk',UNK_SYMBOL=RNNGparser.UNKNOWN_TOKEN)
@@ -528,19 +528,22 @@ class RNNGparser:
             a list of couples (action, log probability). The list is empty if the parser is trapped (aka no action is possible).
             currently returns a zip generator.
         """
+        #TODO remove rectifiers here !! 
+        
         S,B,n,stack_state,lab_state = configuration
 
         if lab_state == RNNGparser.WORD_LABEL:
             next_word     = (sentence[B[0]])
             next_word_idx = self.lexicon.index(next_word)
-            return [(next_word,-self.word_softmax.neg_log_softmax(dy.rectify(stack_state.output()),next_word_idx).value())]
+            #return [(next_word,-self.word_softmax.neg_log_softmax(dy.rectify(stack_state.output()),next_word_idx).value())]
+            return [(next_word,-self.word_softmax.neg_log_softmax(stack_state.output(),next_word_idx).value())]
         elif lab_state == RNNGparser.NT_LABEL :
-            logprobs = dy.log_softmax(self.nonterminals_W  * dy.rectify(stack_state.output())  + self.nonterminals_b).value()
+            logprobs = dy.log_softmax(self.nonterminals_W  * stack_state.output()  + self.nonterminals_b).value() #removed rectifier
             return zip(self.nonterminals.i2words,logprobs)
         elif lab_state == RNNGparser.NO_LABEL :
             restr = self.allowed_structural_actions(configuration)
             if restr:
-                logprobs =  dy.log_softmax(self.structural_W  * dy.rectify(stack_state.output())  + self.structural_b,restr).value()
+                logprobs =  dy.log_softmax(self.structural_W  * stack_state.output()  + self.structural_b,restr).value() #removed rectifier
                 return [ (self.actions.wordform(action_idx),logprob) for action_idx,logprob in zip(range(self.actions.size()),logprobs) if action_idx in restr]
         #parser trapped...
         return []
@@ -636,7 +639,7 @@ class RNNGparser:
         loss     = dy.esum(all_NLL)
         lex_loss = dy.esum(lexical_NLL)
 
-        runstats['NLL']   += loss.value()
+        runstats['NLL']   += loss.value() 
         runstats['lexNLL'] = lex_loss.value()
         
         if backprop:
@@ -968,7 +971,7 @@ class RNNGparser:
         assert(not stack and flag)
         return root
 
-    def particle_beam_search(self,sentence,K=100,alpha=0.5,upper_lex_size=100):
+    def particle_beam_search(self,sentence,K=100,alpha=1.0,upper_lex_size=5000):
         """
         Particle filter inspired beam search.
         Args:
