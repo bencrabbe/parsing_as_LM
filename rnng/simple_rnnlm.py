@@ -153,7 +153,7 @@ class RNNLM:
             self.model   = self.model.populate('rnnlm_model.prm')
             self.dropout = 0.0
              
-lm = RNNLM('rnng/ptb-250.brown')
-lm.train_rnnlm('rnng/ptb_train.mrg','rnng/ptb_dev.mrg',max_epochs=20)
-print('WSJ PPL',lm.eval_dataset('rnng/ptb_test.mrg')[1])
-print('Prince PPL',lm.eval_dataset('rnng/prince/prince.en.txt',strip_trees=False)[1])
+lm = RNNLM('ptb-250.brown')
+lm.train_rnnlm('ptb_train.mrg','ptb_dev.mrg',max_epochs=20)
+print('WSJ PPL',lm.eval_dataset('ptb_test.mrg')[1])
+print('Prince PPL',lm.eval_dataset('prince/prince.en.txt',strip_trees=False)[1])
