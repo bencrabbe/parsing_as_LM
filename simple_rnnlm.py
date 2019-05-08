@@ -1,9 +1,9 @@
 import dynet as dy
 from rnng.constree      import *
-from lexicons      import *
-from proc_monitors import *
-from rnng_params   import *
-from char_rnn      import *
+from rnng.lexicons      import *
+from rnng.proc_monitors import *
+from rnng.rnng_params   import *
+from rnng.char_rnn      import *
 from math          import exp
 
 class RNNLM:
