@@ -121,7 +121,7 @@ class RNNGparser:
     NO_LABEL        = '@-'
     
     #special tokens
-    UNKNOWN_TOKEN = '<UNK>'
+    UNKNOWN_TOKEN = '<unk>'
     START_TOKEN   = '<START>'
 
     def __init__(self,brown_clusters,
@@ -528,7 +528,6 @@ class RNNGparser:
             a list of couples (action, log probability). The list is empty if the parser is trapped (aka no action is possible).
             currently returns a zip generator.
         """
-        #TODO remove rectifiers here !! 
         
         S,B,n,stack_state,lab_state = configuration
 
@@ -536,7 +535,6 @@ class RNNGparser:
             next_word     = (sentence[B[0]])
             next_word_idx = self.lexicon.index(next_word)
             return [(next_word,-self.word_softmax.neg_log_softmax(dy.rectify(stack_state.output()),next_word_idx).value())]
-            #return [(next_word,-self.word_softmax.neg_log_softmax(stack_state.output(),next_word_idx).value())]
         elif lab_state == RNNGparser.NT_LABEL :
             logprobs = dy.log_softmax(self.nonterminals_W  * dy.rectify(stack_state.output())  + self.nonterminals_b).value() #removed rectifier
             return zip(self.nonterminals.i2words,logprobs)
