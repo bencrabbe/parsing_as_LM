@@ -121,7 +121,7 @@ class RNNGparser:
     NO_LABEL        = '@-'
     
     #special tokens
-    UNKNOWN_TOKEN = '<unk>'
+    UNKNOWN_TOKEN = '<UNK>'
     START_TOKEN   = '<START>'
 
     def __init__(self,brown_clusters,
