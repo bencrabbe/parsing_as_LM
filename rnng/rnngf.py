@@ -535,15 +535,15 @@ class RNNGparser:
         if lab_state == RNNGparser.WORD_LABEL:
             next_word     = (sentence[B[0]])
             next_word_idx = self.lexicon.index(next_word)
-            #return [(next_word,-self.word_softmax.neg_log_softmax(dy.rectify(stack_state.output()),next_word_idx).value())]
-            return [(next_word,-self.word_softmax.neg_log_softmax(stack_state.output(),next_word_idx).value())]
+            return [(next_word,-self.word_softmax.neg_log_softmax(dy.rectify(stack_state.output()),next_word_idx).value())]
+            #return [(next_word,-self.word_softmax.neg_log_softmax(stack_state.output(),next_word_idx).value())]
         elif lab_state == RNNGparser.NT_LABEL :
-            logprobs = dy.log_softmax(self.nonterminals_W  * stack_state.output()  + self.nonterminals_b).value() #removed rectifier
+            logprobs = dy.log_softmax(self.nonterminals_W  * dy.rectify(stack_state.output())  + self.nonterminals_b).value() #removed rectifier
             return zip(self.nonterminals.i2words,logprobs)
         elif lab_state == RNNGparser.NO_LABEL :
             restr = self.allowed_structural_actions(configuration)
             if restr:
-                logprobs =  dy.log_softmax(self.structural_W  * stack_state.output()  + self.structural_b,restr).value() #removed rectifier
+                logprobs =  dy.log_softmax(self.structural_W  * dy.rectify(stack_state.output())  + self.structural_b,restr).value() #removed rectifier
                 return [ (self.actions.wordform(action_idx),logprob) for action_idx,logprob in zip(range(self.actions.size()),logprobs) if action_idx in restr]
         #parser trapped...
         return []
