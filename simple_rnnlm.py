@@ -1,5 +1,5 @@
 import dynet as dy
-from constree      import *
+from rnng.constree      import *
 from lexicons      import *
 from proc_monitors import *
 from rnng_params   import *
