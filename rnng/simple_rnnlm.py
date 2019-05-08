@@ -1,9 +1,9 @@
 import dynet as dy
-from rnng.constree      import *
-from rnng.lexicons      import *
-from rnng.proc_monitors import *
-from rnng.rnng_params   import *
-from rnng.char_rnn      import *
+from constree      import *
+from lexicons      import *
+from proc_monitors import *
+from rnng_params   import *
+from char_rnn      import *
 from math          import exp
 
 class RNNLM:
@@ -40,7 +40,7 @@ class RNNLM:
                 known_vocabulary.extend(tokens)
             known_vocabulary = get_known_vocabulary(known_vocabulary,vocab_threshold=1)
             known_vocabulary.add(RNNLM.START_TOKEN)
-            self.brown_file  = normalize_brown_file(self.brown_file,known_vocabulary,self.brown_file+'.unk',UNK_SYMBOL=RNNLM.UNKNOWN_TOKEN)
+            self.brown_file  = normalize_brown_file(self.brown_file,known_vocabulary,self.brown_file+'.unk2',UNK_SYMBOL=RNNLM.UNKNOWN_TOKEN)
             self.lexicon     = SymbolLexicon( list(known_vocabulary),unk_word=RNNLM.UNKNOWN_TOKEN)
             self.charset     = SymbolLexicon(list(charset))
             return self.lexicon
