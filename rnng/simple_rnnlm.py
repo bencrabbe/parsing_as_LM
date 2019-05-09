@@ -138,7 +138,7 @@ class RNNLM:
                     losses      = [self.word_softmax.neg_log_softmax(dy.rectify(o),y) for (o,y) in zip(outputs,ycodes)]
                     
                     loss        = dy.esum(losses)
-                    loss.backward()
+                    loss.backward() 
                     trainer.update()
 
                     nll        += loss.value()
@@ -157,6 +157,6 @@ class RNNLM:
             self.dropout = 0.0
              
 lm = RNNLM('ptb-250.brown')
-lm.train_rnnlm('ptb_train.mrg','ptb_dev.mrg',max_epochs=20)
+lm.train_rnnlm('ptb_train.mrg','ptb_dev.mrg',max_epochs=20,lr=0.01)
 print('WSJ PPL',lm.eval_dataset('ptb_test.mrg')[1])
 print('Prince PPL',lm.eval_dataset('prince/prince.en.txt',strip_trees=False)[1])
