@@ -105,13 +105,6 @@ class RNNLM:
                 train_treebank.append(t)
             train_stream.close()
                 
-            dev_stream = open(dev_file)
-            dev_treebank = []
-            for idx,line in enumerate(dev_stream):
-                t = ConsTree.read_tree(line)
-                dev_treebank.append(t)
-            dev_stream.close()
-                
             self.dropout = dropout
             self.code_lexicons(train_treebank)
             self.allocate_params()
@@ -145,7 +138,7 @@ class RNNLM:
                     N          += len(Y)
                     
                 train_ppl       = exp(nll/N)
-                dev_nll,dev_ppl = self.eval_dataset(dev_treebank)
+                dev_nll,dev_ppl = self.eval_dataset(dev_file)
                 
                 print("epoch",e,'train PPL:',train_ppl,'dev PPL',dev_ppl)
                 if dev_ppl <= min_ppl:
