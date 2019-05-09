@@ -84,7 +84,7 @@ class RNNLM:
                     tree    = ConsTree.read_tree(line)
                     tokens  = tree.tokens() 
                 else:
-                    tokens  = sent.split()
+                    tokens  = line.split() 
                 nll += self.predict_logprobs(tokens)
                 N   += len(tokens)
             treebank.close()
@@ -95,10 +95,10 @@ class RNNLM:
                              lr=0.1, \
                              dropout=0.3,\
                              max_epochs=100):
-                             
+                              
             #Trees preprocessing
-            train_stream = open(train_file)
-            train_treebank = []
+            train_stream   = open(train_file)
+            train_treebank = [ ] 
 
             for idx,line in enumerate(train_stream):
                 t = ConsTree.read_tree(line)
@@ -114,9 +114,7 @@ class RNNLM:
                 nll        = 0
                 N          = 0 
                 for sent in train_treebank:
-                    
                     dy.renew_cg()
-                    
                     Y           = sent.tokens()   
                     X           = [RNNLM.START_TOKEN] + Y
                     X.pop()
@@ -150,6 +148,6 @@ class RNNLM:
             self.dropout = 0.0 
              
 lm = RNNLM('ptb-250.brown')
-lm.train_rnnlm('ptb_train.mrg','ptb_dev.mrg',max_epochs=20,lr=0.01)
+lm.train_rnnlm('ptb_train.mrg','ptb_dev.mrg',max_epochs=20,lr=0.05)
 print('WSJ PPL',lm.eval_dataset('ptb_test.mrg')[1])
 print('Prince PPL',lm.eval_dataset('prince/prince.en.txt',strip_trees=False)[1])
