@@ -58,7 +58,7 @@ class RNNLM:
             """
             Y  = X
             X  = [RNNLM.START_TOKEN] + X
-            X.pop()            
+            X.pop()             
             dy.renew_cg()
             
             state       = self.rnn.initial_state()
@@ -72,19 +72,22 @@ class RNNLM:
             nll         = dy.esum(ypreds).value()
             return nll
 
-        def eval_dataset(self,treebank,strip_trees=True):
+        def eval_dataset(self,treebank_file,strip_trees=True):
             """
             Evaluates the model on a dataset and returns nll and perplexity
             """
             nll = 0
             N   = 0
-            for sent in treebank:
+            treebank = open(treebank_file)
+            for line in treebank:
                 if strip_trees: #sent is a tree
-                    tokens  = sent.tokens() 
+                    tree    = ConsTree.read_tree(line)
+                    tokens  = tree.tokens() 
                 else:
-                    tokens  = sent
+                    tokens  = sent.split()
                 nll += self.predict_logprobs(tokens)
                 N   += len(tokens)
+            treebank.close()
             return nll,exp(nll/N)
         
         def train_rnnlm(self,train_file,\
@@ -115,7 +118,7 @@ class RNNLM:
             trainer = dy.SimpleSGDTrainer(self.model,learning_rate=lr)
             min_ppl = float('inf') 
             for e in range(max_epochs): 
-                nll = 0
+                nll        = 0
                 N          = 0 
                 for sent in train_treebank:
                     
