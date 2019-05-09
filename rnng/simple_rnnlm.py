@@ -154,7 +154,7 @@ class RNNLM:
                     min_ppl = dev_ppl
                     
             self.model   = self.model.populate('rnnlm_model.prm')
-            self.dropout = 0.0
+            self.dropout = 0.0 
              
 lm = RNNLM('ptb-250.brown')
 lm.train_rnnlm('ptb_train.mrg','ptb_dev.mrg',max_epochs=20,lr=0.01)
