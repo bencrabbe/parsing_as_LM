@@ -108,7 +108,7 @@ class RNNLM:
             self.dropout = dropout
             self.code_lexicons(train_treebank)
             self.allocate_params()
-            trainer = dy.SimpleSGDTrainer(self.model,learning_rate=lr)
+            trainer = dy.AdamTrainer(self.model,learning_rate=lr)
             min_ppl = float('inf') 
             for e in range(max_epochs): 
                 nll        = 0
@@ -148,6 +148,6 @@ class RNNLM:
             self.dropout = 0.0 
              
 lm = RNNLM('ptb-250.brown')
-lm.train_rnnlm('ptb_train.mrg','ptb_dev.mrg',max_epochs=20,lr=0.075)
+lm.train_rnnlm('ptb_train.mrg','ptb_dev.mrg',max_epochs=20,lr=0.001)
 print('WSJ PPL',lm.eval_dataset('ptb_test.mrg')[1])
 print('Prince PPL',lm.eval_dataset('prince/prince.en.txt',strip_trees=False)[1])
