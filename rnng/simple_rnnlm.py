@@ -104,11 +104,11 @@ class RNNLM:
                 t = ConsTree.read_tree(line)
                 train_treebank.append(t)
             train_stream.close()
-                
+                 
             self.dropout = dropout
             self.code_lexicons(train_treebank)
             self.allocate_params()
-            trainer = dy.AdamTrainer(self.model,learning_rate=lr)
+            trainer = dy.AdamTrainer(self.model)
             min_ppl = float('inf') 
             for e in range(max_epochs): 
                 nll        = 0
