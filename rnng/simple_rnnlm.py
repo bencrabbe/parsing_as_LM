@@ -138,7 +138,7 @@ class RNNLM:
                 train_ppl       = exp(nll/N)
                 dev_nll,dev_ppl = self.eval_dataset(dev_file)
                 
-                print("epoch",e,'train PPL:',train_ppl,'dev PPL',dev_ppl)
+                print("epoch",e,'train PPL:',train_ppl,'dev PPL',dev_ppl,flush=True)
                 if dev_ppl <= min_ppl:
                     self.model.save('rnnlm_model.prm')
                     print('   >model saved<')
