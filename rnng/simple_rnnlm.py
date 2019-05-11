@@ -108,7 +108,7 @@ class RNNLM:
             self.dropout = dropout
             self.code_lexicons(train_treebank)
             self.allocate_params()
-            trainer = dy.AdamTrainer(self.model)
+            trainer = dy,SGDTrainer(self.model,learning_rate=lr)
             min_ppl = float('inf') 
             for e in range(max_epochs): 
                 nll        = 0
