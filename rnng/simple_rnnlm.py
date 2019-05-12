@@ -93,7 +93,7 @@ class RNNLM:
         def train_rnnlm(self,train_file,\
                              dev_file, \
                              lr=0.1, \
-                             dropout=0.3,\
+                             dropout=0.5,\
                              max_epochs=100):
                               
             #Trees preprocessing
@@ -148,6 +148,6 @@ class RNNLM:
             self.dropout = 0.0 
              
 lm = RNNLM('ptb-250.brown')
-lm.train_rnnlm('ptb_train.mrg','ptb_dev.mrg',max_epochs=20,lr=0.05)
+lm.train_rnnlm('ptb_train.mrg','ptb_dev.mrg',max_epochs=20,lr=0.1)
 print('WSJ PPL',lm.eval_dataset('ptb_test.mrg')[1])
 print('Prince PPL',lm.eval_dataset('prince/prince.en.txt',strip_trees=False)[1])
