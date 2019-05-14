@@ -142,6 +142,6 @@ class RNNLM:
             self.dropout = 0.0 
              
 lm = RNNLM('ptb-250.brown',word_embedding_size=250)
-lm.train_rnnlm('ptb_train.mrg','ptb_dev.mrg',max_epochs=20,lr=0.1,dropout=0.9)
+lm.train_rnnlm('ptb_train.mrg','ptb_dev.mrg',max_epochs=20,lr=0.1,dropout=0.5)
 print('WSJ PPL',lm.eval_dataset('ptb_test.mrg')[1])
 print('Prince PPL',lm.eval_dataset('prince/prince.en.txt',strip_trees=False)[1])
