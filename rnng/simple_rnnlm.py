@@ -126,7 +126,7 @@ class RNNLM:
                     outputs     = state.transduce(lookups)
 
                     ycodes      = [self.lexicon.index(y) for y in Y]
-                    losses      = [self.word_softmax.neg_log_softmax(dy.rectify(o),y) for (o,y) in zip(outputs,ycodes)]
+                    losses      = [self.word_softmax.neg_log_softmax(dy.rectify(dy.dropout(o)),y) for (o,y) in zip(outputs,ycodes)]
                     
                     loss        = dy.esum(losses)
                     loss.backward() 
@@ -148,6 +148,6 @@ class RNNLM:
             self.dropout = 0.0 
              
 lm = RNNLM('ptb-250.brown',word_embedding_size=250)
-lm.train_rnnlm('ptb_train.mrg','ptb_dev.mrg',max_epochs=20,lr=0.1,dropout=0.75)
+lm.train_rnnlm('ptb_train.mrg','ptb_dev.mrg',max_epochs=20,lr=0.1,dropout=0.9)
 print('WSJ PPL',lm.eval_dataset('ptb_test.mrg')[1])
 print('Prince PPL',lm.eval_dataset('prince/prince.en.txt',strip_trees=False)[1])
