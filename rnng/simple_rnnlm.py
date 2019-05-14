@@ -45,12 +45,6 @@ class RNNLM:
             self.charset     = SymbolLexicon(list(charset))
             return self.lexicon
 
-        def ifdropout(self,expression):
-            """
-            Applies dropout to a dynet expression only if dropout > 0.0.
-            """
-            return dy.dropout(expression,self.dropout) if self.dropout > 0.0 else expression
-
         def predict_logprobs(self,X):
             """
             Predicts log probabilities for a sentence X (list of words)
@@ -126,7 +120,7 @@ class RNNLM:
                     outputs     = state.transduce(lookups)
 
                     ycodes      = [self.lexicon.index(y) for y in Y]
-                    losses      = [self.word_softmax.neg_log_softmax(dy.rectify(dy.dropout(o)),y) for (o,y) in zip(outputs,ycodes)]
+                    losses      = [self.word_softmax.neg_log_softmax(dy.rectify(dy.dropout(o,self.dropout)),y) for (o,y) in zip(outputs,ycodes)]
                     
                     loss        = dy.esum(losses)
                     loss.backward() 
