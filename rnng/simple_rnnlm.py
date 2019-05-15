@@ -141,7 +141,7 @@ class RNNLM:
             self.model   = self.model.populate('rnnlm_model.prm')
             self.dropout = 0.0 
              
-lm = RNNLM('ptb-250.brown',word_embedding_size=200,hidden_size=200)
+lm = RNNLM('ptb-250.brown',word_embedding_size=150,hidden_size=150)
 lm.train_rnnlm('ptb_train.mrg','ptb_dev.mrg',max_epochs=20,lr=0.1,dropout=0.3)
 print('WSJ PPL',lm.eval_dataset('ptb_test.mrg')[1])
 print('Prince PPL',lm.eval_dataset('prince/prince.en.txt',strip_trees=False)[1])
