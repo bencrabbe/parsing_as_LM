@@ -93,7 +93,7 @@ class RNNLM:
                 @return an embedding matrix that can initialize an Embedding layer
                 """
                 print('Reading embeddings from %s ...'%glove_filename)
-                self.word_embeddings = self.model.add_lookup_parameters((self.lexicon.size(),self.word_embedding_size), init='glorot')                 
+                #self.word_embeddings = self.model.add_lookup_parameters((self.lexicon.size(),self.word_embedding_size), init='glorot')                 
                 istream = open(glove_filename)
                 for line in istream:
                         values = line.split()
@@ -106,7 +106,6 @@ class RNNLM:
 
                 istream.close()
                 print('done.')
-                return embedding_matrix    
         
         def train_rnnlm(self,train_file,\
                              dev_file, \
@@ -128,8 +127,7 @@ class RNNLM:
             self.code_lexicons(train_treebank)
             self.allocate_params()
             #external word embeddings
-            self.word_embeddings = self.model.parameters_from_numpy(self.read_glove_embeddings('glove.6B.300d.txt'))
-          
+            self.read_glove_embeddings('glove.6B.300d.txt')
             trainer = dy.SimpleSGDTrainer(self.model,learning_rate=lr)
             min_ppl = float('inf') 
             for e in range(max_epochs): 
