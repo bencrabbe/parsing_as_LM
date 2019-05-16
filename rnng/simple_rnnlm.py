@@ -94,7 +94,7 @@ class RNNLM:
                 """
                 print('Reading embeddings from %s ...'%glove_filename)
 
-                embedding_matrix = (rand(self.lexicon_size,self.embedding_size) - 0.5)/10.0 #an uniform initializer 
+                embedding_matrix = (rand(self.lexicon.size(),self.word_embedding_size) - 0.5)/10.0 #an uniform initializer 
 
                 istream = open(glove_filename)
                 for line in istream:
