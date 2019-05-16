@@ -93,17 +93,17 @@ class RNNLM:
                 @return an embedding matrix that can initialize an Embedding layer
                 """
                 print('Reading embeddings from %s ...'%glove_filename)
-
-                embedding_matrix = (rand(self.lexicon.size(),self.word_embedding_size) - 0.5)/10.0 #an uniform initializer 
-
+                self.word_embeddings = self.model.add_lookup_parameters((self.lexicon.size(),self.word_embedding_size), init='glorot')                 
                 istream = open(glove_filename)
                 for line in istream:
                         values = line.split()
                         word = values[0]
-                        widx = self.word_codes.get(word)
-                        if widx != None:
+                        widx = self.lexicon.index(word)
+                        
+                        if widx != self.lexicon.unk_index():
                                 coefs = np.asarray(values[1:], dtype='float32')
-                                embedding_matrix[widx] = coefs
+                                self.word_embeddings.init_row(widx,coefs)
+
                 istream.close()
                 print('done.')
                 return embedding_matrix    
