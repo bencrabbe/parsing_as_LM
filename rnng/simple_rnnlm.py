@@ -83,29 +83,29 @@ class RNNLM:
                 N   += len(tokens)
             treebank.close()
             return nll,exp(nll/N)
+    
+        def read_glove_embeddings(self,glove_filename):
+                """
+                Reads embeddings from a glove filename and returns an embedding
+                matrix for the parser vocabulary.
+                @param glove_filename: the file where to read embeddings from
+                @return an embedding matrix that can initialize an Embedding layer
+                """
+                print('Reading embeddings from %s ...'%glove_filename)
 
-    def read_glove_embeddings(self,glove_filename):
-        """
-        Reads embeddings from a glove filename and returns an embedding
-        matrix for the parser vocabulary.
-        @param glove_filename: the file where to read embeddings from
-        @return an embedding matrix that can initialize an Embedding layer
-        """
-        print('Reading embeddings from %s ...'%glove_filename)
+                embedding_matrix = (rand(self.lexicon_size,self.embedding_size) - 0.5)/10.0 #an uniform initializer 
 
-        embedding_matrix = (rand(self.lexicon_size,self.embedding_size) - 0.5)/10.0 #an uniform initializer 
-
-        istream = open(glove_filename)
-        for line in istream:
-            values = line.split()
-            word = values[0]
-            widx = self.word_codes.get(word)
-            if widx != None:
-                coefs = np.asarray(values[1:], dtype='float32')
-                embedding_matrix[widx] = coefs
-        istream.close()
-        print('done.')
-        return embedding_matrix    
+                istream = open(glove_filename)
+                for line in istream:
+                        values = line.split()
+                        word = values[0]
+                        widx = self.word_codes.get(word)
+                        if widx != None:
+                                coefs = np.asarray(values[1:], dtype='float32')
+                                embedding_matrix[widx] = coefs
+                istream.close()
+                print('done.')
+                return embedding_matrix    
         
         def train_rnnlm(self,train_file,\
                              dev_file, \
