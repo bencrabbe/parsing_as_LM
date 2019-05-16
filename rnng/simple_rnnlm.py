@@ -117,8 +117,6 @@ class RNNLM:
             train_stream   = open(train_file)
             train_treebank = [ ] 
 
-            #external word embeddings
-            self.word_embeddings = self.model.parameters_from_numpy(self.read_glove_embeddings('glove.6B.300d.txt'))
             
             for idx,line in enumerate(train_stream):
                 t = ConsTree.read_tree(line)
@@ -128,6 +126,9 @@ class RNNLM:
             self.dropout = dropout
             self.code_lexicons(train_treebank)
             self.allocate_params()
+            #external word embeddings
+            self.word_embeddings = self.model.parameters_from_numpy(self.read_glove_embeddings('glove.6B.300d.txt'))
+          
             trainer = dy.SimpleSGDTrainer(self.model,learning_rate=lr)
             min_ppl = float('inf') 
             for e in range(max_epochs): 
