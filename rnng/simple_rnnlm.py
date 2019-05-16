@@ -83,6 +83,29 @@ class RNNLM:
                 N   += len(tokens)
             treebank.close()
             return nll,exp(nll/N)
+
+    def read_glove_embeddings(self,glove_filename):
+        """
+        Reads embeddings from a glove filename and returns an embedding
+        matrix for the parser vocabulary.
+        @param glove_filename: the file where to read embeddings from
+        @return an embedding matrix that can initialize an Embedding layer
+        """
+        print('Reading embeddings from %s ...'%glove_filename)
+
+        embedding_matrix = (rand(self.lexicon_size,self.embedding_size) - 0.5)/10.0 #an uniform initializer 
+
+        istream = open(glove_filename)
+        for line in istream:
+            values = line.split()
+            word = values[0]
+            widx = self.word_codes.get(word)
+            if widx != None:
+                coefs = np.asarray(values[1:], dtype='float32')
+                embedding_matrix[widx] = coefs
+        istream.close()
+        print('done.')
+        return embedding_matrix    
         
         def train_rnnlm(self,train_file,\
                              dev_file, \
@@ -94,6 +117,9 @@ class RNNLM:
             train_stream   = open(train_file)
             train_treebank = [ ] 
 
+            #external word embeddings
+            self.word_embeddings = self.model.parameters_from_numpy(self.read_glove_embeddings('glove.6B.300d.txt'))
+            
             for idx,line in enumerate(train_stream):
                 t = ConsTree.read_tree(line)
                 train_treebank.append(t)
@@ -141,7 +167,7 @@ class RNNLM:
             self.model   = self.model.populate('rnnlm_model.prm')
             self.dropout = 0.0 
              
-lm = RNNLM('ptb-250.brown',word_embedding_size=200,hidden_size=200)
-lm.train_rnnlm('ptb_train.mrg','ptb_dev.mrg',max_epochs=20,lr=0.1,dropout=0.4)
+lm = RNNLM('ptb-250.brown',word_embedding_size=300,hidden_size=200)
+lm.train_rnnlm('ptb_train.mrg','ptb_dev.mrg',max_epochs=20,lr=0.1,dropout=0.3)
 print('WSJ PPL',lm.eval_dataset('ptb_test.mrg')[1])
 print('Prince PPL',lm.eval_dataset('prince/prince.en.txt',strip_trees=False)[1])
