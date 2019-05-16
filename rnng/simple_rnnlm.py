@@ -5,6 +5,7 @@ from proc_monitors import *
 from rnng_params   import *
 from char_rnn      import *
 from math          import exp
+from numpy.random import rand
 
 class RNNLM:
 
