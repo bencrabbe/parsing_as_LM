@@ -1025,7 +1025,8 @@ class RNNGparser:
                 nextfailures[-1].append(elt)
         
           #select  
-          weights = [ exp(elt.prefix_gprob)**alpha for elt in nextword[-1] ]
+          #weights = [ exp(elt.prefix_gprob)**alpha for elt in nextword[-1] ]
+          weights = [ elt.K * exp(elt.prefix_gprob - elt.prefix_dprob)**alpha for elt in nextword[-1] ]
           Z       = sum(weights)
           beam.clear()
           if Z > 0:

@@ -12,7 +12,6 @@ class ConsTree:
         self.label = label
         self.children = [] if children is None else children
 
-        
     def copy(self):
         """
         Performs a deep copy of this tree
