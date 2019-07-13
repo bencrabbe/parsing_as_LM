@@ -1026,12 +1026,12 @@ class RNNGparser:
         
           #select
           weights = [ elt.K * exp(elt.prefix_gprob-elt.prefix_dprob)**alpha for elt in nextword[-1] ]
-          print(weights)
           #weights = [ elt.K * exp(elt.prefix_gprob - elt.prefix_dprob)**alpha for elt in nextword[-1] ]
           Z       = sum(weights)
           beam.clear()
           if Z > 0:
             weights        = [ w/Z for w in weights ]
+            print(weights)
             weighted_elts  = [ (elt,weight) for elt,weight in zip(nextword[-1],weights) if round(K * weight) > 0 ] #filtering
             if len(weighted_elts) > upper_lex_size:                                                                #truncates extra large beams
               #print('Beam exploded ! ',len(weighted_elts),file=sys.stdout)
