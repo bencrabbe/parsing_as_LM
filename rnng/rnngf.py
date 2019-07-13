@@ -1038,7 +1038,7 @@ class RNNGparser:
           if Z > 0:
             weights        = [ w/Z for w in weights ]
             alt_weights    = [ w/Zalt for w in alt_weights]
-            true_weights   = [ w/trueZ for w in alt_weights] 
+            true_weights   = [ w/trueZ for w in true_weights] 
             print(weights)
             print(alt_weights)
             print(true_weights)
