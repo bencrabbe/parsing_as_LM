@@ -986,6 +986,7 @@ class RNNGparser:
 
         init   = BeamElement.init_element(self.init_configuration(len(sentence)))
         init.K = K
+        init.trueK = K
         beam                   = [ init ]
         nextword, nextfailures = [      ],[ ]
         successes              = [ ]
@@ -1010,6 +1011,7 @@ class RNNGparser:
                 if new_K > 0.0:
                   new_elt   = BeamElement(elt,action,elt.prefix_gprob+logprob,elt.prefix_dprob+importance_prob)
                   new_elt.K = new_K
+                  new_elt.trueK = elt.K * exp(importance_prob)
                   has_succ = True
                   if elt.prev_action == RNNGparser.SHIFT:
                     self.exec_beam_action(new_elt,sentence)     
@@ -1026,16 +1028,20 @@ class RNNGparser:
         
           #select
           weights = [ elt.K * exp(elt.prefix_gprob-elt.prefix_dprob)**alpha for elt in nextword[-1] ]
-          alt_weights = [ exp(elt.prefix_gprob) for elt in nextword[-1]]
+          true_weights = [ elt.trueK * exp(elt.prefix_gprob-elt.prefix_dprob)**alpha for elt in nextword[-1] ]
+          alt_weights  = [ exp(elt.prefix_gprob) for elt in nextword[-1]]
           #weights = [ elt.K * exp(elt.prefix_gprob - elt.prefix_dprob)**alpha for elt in nextword[-1] ]
           Z       = sum(weights)
           Zalt    = sum(alt_weights)
+          trueZ   = sum(true_weights)
           beam.clear()
           if Z > 0:
             weights        = [ w/Z for w in weights ]
-            alt_weights    = [ w/Zalt for w in alt_weights] 
+            alt_weights    = [ w/Zalt for w in alt_weights]
+            true_weights   = [ w/trueZ for w in alt_weights] 
             print(weights)
             print(alt_weights)
+            print(true_weights)
             print()
             weighted_elts  = [ (elt,weight) for elt,weight in zip(nextword[-1],weights) if round(K * weight) > 0 ] #filtering
             if len(weighted_elts) > upper_lex_size:                                                                #truncates extra large beams
