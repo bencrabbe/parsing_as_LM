@@ -60,7 +60,7 @@ class BeamElement:
     This class is a place holder for elements in the beam.
     """
 
-    __slots__ = ['prev_element', 'prev_action','prefix_gprob','prefix_dprob','configuration','K','succ_recorded','fail_recorded','overall_recorded']
+    __slots__ = ['trueK','prev_element', 'prev_action','prefix_gprob','prefix_dprob','configuration','K','succ_recorded','fail_recorded','overall_recorded']
     
     def __init__(self,prev_element,prev_action,prefix_gprob,prefix_dprob):
         """
