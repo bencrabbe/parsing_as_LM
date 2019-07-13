@@ -1024,13 +1024,14 @@ class RNNGparser:
             if not has_succ:
                 nextfailures[-1].append(elt)
         
-          #select  
-          weights = [elt.K * exp(elt.prefix_gprob)**alpha for elt in nextword[-1] ]
+          #select
+          print(elt.prefix_gprob-elt.prefix_dprob,exp(elt.prefix_gprob-elt.prefix_dprob),elt.K)
+          weights = [ elt.K * exp(elt.prefix_gprob-elt.prefix_dprob)**alpha for elt in nextword[-1] ]
           #weights = [ elt.K * exp(elt.prefix_gprob - elt.prefix_dprob)**alpha for elt in nextword[-1] ]
           Z       = sum(weights)
           beam.clear()
           if Z > 0:
-            weights        = [w/Z for w in weights]
+            weights        = [ w/Z for w in weights ]
             weighted_elts  = [ (elt,weight) for elt,weight in zip(nextword[-1],weights) if round(K * weight) > 0 ] #filtering
             if len(weighted_elts) > upper_lex_size:                                                                #truncates extra large beams
               #print('Beam exploded ! ',len(weighted_elts),file=sys.stdout)
