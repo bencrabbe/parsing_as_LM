@@ -4,7 +4,7 @@ import os.path
 import re
 from collections import Counter
 
-class ConsTree(object):
+class ConsTree:
     """
     That's your phrase structure tree.
     """
@@ -81,7 +81,7 @@ class ConsTree(object):
         if self.is_leaf():
             return [(self.idx,self.idx+1,self.label)]
 
-        for child in self.children: 
+        for child in self.children:
                 subtriples.extend(child.triples())
         leftidx  = min([idx for idx,jdx,label in subtriples])
         rightidx = max([jdx for idx,jdx,label in subtriples])
@@ -95,8 +95,6 @@ class ConsTree(object):
         @param other: the predicted tree
         @return (precision,recall,fscore)
         """
-        print('***',str(self),str(other)) 
-        
         self.index_leaves()
         other.index_leaves()
         
@@ -111,7 +109,12 @@ class ConsTree(object):
         isize = len(intersect)
         P = isize/len(pred_triples)
         R = isize/len(ref_triples)
+        if P+R == 0:
+            return (P,R,0.0)
         F = (2*P*R)/(P+R)
+        #if F < 1.0:
+        #    print('ref',self)
+        #    print('pred',other)
         return (P,R,F)
     
     def strip_tags(self):
