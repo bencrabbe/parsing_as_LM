@@ -360,8 +360,8 @@ class BucketLoader:
         ytoken_matrix = [ self.dataset.numericalize_example(elt,max_token_length,self.dataset.lex_vocab) for elt in raw_tokens ]
         xtoken_matrix = [ self.dataset.numericalize_example([self.dataset.sos]+elt[:-1],max_token_length,self.dataset.lex_vocab) for elt in raw_tokens ]
 
-        xtoken_tensor  = torch.tensor(xtoken_matrix,dtype=torch.long)#device=self.device)
-        ytoken_tensor  = torch.tensor(ytoken_matrix,dtype=torch.long)#device=self.device)
+        xtoken_tensor  = torch.tensor(xtoken_matrix,dtype=torch.long,device=self.device)
+        ytoken_tensor  = torch.tensor(ytoken_matrix,dtype=torch.long,device=self.device)
         
         if self.dataset.is_training_set():
     
