@@ -352,7 +352,7 @@ class BucketLoader:
             a ParseBatch. The batch object fields are filled partly if not supervised training set 
             The batches examples are padded right.
         """
-        print('Device:',device)
+        print('Device:',self.device)
         batchN             = len(batch_idxes)
         token_lengths      = [ len(self.dataset.tokens[idx]) for idx in batch_idxes ]
         max_token_length   = max(token_lengths)
