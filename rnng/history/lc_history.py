@@ -151,11 +151,7 @@ class ParsingDataSet:
 
             self.tree_set      = dataset
             
-            #derivations        = [ LCmodel.oracle_derivation(tree) for tree in dataset ]
-            derivations = [ ]
-            for tree in dataset:
-                print(tree)
-                derivations.append(LCmodel.oracle_derivation(tree))
+            derivations        = [ LCmodel.oracle_derivation(tree) for tree in dataset ]
                 
             self.tokens        = [ tree.tokens() for tree in dataset ]
             self.lex_actions   = [ self.extract_lex_actions(deriv)  for deriv in derivations ]
@@ -816,4 +812,4 @@ if __name__ == '__main__':
     
     parser = LCmodel(df,rnn_memory=300,embedding_size=300,device=1)
     parser.cuda(device=1 )
-    parser.train(df,df,400,batch_size=128,learning_rate=0.1,device=1,alpha=0.0) 
+    parser.train(df,df,400,batch_size=128,learning_rate=0.0001,device=1,alpha=0.0) 
