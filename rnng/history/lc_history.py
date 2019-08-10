@@ -370,9 +370,9 @@ class BucketLoader:
             struct_action_matrix  = [self.dataset.numericalize_example([self.dataset.sos]+self.dataset.struct_actions[batch_idxes[step]], max_token_length,self.dataset.struct_action_vocab) for step in range(batchN) ]
             struct_label_matrix   = [self.dataset.numericalize_example([self.dataset.sos]+self.dataset.struct_labels[batch_idxes[step]], max_token_length,self.dataset.struct_vocab) for step in range(batchN) ]
 
-            lex_action_tensor     = torch.tensor(lex_action_matrix,dtype=torch.long)#,device=self.device)
-            struct_action_tensor  = torch.tensor(struct_action_matrix,dtype=torch.long)#,device=self.device)
-            struct_label_tensor   = torch.tensor(struct_label_matrix,dtype=torch.long)#,device=self.device) 
+            lex_action_tensor     = torch.tensor(lex_action_matrix,dtype=torch.long,device=self.device)
+            struct_action_tensor  = torch.tensor(struct_action_matrix,dtype=torch.long,device=self.device)
+            struct_label_tensor   = torch.tensor(struct_label_matrix,dtype=torch.long,device=self.device) 
  
             return ParseBatch(xtokens=xtoken_tensor,ytokens=ytoken_tensor, lex_actions=lex_action_tensor,\
                                   struct_actions=struct_action_tensor,struct_labels=struct_label_tensor,token_length=token_lengths,orig_idxes=batch_idxes)
