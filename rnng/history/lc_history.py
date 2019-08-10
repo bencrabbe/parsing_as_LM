@@ -764,7 +764,7 @@ class LCmodel(nn.Module):
                 derivation.append((LCmodel.ACTION_PREDICT,ctree.label))
             else:
                 derivation.append((LCmodel.ACTION_ATTACH,ctree.label))
-            if ctree.arity() > 1: #sentences of length 1 have a unary node.
+            if ctree.arity() > 1: #sentences of length 1 have a unary node -> its shitty because cannot be parsed either
                 derivation.extend( LCmodel.oracle_derivation(ctree.get_child(1),left_corner=False) )
         return derivation 
 
@@ -814,6 +814,6 @@ if __name__ == '__main__':
     
     #dataloader = BucketLoader(df,3) 
     
-    parser = LCmodel(df,rnn_memory=600,embedding_size=600,device=1)
+    parser = LCmodel(df,rnn_memory=300,embedding_size=300,device=1)
     parser.cuda(device=1 )
-    parser.train(df,df,400,batch_size=128,learning_rate=0.01,device=1,alpha=0.0) 
+    parser.train(df,df,400,batch_size=128,learning_rate=0.001,device=1,alpha=0.0) 
