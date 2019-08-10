@@ -764,7 +764,8 @@ class LCmodel(nn.Module):
                 derivation.append((LCmodel.ACTION_PREDICT,ctree.label))
             else:
                 derivation.append((LCmodel.ACTION_ATTACH,ctree.label))
-            derivation.extend( LCmodel.oracle_derivation(ctree.get_child(1),left_corner=False) )
+            if ctree.arity() > 1: #sentences of length 1 have a unary node.
+                derivation.extend( LCmodel.oracle_derivation(ctree.get_child(1),left_corner=False) )
         return derivation 
 
 def input_treebank(filename):
