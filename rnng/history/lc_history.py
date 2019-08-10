@@ -655,7 +655,7 @@ class LCmodel(nn.Module):
             matched_idxes = enumerate(orig_idxes) #iterates using the ascending original order of the data set                    
             return [ pred_trees[current_idx] for (current_idx,orig_idx) in sorted(matched_idxes,key=lambda x:x[1]) ]
 
-    def train(self,train_set,dev_set,epochs,raw_loader=None,batch_size=1,learning_rate=0.1):
+    def train(self,train_set,dev_set,epochs,raw_loader=None,batch_size=1,learning_rate=0.1,device=-1,alpha=0.0):
         """
         Args :   
           train_set (ParsingDataSet): xxx
@@ -671,7 +671,7 @@ class LCmodel(nn.Module):
         
         for e in range(epochs):
             L = 0
-            dataloader = BucketLoader(train_set,batch_size)
+            dataloader = BucketLoader(train_set,batch_size,device,alpha)
             for batch in dataloader:
                 
                 self.zero_grad()
@@ -810,5 +810,5 @@ if __name__ == '__main__':
     #dataloader = BucketLoader(df,3) 
     
     parser = LCmodel(df,rnn_memory=300,embedding_size=200,device=1)
-    parser.cuda(device=1)
+    parser.cuda(device=1 )
     parser.train(df,df,400,batch_size=64,learning_rate=0.01) 
