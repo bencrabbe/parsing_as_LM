@@ -805,7 +805,7 @@ if __name__ == '__main__':
     print()
     print('all read !')
     print()
-    df       = ParsingDataSet(trainset)
+    df       = ParsingDataSet(trainset[:1000])
     
     #dataloader = BucketLoader(df,3) 
     
