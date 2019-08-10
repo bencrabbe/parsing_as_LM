@@ -548,7 +548,7 @@ class LCmodel(nn.Module):
         struct_sos_c   = self.ref_set.struct_action_vocab.token_index( self.ref_set.sos )
         lex_pad_c      = self.ref_set.lex_action_vocab.token_index( self.ref_set.pad )
         
-        Stack,Buffer  = [  ] , tokens.numpy()
+        Stack,Buffer  = [  ] , tokens.cpu().numpy()
         derivation    = [  ]
         logprob       = 0.0
         
