@@ -609,7 +609,7 @@ class LCmodel(nn.Module):
         #print('summary : r',r-1,'d',d)
         return derivation, Stack[-1]
 
-    def predict(self,dev_set,batch_size=1): 
+    def predict(self,dev_set,batch_size=1,device=-1): 
         """
         Evaluates the parser on a dev set.
         Args:
@@ -620,7 +620,7 @@ class LCmodel(nn.Module):
         """
         with torch.no_grad():
             
-            dataloader = BucketLoader(dev_set,batch_size)
+            dataloader = BucketLoader(dev_set,batch_size,device)
             orig_idxes = [ ]
             pred_trees = [ ]
             
@@ -705,7 +705,7 @@ class LCmodel(nn.Module):
             print("Epoch",e,'training loss (NLL) =', L)   
             #Development f-score computation
             #pred_trees = list(tree for (derivation,tree) in self.predict(dev_set,batch_size))
-            pred_trees = list(tree for (derivation,tree) in self.predict(dev_set,batch_size))
+            pred_trees = list(tree for (derivation,tree) in self.predict(dev_set,batch_size,device))
             #for t in pred_trees:
             #    print(t)
             fscores    = [ reftree.compare(predtree)[2]   for (predtree,reftree) in zip(pred_trees,dev_set.tree_set) ]
