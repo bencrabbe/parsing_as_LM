@@ -535,10 +535,10 @@ class LCmodel(nn.Module):
                 return label,action
             return label
             
-        lextokens     = pred_ytokens.numpy() #use torch.no_grad before parsing code and remove the detach call
-        lexactions    = pred_lexaction.numpy()
-        structlabs    = pred_structlabels.numpy()
-        structactions = pred_structaction.numpy()
+        lextokens     = pred_ytokens.cpu().numpy() #use torch.no_grad before parsing code and remove the detach call
+        lexactions    = pred_lexaction.cpu().numpy()
+        structlabs    = pred_structlabels.cpu().numpy()
+        structactions = pred_structaction.cpu().numpy()
         
         shift_init_c   = self.ref_set.lex_action_vocab.token_index( LCmodel.ACTION_SHIFT_INIT )
         shift_attach_c = self.ref_set.lex_action_vocab.token_index( LCmodel.ACTION_SHIFT_ATTACH )
