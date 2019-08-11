@@ -716,8 +716,8 @@ class LCmodel(nn.Module):
             #Development f-score computation
             #pred_trees = list(tree for (derivation,tree) in self.predict(dev_set,batch_size))
             pred_trees = list(tree for (derivation,tree) in self.predict(dev_set,batch_size,device))
-            for t in pred_trees:
-                print(t)
+            #for t in pred_trees:
+            #    print(t)
             fscores    = [ reftree.compare(predtree)[2]   for (predtree,reftree) in zip(pred_trees,dev_set.tree_set) ]
             print("        development F-score = ", sum(fscores) / len(fscores))
             
