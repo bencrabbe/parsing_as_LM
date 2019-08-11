@@ -716,8 +716,8 @@ class LCmodel(nn.Module):
             #Development f-score computation
             #pred_trees = list(tree for (derivation,tree) in self.predict(dev_set,batch_size))
             pred_trees = list(tree for (derivation,tree) in self.predict(dev_set,batch_size,device))
-            #for t in pred_trees:
-            #    print(t)
+            for t in pred_trees:
+                print(t)
             fscores    = [ reftree.compare(predtree)[2]   for (predtree,reftree) in zip(pred_trees,dev_set.tree_set) ]
             print("        development F-score = ", sum(fscores) / len(fscores))
             
@@ -819,10 +819,10 @@ if __name__ == '__main__':
     #trainset   =  [ ConsTree.read_tree('(S (DP The (NP little monkey)) (VP screams loud))')]
     #devset     =  [ ConsTree.read_tree('(S (DP The (NP little monkey)) (VP screams loud))')]
 
-    train_df       = ParsingDataSet(trainset,min_lex_counts=10)
+    train_df       = ParsingDataSet(trainset,min_lex_counts=1)
     print('Train Vocab size',train_df.lex_vocab.size())
     dev_df         = ParsingDataSet(devset,root_dataset=train_df)
     print('Dev Vocab size',dev_df.lex_vocab.size())
-    parser = LCmodel(train_df,rnn_memory=1500,embedding_size=300,device=2)
-    parser.cuda(device=2)
-    parser.train(train_df,dev_df,40,batch_size=128,learning_rate=10.0,device=2,alpha=0.0) 
+    parser = LCmodel(train_df,rnn_memory=150,embedding_size=100,device=3)
+    parser.cuda(device=3)
+    parser.train(train_df,dev_df,40,batch_size=1,learning_rate=1.0,device=3,alpha=0.0) 
