@@ -811,15 +811,10 @@ if __name__ == '__main__':
     
     #trainset   =  [ '(TOP@S I (S: (VP love (NP em both)) .))','(S (DP The (NP little monkey)) (VP screams loud))','(S (NP the dog) walks)','(S (NP a cat) (VP chases (NP the mouse)))','(S (NP A wolf) (VP eats (NP the pig)))']
     #print(treebank)
-    trainset = list(input_treebank('../ptb_dev.mrg'))
-    #trainset = [ConsTree.read_tree(elt) for elt in trainset]
-    print()
-    print('all read !')
-    print()
-    df       = ParsingDataSet(trainset)
-    
-    #dataloader = BucketLoader(df,3) 
-    
-    parser = LCmodel(df,rnn_memory=300,embedding_size=300,device=1)
+    trainset = list(input_treebank('../ptb_train.mrg'))
+    devset   = list(input_treebank('../ptb_dev.mrg'))
+    train_df       = ParsingDataSet(trainset)
+    dev_df         = ParsingDataSet(devset,root_dataset=train_df)    
+    parser = LCmodel(train_df,rnn_memory=300,embedding_size=300,device=1)
     parser.cuda(device=1)
-    parser.train(df,df,400,batch_size=128,learning_rate=0.01,device=1,alpha=0.0) 
+    parser.train(train_df,dev_df,40,batch_size=128,learning_rate=0.01,device=1,alpha=1.0) 
