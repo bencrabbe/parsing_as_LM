@@ -720,7 +720,7 @@ class LCmodel(nn.Module):
             #for t in pred_trees:
             #    print(t)
             fscores    = [ reftree.compare(predtree)[2]   for (predtree,reftree) in zip(pred_trees,dev_set.tree_set) ]
-            print("         development F-score = ", sum(fscores) / len(fscores))
+            print("        development F-score = ", sum(fscores) / len(fscores))
             
     @staticmethod 
     def derivation2tree(derivation):
@@ -816,10 +816,10 @@ if __name__ == '__main__':
     #print(treebank)
     trainset = list(input_treebank('../ptb_train.mrg'))
     devset   = list(input_treebank('../ptb_dev.mrg'))
-    train_df       = ParsingDataSet(trainset,min_lex_counts=3)
+    train_df       = ParsingDataSet(trainset,min_lex_counts=10)
     print('Vocab size',train_df.lex_vocab.size())
     dev_df         = ParsingDataSet(devset,root_dataset=train_df)
     print('Vocab size',dev_df.lex_vocab.size())
     parser = LCmodel(train_df,rnn_memory=1500,embedding_size=300,device=1)
     parser.cuda(device=1)
-    parser.train(train_df,dev_df,40,batch_size=64,learning_rate=1.0,device=1,alpha=1.0) 
+    parser.train(train_df,dev_df,40,batch_size=64,learning_rate=1.0,device=1,alpha=0.0) 
