@@ -134,7 +134,7 @@ class ParsingDataSet(object):
     That's a data set for parsing. Each example is a couple made of a list of tokens and an optional derivation.
     That's currently tied to the parser class (try to remove this dependency later)
     """
-    def __init__(self,dataset,ext_vocab=None,root_dataset=None unk='<unk>',pad='<pad>',sos='<sos>'):
+    def __init__(self,dataset,ext_vocab=None,root_dataset=None, unk='<unk>',pad='<pad>',sos='<sos>'):
         """
         Args:
              dataset               (list): a list of trees (or a list of strings for test and unsupervised setups)
