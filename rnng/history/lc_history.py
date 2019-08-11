@@ -673,10 +673,10 @@ class LCmodel(nn.Module):
           dev_set   (ParsingDataSet): xxx
           epochs               (int): xxx
         """
-        lex_action_loss    = nn.NLLLoss(ignore_index=train_set.lex_action_vocab.stoi[train_set.pad])
-        struct_action_loss = nn.NLLLoss(ignore_index=train_set.struct_action_vocab.stoi[train_set.pad])
-        lex_loss           = nn.NLLLoss(ignore_index=train_set.lex_vocab.stoi[train_set.pad])
-        struct_loss        = nn.NLLLoss(ignore_index=train_set.struct_vocab.stoi[train_set.pad])
+        lex_action_loss    = nn.NLLLoss(reduction='none',ignore_index=train_set.lex_action_vocab.stoi[train_set.pad])
+        struct_action_loss = nn.NLLLoss(reduction='none',ignore_index=train_set.struct_action_vocab.stoi[train_set.pad])
+        lex_loss           = nn.NLLLoss(reduction='none',ignore_index=train_set.lex_vocab.stoi[train_set.pad])
+        struct_loss        = nn.NLLLoss(reduction='none',ignore_index=train_set.struct_vocab.stoi[train_set.pad])
         
         optimizer = optim.SGD(self.parameters(), lr=learning_rate)
         
@@ -825,4 +825,4 @@ if __name__ == '__main__':
     print('Dev Vocab size',dev_df.lex_vocab.size())
     parser = LCmodel(train_df,rnn_memory=1500,embedding_size=300,device=0)
     parser.cuda(device=0)
-    parser.train(train_df,dev_df,200,batch_size=64,learning_rate=3.0,device=0,alpha=0.0) 
+    parser.train(train_df,dev_df,200,batch_size=64,learning_rate=1.0,device=0,alpha=0.0) 
