@@ -366,7 +366,6 @@ class BucketLoader:
         token_lengths      = [ len(self.dataset.tokens[idx]) for idx in batch_idxes ]
         max_token_length   = max(token_lengths)
 
-        print('max_tok_len', max_token_length)
         raw_tokens    = [ self.dataset.sample_tokens(self.dataset.tokens[batch_idxes[step]],max_token_length,alpha=self.alpha) for step in range(batchN) ]
         ytoken_matrix = [ self.dataset.numericalize_example(elt,max_token_length,self.dataset.lex_vocab) for elt in raw_tokens ]
         xtoken_matrix = [ self.dataset.numericalize_example([self.dataset.sos]+elt[:-1],max_token_length,self.dataset.lex_vocab) for elt in raw_tokens ]
@@ -384,9 +383,7 @@ class BucketLoader:
             lex_action_tensor     = torch.tensor(lex_action_matrix,dtype=torch.long,device=self.device)
             struct_action_tensor  = torch.tensor(struct_action_matrix,dtype=torch.long,device=self.device)
             struct_label_tensor   = torch.tensor(struct_label_matrix,dtype=torch.long,device=self.device)
-            print('max_tok_len', max_token_length)
-            print("Batch size",batchN,'xtoken',xtoken_tensor.shape,ytoken_tensor.shape,'struct_action_tensor',struct_action_tensor.shape)
-            
+        
             return ParseBatch(xtokens=xtoken_tensor,ytokens=ytoken_tensor, lex_actions=lex_action_tensor,\
                                   struct_actions=struct_action_tensor,struct_labels=struct_label_tensor,token_length=token_lengths,orig_idxes=batch_idxes)
         
