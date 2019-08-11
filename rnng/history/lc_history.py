@@ -129,53 +129,63 @@ class Vocabulary:
         """
         return self.itos[tok_idx] 
     
-class ParsingDataSet:
+class ParsingDataSet(object):
     """
-    That's a data set for parsing. Each example is a couple made of a list of tokens and a derivation.
-    That's currently tied to the parser class (try to remove this dependency)
+    That's a data set for parsing. Each example is a couple made of a list of tokens and an optional derivation.
+    That's currently tied to the parser class (try to remove this dependency later)
     """
-    def __init__(self,dataset,ext_vocab=None, unk='<unk>',pad='<pad>',sos='<sos>'):
+    def __init__(self,dataset,ext_vocab=None,root_dataset=None unk='<unk>',pad='<pad>',sos='<sos>'):
         """
         Args:
-             dataset        (list): a list of trees (or a list of strings for test and unsupervised setups)
-             ext_vocab(Vocabulary): if specified use existing external vocabulary, otherwise builds it from the data
-             unk             (str): a string for the unk token for internal vocab
-             pad             (str): a string for the pad token for internal vocab
-             sos             (str): a string for the start of sentence (sos) token
+             dataset               (list): a list of trees (or a list of strings for test and unsupervised setups)
+             ext_vocab       (Vocabulary): if specified use existing external vocabulary, otherwise builds it from the data
+             root_dataset(ParsingDataSet): if specified uses the vocabulary encoding from this external dataset rather than inferring encodings from this one. 
+             unk                    (str): a string for the unk token for internal vocab
+             pad                    (str): a string for the pad token for internal vocab
+             sos                    (str): a string for the start of sentence (sos) token
         """
-        self.unk = unk
-        self.pad = pad
-        self.sos = sos
-        
-        if isinstance(dataset[0],ConsTree):
 
-            self.tree_set      = dataset
+        is_treebank = isinstance(dataset[0],ConsTree)
+        
+        #1. Data structuration 
+        if is_treebank : #has annotated trees
             
+            self.tree_set      = dataset
             derivations        = [ LCmodel.oracle_derivation(tree) for tree in dataset ]
                 
             self.tokens        = [ tree.tokens() for tree in dataset ]
             self.lex_actions   = [ self.extract_lex_actions(deriv)  for deriv in derivations ]
             self.struct_labels = [ self.extract_struct_labels(deriv)  for deriv in derivations ]
             self.struct_actions= [ self.extract_struct_actions(deriv)  for deriv in derivations ]
-            
-            if ext_vocab:
-                self.lex_vocab = ext_vocab
-            else:
-                self.lex_vocab           = ParsingDataSet.build_vocab(self.tokens,unk_lex=self.unk,pad=self.pad,sos=self.sos)
-
-            self.lex_action_vocab    = ParsingDataSet.build_vocab(self.lex_actions,pad=pad)
-            self.struct_vocab        = ParsingDataSet.build_vocab(self.struct_labels,pad=pad,sos=self.sos)
-            self.struct_action_vocab = ParsingDataSet.build_vocab(self.struct_actions,pad=pad,sos=self.sos)
-        else:
+    
+        else:                             #raw text
             self.tokens = [ sent.split( ) for sent in dataset ]
-            if ext_vocab:
-                self.lex_vocab = ext_vocab
-            else:
-                self.lex_vocab           = ParsingDataSet.build_vocab(self.tokens,unk_lex=self.unk,pad=self.pad,sos=self.sos)
-           
-            self.struct_vocab, self.lex_action_vocab,self.struct_action_vocab = (None,None,None)
-            self.derivations  = None
 
+        #2. Vocabularies
+        if root_dataset :
+            self.lex_vocab = root_dataset.lex_vocab
+            if is_treebank :
+                self.lex_action_vocab    = root_dataset.lex_action_vocab   
+                self.struct_vocab        = root_dataset.struct_vocab
+                self.struct_action_vocab = root_dataset.struct_action_vocab
+            self.unk = root_dataset.unk
+            self.pad = root_dataset.pad
+            self.sos = root_dataset.sos       
+        else:
+            self.lex_vocab               = ParsingDataSet.build_vocab(self.tokens,unk_lex=self.unk,pad=self.pad,sos=self.sos)
+            if is_treebank :
+                self.lex_action_vocab    = ParsingDataSet.build_vocab(self.lex_actions,pad=pad)
+                self.struct_vocab        = ParsingDataSet.build_vocab(self.struct_labels,pad=pad,sos=self.sos)
+                self.struct_action_vocab = ParsingDataSet.build_vocab(self.struct_actions,pad=pad,sos=self.sos)
+            self.unk = unk
+            self.pad = pad
+            self.sos = sos
+            
+        #3. External vocabulary
+        if ext_vocab:
+            assert(ext_vocab.unk == unk and ext_vocab.sos == sos and ext_vocab.pad == pad)
+            self.lex_vocab = ext_vocab
+            
     def decode_derivation(self,derivation): #pred_lexaction,pred_ytokens,pred_structaction,pred_structlabels
         """
         This translates an integer coded derivation back to a string.
@@ -195,7 +205,7 @@ class ParsingDataSet:
         """
         Returns true if this dataset has annotated trees
         """
-        return self.lex_actions is not None
+        return hasattr(self,'lex_actions')
 
     @staticmethod
     def build_vocab(datalist,unk_lex=None,pad=None,sos=None):
@@ -305,7 +315,7 @@ class ParsingDataSet:
         N                 = len(datum)
         padded_datum      = datum + [self.pad]*(batch_len-N)
         return [vocabulary.token_index(token) for token in padded_datum]
-
+ 
     
 class ParseBatch: 
    
