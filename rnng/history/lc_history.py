@@ -819,7 +819,7 @@ if __name__ == '__main__':
     #trainset   =  [ ConsTree.read_tree('(S (DP The (NP little monkey)) (VP screams loud))')]
     #devset     =  [ ConsTree.read_tree('(S (DP The (NP little monkey)) (VP screams loud))')]
 
-    train_df       = ParsingDataSet(trainset,min_lex_counts=1)
+    train_df       = ParsingDataSet(trainset,min_lex_counts=10)
     print('Train Vocab size',train_df.lex_vocab.size())
     dev_df         = ParsingDataSet(devset,root_dataset=train_df)
     print('Dev Vocab size',dev_df.lex_vocab.size())
