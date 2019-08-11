@@ -678,7 +678,7 @@ class LCmodel(nn.Module):
         lex_loss           = nn.NLLLoss(reduction='sum',ignore_index=train_set.lex_vocab.stoi[train_set.pad])
         struct_loss        = nn.NLLLoss(reduction='sum',ignore_index=train_set.struct_vocab.stoi[train_set.pad])
         
-        optimizer = optim.SGD(self.parameters(), lr=learning_rate)
+        optimizer = optim.Adam(self.parameters(), lr=learning_rate)
         
         for e in range(epochs):
             L = 0
@@ -710,7 +710,7 @@ class LCmodel(nn.Module):
                 loss3.backward(retain_graph=True)
                 loss4.backward()
                 L += loss1.item() + loss2.item() + loss3.item() + loss4.item()
-                N += len(batch.orig_idxes)
+                N += 4*len(batch.orig_idxes)
                 optimizer.step()
                 
             print("Epoch",e,'training loss (NLL) =', L/N)   
@@ -826,4 +826,4 @@ if __name__ == '__main__':
     print('Dev Vocab size',dev_df.lex_vocab.size())
     parser = LCmodel(train_df,rnn_memory=1500,embedding_size=300,device=0)
     parser.cuda(device=0)
-    parser.train(train_df,dev_df,200,batch_size=64,learning_rate=1.0,device=0,alpha=0.0) 
+    parser.train(train_df,dev_df,200,batch_size=64,learning_rate=0.001,device=0,alpha=0.0) 
