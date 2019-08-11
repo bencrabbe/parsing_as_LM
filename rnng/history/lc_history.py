@@ -172,11 +172,11 @@ class ParsingDataSet(object):
             self.pad = root_dataset.pad
             self.sos = root_dataset.sos       
         else:
-            self.lex_vocab               = ParsingDataSet.build_vocab(self.tokens,unk_lex=self.unk,pad=self.pad,sos=self.sos)
+            self.lex_vocab               = ParsingDataSet.build_vocab(self.tokens,unk_lex=unk,pad=pad,sos=sos)
             if is_treebank :
                 self.lex_action_vocab    = ParsingDataSet.build_vocab(self.lex_actions,pad=pad)
-                self.struct_vocab        = ParsingDataSet.build_vocab(self.struct_labels,pad=pad,sos=self.sos)
-                self.struct_action_vocab = ParsingDataSet.build_vocab(self.struct_actions,pad=pad,sos=self.sos)
+                self.struct_vocab        = ParsingDataSet.build_vocab(self.struct_labels,pad=pad,sos=sos)
+                self.struct_action_vocab = ParsingDataSet.build_vocab(self.struct_actions,pad=pad,sos=sos)
             self.unk = unk
             self.pad = pad
             self.sos = sos
