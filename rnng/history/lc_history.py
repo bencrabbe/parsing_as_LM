@@ -816,7 +816,7 @@ if __name__ == '__main__':
     trainset = list(input_treebank('../ptb_train.mrg'))
     devset   = list(input_treebank('../ptb_dev.mrg'))
     train_df       = ParsingDataSet(trainset)
-    print('Vocab size',train_df.lex_vocab)
+    print('Vocab size',len(train_df.lex_vocab))
     dev_df         = ParsingDataSet(devset,root_dataset=train_df)    
     parser = LCmodel(train_df,rnn_memory=300,embedding_size=300,device=1)
     parser.cuda(device=1)
