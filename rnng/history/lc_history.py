@@ -819,4 +819,4 @@ if __name__ == '__main__':
     dev_df         = ParsingDataSet(devset,root_dataset=train_df)    
     parser = LCmodel(train_df,rnn_memory=300,embedding_size=300,device=1)
     parser.cuda(device=1)
-    parser.train(train_df,dev_df,40,batch_size=64,learning_rate=0.01,device=1,alpha=1.0) 
+    parser.train(train_df,dev_df,40,batch_size=64,learning_rate=0.1,device=1,alpha=1.0) 
