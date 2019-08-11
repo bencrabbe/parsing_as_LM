@@ -134,7 +134,7 @@ class ParsingDataSet(object):
     That's a data set for parsing. Each example is a couple made of a list of tokens and an optional derivation.
     That's currently tied to the parser class (try to remove this dependency later)
     """
-    def __init__(self,dataset,ext_vocab=None,root_dataset=None, unk='<unk>',pad='<pad>',sos='<sos>'):
+    def __init__(self,dataset,ext_vocab=None,root_dataset=None, unk='<unk>',pad='<pad>',sos='<sos>',min_lex_counts=0):
         """
         Args:
              dataset               (list): a list of trees (or a list of strings for test and unsupervised setups)
@@ -143,6 +143,7 @@ class ParsingDataSet(object):
              unk                    (str): a string for the unk token for internal vocab
              pad                    (str): a string for the pad token for internal vocab
              sos                    (str): a string for the start of sentence (sos) token
+             min_lex_counts         (int): count threshold under which tokens are excluded from the lexical vocabulary built from the data
         """
 
         is_treebank = isinstance(dataset[0],ConsTree)
@@ -172,7 +173,7 @@ class ParsingDataSet(object):
             self.pad = root_dataset.pad
             self.sos = root_dataset.sos       
         else:
-            self.lex_vocab               = ParsingDataSet.build_vocab(self.tokens,unk_lex=unk,pad=pad,sos=sos)
+            self.lex_vocab               = ParsingDataSet.build_vocab(self.tokens,unk_lex=unk,pad=pad,sos=sos,min_freq=min_lex_counts)
             if is_treebank :
                 self.lex_action_vocab    = ParsingDataSet.build_vocab(self.lex_actions,pad=pad)
                 self.struct_vocab        = ParsingDataSet.build_vocab(self.struct_labels,pad=pad,sos=sos)
@@ -815,7 +816,7 @@ if __name__ == '__main__':
     #print(treebank)
     trainset = list(input_treebank('../ptb_train.mrg'))
     devset   = list(input_treebank('../ptb_dev.mrg'))
-    train_df       = ParsingDataSet(trainset)
+    train_df       = ParsingDataSet(trainset,min_lex_freq=1)
     print('Vocab size',train_df.lex_vocab.size())
     dev_df         = ParsingDataSet(devset,root_dataset=train_df)    
     parser = LCmodel(train_df,rnn_memory=300,embedding_size=300,device=1)
