@@ -387,7 +387,6 @@ class BucketLoader:
             print('max_tok_len', max_token_length)
             print("Batch size",batchN,'xtoken',xtoken_tensor.shape,ytoken_tensor.shape,'struct_action_tensor',struct_action_tensor.shape)
             
- 
             return ParseBatch(xtokens=xtoken_tensor,ytokens=ytoken_tensor, lex_actions=lex_action_tensor,\
                                   struct_actions=struct_action_tensor,struct_labels=struct_label_tensor,token_length=token_lengths,orig_idxes=batch_idxes)
         
@@ -775,8 +774,7 @@ class LCmodel(nn.Module):
                 derivation.append((LCmodel.ACTION_PREDICT,ctree.label))
             else:
                 derivation.append((LCmodel.ACTION_ATTACH,ctree.label))
-            if ctree.arity() > 1: #sentences of length 1 have a unary node -> its shitty because cannot be parsed either
-                derivation.extend( LCmodel.oracle_derivation(ctree.get_child(1),left_corner=False) )
+            derivation.extend( LCmodel.oracle_derivation(ctree.get_child(1),left_corner=False) )
         return derivation 
 
 def input_treebank(filename):
@@ -790,6 +788,7 @@ def input_treebank(filename):
     istream = open(filename)
     for treeline in istream:
         tree = ConsTree.read_tree(treeline)
+        tree.add_eos()
         ConsTree.left_markovize(tree)
         ConsTree.close_unaries(tree)
         tree.strip_tags()
@@ -807,6 +806,7 @@ def output_treebank(treelist,filename=None):
     for tree in treelist:
         tree.expand_unaries()
         tree.unbinarize()
+        tree.strip_eos()
         print(tree,file=ostream)
     if filename: 
         ostream.close()

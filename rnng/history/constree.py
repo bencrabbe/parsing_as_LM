@@ -145,6 +145,23 @@ class ConsTree:
             child.normalize_OOV(lexicon,unk_token)
         return self
 
+    def add_eos(self,eos='<eos>'):
+        """
+        Destructive in-place addition of an eos token on length 1 sentences.
+        This guarantees that every sentence has at least lenght 2 and
+        ensures strict binarization is possible.
+        """
+        if len(self.tokens()) == 1:
+            self.add_child(ConsTree(eos))
+
+    def strip_eos(self,eos='<eos>'):
+        """
+        Destructive in-place removal of an eos token on length 2 sentences.
+        """
+        T = self.tokens()
+        if len(T) == 2 and T[-1] == eos:
+            self.children.pop()
+        
     def add_gold_tags(self,tag_sequence=None,idx=0):
         """
         Adds gold tags to the tree on top of leaves(for evalb compatibility).
