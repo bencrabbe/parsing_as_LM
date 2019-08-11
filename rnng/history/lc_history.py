@@ -823,6 +823,6 @@ if __name__ == '__main__':
     print('Train Vocab size',train_df.lex_vocab.size())
     dev_df         = ParsingDataSet(devset,root_dataset=train_df)
     print('Dev Vocab size',dev_df.lex_vocab.size())
-    parser = LCmodel(train_df,rnn_memory=150,embedding_size=100,device=3)
+    parser = LCmodel(train_df,rnn_memory=1500,embedding_size=300,device=3)
     parser.cuda(device=3)
     parser.train(train_df,dev_df,40,batch_size=1,learning_rate=1.0,device=3,alpha=0.0) 
