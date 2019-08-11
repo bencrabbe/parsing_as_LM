@@ -682,6 +682,7 @@ class LCmodel(nn.Module):
         
         for e in range(epochs):
             L = 0
+            N = 0
             dataloader = BucketLoader(train_set,batch_size,device,alpha)
             for batch in dataloader:
                 
@@ -709,10 +710,10 @@ class LCmodel(nn.Module):
                 loss3.backward(retain_graph=True)
                 loss4.backward()
                 L += loss1.item() + loss2.item() + loss3.item() + loss4.item()
-
+                N += len(batch.orig_idxes)
                 optimizer.step()
                 
-            print("Epoch",e,'training loss (NLL) =', L)   
+            print("Epoch",e,'training loss (NLL) =', L/N)   
             #Development f-score computation
             #pred_trees = list(tree for (derivation,tree) in self.predict(dev_set,batch_size))
             pred_trees = list(tree for (derivation,tree) in self.predict(dev_set,batch_size,device))
