@@ -173,7 +173,7 @@ class ParsingDataSet(object):
             self.pad = root_dataset.pad
             self.sos = root_dataset.sos       
         else:
-            self.lex_vocab               = ParsingDataSet.build_vocab(self.tokens,unk_lex=unk,pad=pad,sos=sos,min_freq=min_lex_counts)
+            self.lex_vocab               = ParsingDataSet.build_vocab(self.tokens,unk_lex=unk,pad=pad,sos=sos,min_counts=min_lex_counts)
             if is_treebank :
                 self.lex_action_vocab    = ParsingDataSet.build_vocab(self.lex_actions,pad=pad)
                 self.struct_vocab        = ParsingDataSet.build_vocab(self.struct_labels,pad=pad,sos=sos)
@@ -209,7 +209,7 @@ class ParsingDataSet(object):
         return hasattr(self,'lex_actions')
 
     @staticmethod
-    def build_vocab(datalist,unk_lex=None,pad=None,sos=None):
+    def build_vocab(datalist,unk_lex=None,pad=None,sos=None,min_counts=0):
         """
         Builds a vocabulary from a matrix of strings 
         Args: 
@@ -223,7 +223,7 @@ class ParsingDataSet(object):
         token_counter    = Counter()
         for item in datalist:
             token_counter.update(item)
-        return Vocabulary(token_counter,unk=unk_lex,pad=pad,sos=sos)
+        return Vocabulary(token_counter,unk=unk_lex,pad=pad,sos=sos,min_freq=min_counts)
     
     def extract_tokens(self,derivation):
         """
