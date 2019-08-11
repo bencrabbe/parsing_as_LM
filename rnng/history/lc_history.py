@@ -372,21 +372,25 @@ class BucketLoader:
 
         xtoken_tensor  = torch.tensor(xtoken_matrix,dtype=torch.long,device=self.device)
         ytoken_tensor  = torch.tensor(ytoken_matrix,dtype=torch.long,device=self.device)
+
         
         if self.dataset.is_training_set():
-    
+            
             lex_action_matrix     = [self.dataset.numericalize_example(self.dataset.lex_actions[batch_idxes[step]], max_token_length,self.dataset.lex_action_vocab)  for step in range(batchN) ]
             struct_action_matrix  = [self.dataset.numericalize_example([self.dataset.sos]+self.dataset.struct_actions[batch_idxes[step]], max_token_length,self.dataset.struct_action_vocab) for step in range(batchN) ]
             struct_label_matrix   = [self.dataset.numericalize_example([self.dataset.sos]+self.dataset.struct_labels[batch_idxes[step]], max_token_length,self.dataset.struct_vocab) for step in range(batchN) ]
 
             lex_action_tensor     = torch.tensor(lex_action_matrix,dtype=torch.long,device=self.device)
             struct_action_tensor  = torch.tensor(struct_action_matrix,dtype=torch.long,device=self.device)
-            struct_label_tensor   = torch.tensor(struct_label_matrix,dtype=torch.long,device=self.device) 
+            struct_label_tensor   = torch.tensor(struct_label_matrix,dtype=torch.long,device=self.device)
+
+            print("Batch size",batchN,'xtoken',xtoken_tensor.shape,'struct_action_tensor',struct_action_tensor.shape)
+            
  
             return ParseBatch(xtokens=xtoken_tensor,ytokens=ytoken_tensor, lex_actions=lex_action_tensor,\
                                   struct_actions=struct_action_tensor,struct_labels=struct_label_tensor,token_length=token_lengths,orig_idxes=batch_idxes)
         
-        return ParseBatch(xtokens=xtoken_tensor,ytokens=ytoken_tensor,token_length=token_lengths,orig_idxes=batch_idxes)
+        return ParseBatch(xtokens=xtoken_tensor,ytokens=ytoken_tensor,token_length=token_lengths,orig_idxes=batch_idxes) 
             
     def __iter__(self):
         return self
