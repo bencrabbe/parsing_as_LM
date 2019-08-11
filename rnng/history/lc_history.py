@@ -816,7 +816,7 @@ if __name__ == '__main__':
     #print(treebank)
     trainset = list(input_treebank('../ptb_train.mrg'))
     devset   = list(input_treebank('../ptb_dev.mrg'))
-    train_df       = ParsingDataSet(trainset,min_lex_counts=2)
+    train_df       = ParsingDataSet(trainset,min_lex_counts=3)
     print('Vocab size',train_df.lex_vocab.size())
     dev_df         = ParsingDataSet(devset,root_dataset=train_df)
     print('Vocab size',dev_df.lex_vocab.size())
