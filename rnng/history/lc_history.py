@@ -366,7 +366,7 @@ class BucketLoader:
         batchN             = len(batch_idxes)
         token_lengths      = [ len(self.dataset.tokens[idx]) for idx in batch_idxes ]
         max_token_length   = max(token_lengths)
-
+        
         raw_tokens    = [ self.dataset.sample_tokens(self.dataset.tokens[batch_idxes[step]],max_token_length,alpha=self.alpha) for step in range(batchN) ]
         ytoken_matrix = [ self.dataset.numericalize_example(elt,max_token_length,self.dataset.lex_vocab) for elt in raw_tokens ]
         xtoken_matrix = [ self.dataset.numericalize_example([self.dataset.sos]+elt[:-1],max_token_length,self.dataset.lex_vocab) for elt in raw_tokens ]
@@ -374,7 +374,6 @@ class BucketLoader:
         xtoken_tensor  = torch.tensor(xtoken_matrix,dtype=torch.long,device=self.device)
         ytoken_tensor  = torch.tensor(ytoken_matrix,dtype=torch.long,device=self.device)
 
-        
         if self.dataset.is_training_set():
             
             lex_action_matrix     = [self.dataset.numericalize_example( self.dataset.lex_actions[batch_idxes[step]], max_token_length,self.dataset.lex_action_vocab)  for step in range(batchN) ]
@@ -816,10 +815,14 @@ if __name__ == '__main__':
     #print(treebank)
     trainset = list(input_treebank('../ptb_train.mrg'))
     devset   = list(input_treebank('../ptb_dev.mrg'))
+
+    #trainset   =  [ ConsTree.read_tree('(S (DP The (NP little monkey)) (VP screams loud))')]
+    #devset     =  [ ConsTree.read_tree('(S (DP The (NP little monkey)) (VP screams loud))')]
+
     train_df       = ParsingDataSet(trainset,min_lex_counts=10)
-    print('Vocab size',train_df.lex_vocab.size())
+    print('Train Vocab size',train_df.lex_vocab.size())
     dev_df         = ParsingDataSet(devset,root_dataset=train_df)
-    print('Vocab size',dev_df.lex_vocab.size())
-    parser = LCmodel(train_df,rnn_memory=1500,embedding_size=300,device=1)
-    parser.cuda(device=1)
-    parser.train(train_df,dev_df,40,batch_size=64,learning_rate=1.0,device=1,alpha=0.0) 
+    print('Dev Vocab size',dev_df.lex_vocab.size())
+    parser = LCmodel(train_df,rnn_memory=1500,embedding_size=300,device=2)
+    parser.cuda(device=2)
+    parser.train(train_df,dev_df,40,batch_size=128,learning_rate=100.0,device=2,alpha=0.0) 
