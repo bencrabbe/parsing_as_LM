@@ -801,7 +801,7 @@ def input_treebank(filename):
     for treeline in istream:
         tree = ConsTree.read_tree(treeline)
         tree.add_eos()
-        ConsTree.left_markovize(tree)
+        ConsTree.right_markovize(tree)
         ConsTree.close_unaries(tree)
         tree.strip_tags()
         yield tree
@@ -844,4 +844,4 @@ if __name__ == '__main__':
     
     parser = LCmodel(dev_df,rnn_memory=300,embedding_size=300,device=3)
     parser.cuda(device=3)
-    parser.train(dev_df,dev_df,200,batch_size=32,learning_rate=0.1,device=3,alpha=0.0) 
+    parser.train(dev_df,dev_df,200,batch_size=32,learning_rate=1.0,device=3,alpha=0.0) 
