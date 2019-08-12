@@ -844,4 +844,4 @@ if __name__ == '__main__':
     
     parser = LCmodel(dev_df,rnn_memory=1500,embedding_size=300,device=2)
     parser.cuda(device=2)
-    parser.train(dev_df,dev_df,200,batch_size=64,learning_rate=0.1,device=2,alpha=0.0) 
+    parser.train(dev_df,dev_df,200,batch_size=64,learning_rate=1.0,device=2,alpha=0.0) 
