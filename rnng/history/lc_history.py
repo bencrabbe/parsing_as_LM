@@ -834,9 +834,12 @@ if __name__ == '__main__':
     #devset     =  [ ConsTree.read_tree('(S (DP The (NP little monkey)) (VP screams loud))')]
 
     train_df       = ParsingDataSet(trainset,min_lex_counts=10)
-    print('Train Vocab size',train_df.lex_vocab.size())
     dev_df         = ParsingDataSet(devset,root_dataset=train_df)
-    print('Dev Vocab size',dev_df.lex_vocab.size())
+    print('Train Vocab size',train_df.lex_vocab.size())
+    print('Dev   Vocab size',dev_df.lex_vocab.size())
+    print('Train label size',train_df.struct_vocab.size())
+    print('Dev label size',dev_df.struct_vocab.size())
+    
     parser = LCmodel(train_df,rnn_memory=1500,embedding_size=300,device=0)
     parser.cuda(device=0)
     parser.train(train_df,dev_df,200,batch_size=64,learning_rate=1.0,device=0,alpha=0.0) 
