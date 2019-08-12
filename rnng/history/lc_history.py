@@ -685,7 +685,8 @@ class LCmodel(nn.Module):
 
         for e in range(epochs):
             _lex_loss,_lex_action_loss, _struct_action_loss, _struct_loss = 0,0,0,0
-            
+
+            print(scheduler.get_lr())
             N = 0
             dataloader = BucketLoader(train_set,batch_size,device,alpha)
             for batch in dataloader:
