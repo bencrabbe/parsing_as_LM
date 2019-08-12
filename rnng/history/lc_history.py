@@ -686,7 +686,8 @@ class LCmodel(nn.Module):
         for e in range(epochs):
             _lex_loss,_lex_action_loss, _struct_action_loss, _struct_loss = 0,0,0,0
 
-            print(scheduler.get_lr())
+            scheduler.step()
+            print(e,scheduler.get_lr())
             N = 0
             dataloader = BucketLoader(train_set,batch_size,device,alpha)
             for batch in dataloader:
@@ -728,7 +729,6 @@ class LCmodel(nn.Module):
             print('        lex action loss    (NLL) = ',_lex_action_loss/N)
             print('        struct loss        (NLL) = ', _struct_loss/N)
             print('        struct action loss (NLL) =',_struct_action_loss/N)
-            scheduler.step(L)
             #Development f-score computation
             #pred_trees = list(tree for (derivation,tree) in self.predict(dev_set,batch_size))
             pred_trees = list(tree for (derivation,tree) in self.predict(dev_set,batch_size,device))
