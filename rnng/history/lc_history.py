@@ -2,6 +2,7 @@ import sys
 import torch
 import torch.nn as nn
 import torch.optim as optim
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 import numpy as np
 from constree    import *
 from collections import Counter
@@ -678,10 +679,12 @@ class LCmodel(nn.Module):
         lex_loss           = nn.NLLLoss(reduction='sum',ignore_index=train_set.lex_vocab.stoi[train_set.pad])
         struct_loss        = nn.NLLLoss(reduction='sum',ignore_index=train_set.struct_vocab.stoi[train_set.pad])
         
-        optimizer = optim.Adam(self.parameters(), lr=learning_rate)
-        
+        optimizer = optim.SGD(self.parameters(), lr=learning_rate)
+        scheduler = ReduceLROnPlateau(optimizer, mode='max', factor=0.1, patience=10, verbose=True)
+
         for e in range(epochs):
-            L = 0
+            _lex_loss,_lex_action_loss, _struct_action_loss, _struct_loss = 0,0,0,0
+            
             N = 0
             dataloader = BucketLoader(train_set,batch_size,device,alpha)
             for batch in dataloader:
@@ -709,11 +712,18 @@ class LCmodel(nn.Module):
                 loss2.backward(retain_graph=True)
                 loss3.backward(retain_graph=True)
                 loss4.backward()
-                L += loss1.item() + loss2.item() + loss3.item() + loss4.item()
-                N += 4*len(batch.orig_idxes)
+
+                _lex_loss           += loss3.item()
+                _lex_action_loss    += loss1.item()
+                _struct_loss        += loss4.item()
+                _struct_action_loss += loss2.item()
+                N += sum(batch.token_lengths)
                 optimizer.step()
-                
-            print("Epoch",e,'training loss (NLL) =', L/N)   
+
+            L = _lex_loss + _lex_action_loss + _struct_action_loss + _struct_loss
+            print("Epoch",e,'training loss (NLL) =', L/(4*N),'lex loss (NLL) = ',_lex_loss/N,'lex action loss (NLL) = ',_lex_action_loss/N,\
+                      'struct loss (NLL)', _struct_loss/N,'struct action loss (NLL) ',_struct_action_loss)
+            scheduler.step(L)
             #Development f-score computation
             #pred_trees = list(tree for (derivation,tree) in self.predict(dev_set,batch_size))
             pred_trees = list(tree for (derivation,tree) in self.predict(dev_set,batch_size,device))
@@ -826,4 +836,4 @@ if __name__ == '__main__':
     print('Dev Vocab size',dev_df.lex_vocab.size())
     parser = LCmodel(train_df,rnn_memory=1500,embedding_size=300,device=0)
     parser.cuda(device=0)
-    parser.train(train_df,dev_df,200,batch_size=64,learning_rate=0.001,device=0,alpha=0.0) 
+    parser.train(train_df,dev_df,200,batch_size=64,learning_rate=1.0,device=0,alpha=0.0) 
