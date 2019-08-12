@@ -2,7 +2,7 @@ import sys
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.optim.lr_scheduler import LambdaLR
 import numpy as np
 from constree    import *
 from collections import Counter
@@ -680,7 +680,8 @@ class LCmodel(nn.Module):
         struct_loss        = nn.NLLLoss(reduction='sum',ignore_index=train_set.struct_vocab.stoi[train_set.pad])
         
         optimizer = optim.SGD(self.parameters(), lr=learning_rate)
-        scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10, verbose=True)
+        #scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10, verbose=True)
+        scheduler = LambdaLR(optimizer,lr_lambda = lambda epoch:learning_rate/(1+epoch))
 
         for e in range(epochs):
             _lex_loss,_lex_action_loss, _struct_action_loss, _struct_loss = 0,0,0,0
