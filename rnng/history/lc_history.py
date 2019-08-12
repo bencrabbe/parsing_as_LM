@@ -721,8 +721,11 @@ class LCmodel(nn.Module):
                 optimizer.step()
 
             L = _lex_loss + _lex_action_loss + _struct_action_loss + _struct_loss
-            print("Epoch",e,'training loss (NLL) =', L/(4*N),'lex loss (NLL) = ',_lex_loss/N,'lex action loss (NLL) = ',_lex_action_loss/N,\
-                      'struct loss (NLL)', _struct_loss/N,'struct action loss (NLL) ',_struct_action_loss)
+            print("Epoch",e,'training loss (NLL) =', L/(4*N))
+            print('     lex loss           (NLL) = ',_lex_loss/N)
+            print('     lex action loss    (NLL) = ',_lex_action_loss/N)
+            print('     struct loss        (NLL) = ', _struct_loss/N)
+            print('     struct action loss (NLL) =',_struct_action_loss)
             scheduler.step(L)
             #Development f-score computation
             #pred_trees = list(tree for (derivation,tree) in self.predict(dev_set,batch_size))
