@@ -717,7 +717,7 @@ class LCmodel(nn.Module):
                 _lex_action_loss    += loss1.item()
                 _struct_loss        += loss4.item()
                 _struct_action_loss += loss2.item()
-                N += sum(batch.token_lengths)
+                N += sum(batch.tokens_lengths)
                 optimizer.step()
 
             L = _lex_loss + _lex_action_loss + _struct_action_loss + _struct_loss
