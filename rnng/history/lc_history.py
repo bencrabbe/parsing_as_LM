@@ -684,10 +684,9 @@ class LCmodel(nn.Module):
         scheduler = LambdaLR(optimizer,lr_lambda = lambda epoch:learning_rate/(1+epoch))
 
         for e in range(epochs):
-            _lex_loss,_lex_action_loss, _struct_action_loss, _struct_loss = 0,0,0,0
-
             scheduler.step()
-            print(e,scheduler.get_lr())
+            
+            _lex_loss,_lex_action_loss, _struct_action_loss, _struct_loss = 0,0,0,0
             N = 0
             dataloader = BucketLoader(train_set,batch_size,device,alpha)
             for batch in dataloader:
@@ -724,7 +723,7 @@ class LCmodel(nn.Module):
                 optimizer.step()
 
             L = _lex_loss + _lex_action_loss + _struct_action_loss + _struct_loss
-            print("Epoch",e,'training loss (NLL) =', L/(4*N))
+            print("Epoch",e,'training loss (NLL) =', L/(4*N),'learning rate =',scheduler.get_lr()[0])
             print('        lex loss           (NLL) = ',_lex_loss/N)
             print('        lex action loss    (NLL) = ',_lex_action_loss/N)
             print('        struct loss        (NLL) = ', _struct_loss/N)
@@ -842,6 +841,6 @@ if __name__ == '__main__':
     print('Train label size',train_df.struct_vocab.size())
     print('Dev label size',dev_df.struct_vocab.size())
     
-    parser = LCmodel(train_df,rnn_memory=1500,embedding_size=300,device=1)
-    parser.cuda(device=1)
-    parser.train(train_df,dev_df,200,batch_size=64,learning_rate=1.0,device=1,alpha=0.0) 
+    parser = LCmodel(train_df,rnn_memory=1500,embedding_size=300,device=2)
+    parser.cuda(device=2)
+    parser.train(train_df,dev_df,200,batch_size=64,learning_rate=0.1,device=2,alpha=0.0) 
