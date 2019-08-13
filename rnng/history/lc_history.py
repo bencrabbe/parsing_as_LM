@@ -840,8 +840,8 @@ if __name__ == '__main__':
     #print('Train Vocab size',train_df.lex_vocab.size())
     print('Dev   Vocab size',dev_df.lex_vocab.size())
     #print('Train label size',train_df.struct_vocab.size())
-    print('Dev label size',dev_df.struct_vocab.size())
+    print('Dev label size',dev_df.struct_vocab.size(),struct.vocab.itos)
     
-    parser = LCmodel(dev_df,rnn_memory=300,embedding_size=300,device=2)
-    parser.cuda(device=2)
-    parser.train(dev_df,dev_df,200,batch_size=32,learning_rate=0.01,device=2,alpha=0.0) 
+    parser = LCmodel(dev_df,rnn_memory=300,embedding_size=300,device=1)
+    parser.cuda(device=1)
+    parser.train(dev_df,dev_df,200,batch_size=32,learning_rate=0.01,device=1,alpha=0.0) 
