@@ -607,7 +607,7 @@ class LCmodel(nn.Module):
                 if d == 1:
                     ntaction[ attach_c ]  = np.NINF
                 #decision
-                print('ntlabel',list(zip(self.struct_vocab.itos,np.exp(ntlabel))))
+                print('ntlabel',list(zip(self.ref_set.struct_vocab.itos,np.exp(ntlabel))))
                 ntlabel,struct_action = decode_structural(np.argmax(ntlabel),np.argmax(ntaction))
                 #exec
                 if struct_action ==  LCmodel.ACTION_PREDICT :
