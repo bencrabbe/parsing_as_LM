@@ -607,7 +607,7 @@ class LCmodel(nn.Module):
                 if d == 1:
                     ntaction[ attach_c ]  = np.NINF
                 #decision
-                print('ntlabel',ntlabel)
+                print('ntlabel',list(zip(self.struct_vocab.itos,np.exp(ntlabel))))
                 ntlabel,struct_action = decode_structural(np.argmax(ntlabel),np.argmax(ntaction))
                 #exec
                 if struct_action ==  LCmodel.ACTION_PREDICT :
@@ -615,7 +615,7 @@ class LCmodel(nn.Module):
                 elif struct_action == LCmodel.ACTION_ATTACH :
                     rc = Stack[-2].rightmost_attach_site()
                     rc.add_child(LCtree(ntlabel,children=[Stack[-1]]))
-                    Stack.pop()
+                    Stack.pop() 
                 else:
                     print('structural action problem',struct_action)
                 derivation.append( (struct_action,ntlabel) )
