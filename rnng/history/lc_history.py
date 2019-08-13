@@ -775,6 +775,7 @@ class LCmodel(nn.Module):
         Returns:
            ConsTree. a constituent tree object built from the derivation
         """
+        print(derivation)
         derivation.reverse()
         tree_stack = [ ]
         while derivation:
