@@ -382,9 +382,9 @@ class BucketLoader:
             struct_action_matrix  = [self.dataset.numericalize_example([self.dataset.sos]+self.dataset.struct_actions[batch_idxes[step]], max_token_length,self.dataset.struct_action_vocab) for step in range(batchN) ]
             struct_label_matrix   = [self.dataset.numericalize_example([self.dataset.sos]+self.dataset.struct_labels[batch_idxes[step]], max_token_length,self.dataset.struct_vocab) for step in range(batchN) ]
 
-            print('lex actions',lex_action_matrix)
-            print('struct_label', struct_label_matrix)
-            print('struct_action', struct_action_matrix)
+            print('lex actions', [ self.dataset.lex_actions[batch_idxes[step]] for step in range(batchN)] )
+            print('struct_label', [ self.dataset.struct_labels[batch_idxes[step]] for step in range(batchN)])
+            print('struct_action', [ self.dataset.struct_actions[batch_idxes[step]] for step in range(batchN)])
             
             
             lex_action_tensor     = torch.tensor(lex_action_matrix,dtype=torch.long,device=self.device)
