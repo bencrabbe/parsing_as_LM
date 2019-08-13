@@ -866,7 +866,7 @@ if __name__ == '__main__':
 
     #train_df       = ParsingDataSet(trainset,min_lex_counts=10)
     #dev_df         = ParsingDataSet(devset,root_dataset=train_df)
-    dev_df         = ParsingDataSet(devset)
+    dev_df         = ParsingDataSet([ConsTree.read_tree(t) for t in devset])
     #print('Train Vocab size',train_df.lex_vocab.size())
     print('Dev   Vocab size',dev_df.lex_vocab.size())
     #print('Train label size',train_df.struct_vocab.size())
