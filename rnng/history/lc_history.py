@@ -842,6 +842,6 @@ if __name__ == '__main__':
     #print('Train label size',train_df.struct_vocab.size())
     print('Dev label size',dev_df.struct_vocab.size())
     
-    parser = LCmodel(dev_df,rnn_memory=300,embedding_size=300,device=3)
-    parser.cuda(device=3)
-    parser.train(dev_df,dev_df,200,batch_size=32,learning_rate=0.01,device=3,alpha=0.0) 
+    parser = LCmodel(dev_df,rnn_memory=300,embedding_size=300,device=2)
+    parser.cuda(device=2)
+    parser.train(dev_df,dev_df,200,batch_size=32,learning_rate=0.01,device=2,alpha=0.0) 
