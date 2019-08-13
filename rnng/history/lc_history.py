@@ -602,8 +602,8 @@ class LCmodel(nn.Module):
                 ntaction[ struct_sos_c]  = np.NINF
                 if d > 0 and not Stack[-1].is_complete():
                     ntaction[ predict_c ] = np.NINF
-                #if not d <= r+1:
-                #    ntaction[ predict_c ]  = np.NINF
+                if not d <= r+1:
+                    ntaction[ predict_c ]  = np.NINF
                 if d == 1:
                     ntaction[ attach_c ]  = np.NINF
                 #decision
@@ -627,8 +627,8 @@ class LCmodel(nn.Module):
                 laction[ shift_attach_c ] = np.NINF
             elif d > 0 and Stack[-1].is_complete():
                 laction[ shift_init_c ] = np.NINF
-            #elif not d < r:
-            #    laction[ shift_init_c ] = np.NINF
+            elif not d < r:
+                laction[ shift_init_c ] = np.NINF
             #decision
             ytoken,lex_action = decode_lexical(np.argmax(token), np.argmax(laction)) #pick the relevant prob for the token here ! (to be reworked)
             #exec
@@ -856,17 +856,17 @@ def output_treebank(treelist,filename=None):
         
 if __name__ == '__main__':
     
-    #trainset   =  [ '(TOP@S I (S: (VP love (NP em both)) .))','(S (DP The (NP little monkey)) (VP screams loud))','(S (NP the dog) walks)','(S (NP a cat) (VP chases (NP the mouse)))','(S (NP A wolf) (VP eats (NP the pig)))']
+    devset   =  [ '(TOP@S I (S: (VP love (NP em both)) .))','(S (DP The (NP little monkey)) (VP screams loud))','(S (NP the dog) walks)','(S (NP a cat) (VP chases (NP the mouse)))','(S (NP A wolf) (VP eats (NP the pig)))']
     #print(treebank)
     trainset = list(input_treebank('../ptb_train.mrg'))
-    devset   = list(input_treebank('../ptb_dev.mrg'))
+    #devset   = list(input_treebank('../ptb_dev.mrg'))
 
     #trainset   =  [ ConsTree.read_tree('(S (DP The (NP little monkey)) (VP screams loud))')]
     #devset     =  [ ConsTree.read_tree('(S (DP The (NP little monkey)) (VP screams loud))')]
 
     #train_df       = ParsingDataSet(trainset,min_lex_counts=10)
     #dev_df         = ParsingDataSet(devset,root_dataset=train_df)
-    dev_df         = ParsingDataSet(devset[:1])
+    dev_df         = ParsingDataSet(devset)
     #print('Train Vocab size',train_df.lex_vocab.size())
     print('Dev   Vocab size',dev_df.lex_vocab.size())
     #print('Train label size',train_df.struct_vocab.size())
