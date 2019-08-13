@@ -716,13 +716,13 @@ class LCmodel(nn.Module):
                 self.zero_grad()
                 
                 seq_representation =  self.forward_base(batch.xtokens,batch.tokens_length)
-                seq_representation2 =  self.forward_base2(batch.xtokens,batch.tokens_length)
+                #seq_representation2 =  self.forward_base2(batch.xtokens,batch.tokens_length)
 
                 
                 pred_lexaction     =  self.forward_lexical_actions(seq_representation2)
                 pred_structaction  =  self.forward_structural_actions(seq_representation2)
                 pred_ytokens       =  self.forward_lexical_tokens(seq_representation2)
-                pred_structlabels  =  self.forward_structural_labels(seq_representation)
+                pred_structlabels  =  self.forward_structural_labels(seq_representation2)
 
                 ref_lexactions     =  batch.lex_actions.view(-1)      #flattens the target too
                 ref_structactions  =  batch.struct_actions.view(-1)   #flattens the target too
