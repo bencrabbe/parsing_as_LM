@@ -715,8 +715,8 @@ class LCmodel(nn.Module):
                 
                 self.zero_grad()
                 
-                seq_representation =  self.forward_base(batch.xtokens,batch.tokens_length)
-                #seq_representation2 =  self.forward_base2(batch.xtokens,batch.tokens_length)
+                #seq_representation =  self.forward_base(batch.xtokens,batch.tokens_length)
+                seq_representation2 =  self.forward_base2(batch.xtokens,batch.tokens_length)
 
                 
                 pred_lexaction     =  self.forward_lexical_actions(seq_representation2)
