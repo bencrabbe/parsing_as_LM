@@ -369,6 +369,7 @@ class BucketLoader:
         max_token_length   = max(token_lengths)
         
         raw_tokens    = [ self.dataset.sample_tokens(self.dataset.tokens[batch_idxes[step]],max_token_length,alpha=self.alpha) for step in range(batchN) ]
+        print('tokens',raw_tokens)
         ytoken_matrix = [ self.dataset.numericalize_example(elt,max_token_length,self.dataset.lex_vocab) for elt in raw_tokens ]
         xtoken_matrix = [ self.dataset.numericalize_example([self.dataset.sos]+elt[:-1],max_token_length,self.dataset.lex_vocab) for elt in raw_tokens ]
 
@@ -381,6 +382,11 @@ class BucketLoader:
             struct_action_matrix  = [self.dataset.numericalize_example([self.dataset.sos]+self.dataset.struct_actions[batch_idxes[step]], max_token_length,self.dataset.struct_action_vocab) for step in range(batchN) ]
             struct_label_matrix   = [self.dataset.numericalize_example([self.dataset.sos]+self.dataset.struct_labels[batch_idxes[step]], max_token_length,self.dataset.struct_vocab) for step in range(batchN) ]
 
+            print('lex actions',lex_action_matrix)
+            print('struct_label', struct_label_matrix)
+            print('struct_action', struct_action_matrix)
+            
+            
             lex_action_tensor     = torch.tensor(lex_action_matrix,dtype=torch.long,device=self.device)
             struct_action_tensor  = torch.tensor(struct_action_matrix,dtype=torch.long,device=self.device)
             struct_label_tensor   = torch.tensor(struct_label_matrix,dtype=torch.long,device=self.device)
@@ -706,7 +712,6 @@ class LCmodel(nn.Module):
 
         for e in range(epochs):
             scheduler.step()
-            print(scheduler.get_lr())
             
             _lex_loss,_lex_action_loss, _struct_action_loss, _struct_loss = 0,0,0,0
             N = 0
