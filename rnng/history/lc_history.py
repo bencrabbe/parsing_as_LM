@@ -705,8 +705,8 @@ class LCmodel(nn.Module):
         scheduler = LambdaLR(optimizer,lr_lambda = lambda epoch:learning_rate/(1+epoch))
 
         for e in range(epochs):
-            print(scheduler.get_lr())
             scheduler.step()
+            print(scheduler.get_lr())
             
             _lex_loss,_lex_action_loss, _struct_action_loss, _struct_loss = 0,0,0,0
             N = 0
