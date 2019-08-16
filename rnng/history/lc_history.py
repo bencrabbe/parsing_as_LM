@@ -639,7 +639,7 @@ class LCmodel(nn.Module):
 
         #print("Derivation",derivation)
         #print("stack tree",Stack[-1])
-        #print('summary : r',r-1,'d',d)
+        print('summary : r',r,'d',d)
         if len(Stack) != 1:
             print("invalid output stack",len(Stack))
             for elt in reversed(Stack):
@@ -828,7 +828,7 @@ def input_treebank(filename):
     istream = open(filename)
     for treeline in istream:
         tree = ConsTree.read_tree(treeline)
-        tree.add_eos()
+        tree.add_eos() 
         ConsTree.right_markovize(tree)
         ConsTree.close_unaries(tree)
         tree.strip_tags()
