@@ -690,7 +690,7 @@ class LCmodel(nn.Module):
 
     def train(self,train_set,dev_set,epochs,raw_loader=None,batch_size=1,learning_rate=0.1,device=-1,alpha=0.0):
         """
-        Args :   
+        Args :    
           train_set (ParsingDataSet): xxx
           dev_set   (ParsingDataSet): xxx
           epochs               (int): xxx
@@ -727,7 +727,7 @@ class LCmodel(nn.Module):
                 ref_structactions  =  batch.struct_actions.view(-1)   #flattens the target too
                 ref_ytokens        =  batch.ytokens.view(-1)          #flattens the target too
                 ref_structlabels   =  batch.struct_labels.view(-1)    #flattens the target too
-
+                
                 loss1 = lex_action_loss(pred_lexaction,ref_lexactions)       
                 loss2 = struct_action_loss(pred_structaction,ref_structactions)       
                 loss3 = lex_loss(pred_ytokens,ref_ytokens)       
@@ -863,7 +863,7 @@ if __name__ == '__main__':
     #print('Train Vocab size',train_df.lex_vocab.size())
     print('Dev   Vocab size',dev_df.lex_vocab.size())
     #print('Train label size',train_df.struct_vocab.size())
-    print('Train label size',train_df.struct_vocab.size(),train_df.struct_vocab.itos)
+    #print('Train label size',train_df.struct_vocab.size(),train_df.struct_vocab.itos)
     print('Dev label size',dev_df.struct_vocab.size(),dev_df.struct_vocab.itos)
     
     parser = LCmodel(dev_df,rnn_memory=300,embedding_size=300,device=3)
