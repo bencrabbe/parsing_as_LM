@@ -863,6 +863,7 @@ if __name__ == '__main__':
     #print('Train Vocab size',train_df.lex_vocab.size())
     print('Dev   Vocab size',dev_df.lex_vocab.size())
     #print('Train label size',train_df.struct_vocab.size())
+    print('Train label size',train_df.struct_vocab.size(),train_df.struct_vocab.itos)
     print('Dev label size',dev_df.struct_vocab.size(),dev_df.struct_vocab.itos)
     
     parser = LCmodel(dev_df,rnn_memory=300,embedding_size=300,device=3)
