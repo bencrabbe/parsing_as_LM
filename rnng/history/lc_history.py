@@ -369,7 +369,6 @@ class BucketLoader:
         max_token_length   = max(token_lengths)
         
         raw_tokens    = [ self.dataset.sample_tokens(self.dataset.tokens[batch_idxes[step]],max_token_length,alpha=self.alpha) for step in range(batchN) ]
-        print('tokens',raw_tokens)
         ytoken_matrix = [ self.dataset.numericalize_example(elt,max_token_length,self.dataset.lex_vocab) for elt in raw_tokens ]
         xtoken_matrix = [ self.dataset.numericalize_example([self.dataset.sos]+elt[:-1],max_token_length,self.dataset.lex_vocab) for elt in raw_tokens ]
 
@@ -381,12 +380,7 @@ class BucketLoader:
             lex_action_matrix     = [self.dataset.numericalize_example( self.dataset.lex_actions[batch_idxes[step]], max_token_length,self.dataset.lex_action_vocab)  for step in range(batchN) ]
             struct_action_matrix  = [self.dataset.numericalize_example([self.dataset.sos]+self.dataset.struct_actions[batch_idxes[step]], max_token_length,self.dataset.struct_action_vocab) for step in range(batchN) ]
             struct_label_matrix   = [self.dataset.numericalize_example([self.dataset.sos]+self.dataset.struct_labels[batch_idxes[step]], max_token_length,self.dataset.struct_vocab) for step in range(batchN) ]
-
-            print('lex actions', [ self.dataset.lex_actions[batch_idxes[step]] for step in range(batchN)] )
-            print('struct_label', [ self.dataset.struct_labels[batch_idxes[step]] for step in range(batchN)])
-            print('struct_action', [ self.dataset.struct_actions[batch_idxes[step]] for step in range(batchN)])
-            
-            
+                        
             lex_action_tensor     = torch.tensor(lex_action_matrix,dtype=torch.long,device=self.device)
             struct_action_tensor  = torch.tensor(struct_action_matrix,dtype=torch.long,device=self.device)
             struct_label_tensor   = torch.tensor(struct_label_matrix,dtype=torch.long,device=self.device)
@@ -607,7 +601,7 @@ class LCmodel(nn.Module):
                 if d == 1:
                     ntaction[ attach_c ]  = np.NINF
                 #decision
-                print('ntlabel',list(zip(self.ref_set.struct_vocab.itos,np.exp(ntlabel))))
+                #print('ntlabel',list(zip(self.ref_set.struct_vocab.itos,np.exp(ntlabel))))
                 ntlabel,struct_action = decode_structural(np.argmax(ntlabel),np.argmax(ntaction))
                 #exec
                 if struct_action ==  LCmodel.ACTION_PREDICT :
