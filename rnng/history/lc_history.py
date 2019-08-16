@@ -638,7 +638,7 @@ class LCmodel(nn.Module):
             derivation.append( (lex_action,b0) )
 
         #print("Derivation",derivation)
-        #print("stack tree",Stack[-1])
+        print("stack tree",Stack[-1])
         return derivation, Stack[-1]
 
     def predict(self,dev_set,batch_size=1,device=-1): 
@@ -754,8 +754,8 @@ class LCmodel(nn.Module):
             #Development f-score computation
             #pred_trees = list(tree for (derivation,tree) in self.predict(dev_set,batch_size))
             pred_trees = list(tree for (derivation,tree) in self.predict(dev_set,batch_size,device))
-            for t in pred_trees[:10]:
-                print(t)
+            #for t in pred_trees[:10]:
+            #    print(t)
             fscores    = [ reftree.compare(predtree)[2]   for (predtree,reftree) in zip(pred_trees,dev_set.tree_set) ]
             print("        development F-score = ", sum(fscores) / len(fscores))
             
