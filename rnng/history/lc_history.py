@@ -130,7 +130,7 @@ class Vocabulary:
         """
         return self.itos[tok_idx] 
     
-class ParsingDataSet(object):
+class ParsingDataSet(object): 
     """
     That's a data set for parsing. Each example is a couple made of a list of tokens and an optional derivation.
     That's currently tied to the parser class (try to remove this dependency later)
@@ -646,6 +646,8 @@ class LCmodel(nn.Module):
         #print("Derivation",derivation)
         #print("stack tree",Stack[-1])
         #print('summary : r',r-1,'d',d)
+        if len(Stack) != 1:
+            print("invalid output stack")
         return derivation, Stack[-1]
 
     def predict(self,dev_set,batch_size=1,device=-1): 
@@ -775,7 +777,6 @@ class LCmodel(nn.Module):
         Returns:
            ConsTree. a constituent tree object built from the derivation
         """
-        print(derivation)
         derivation.reverse()
         tree_stack = [ ]
         while derivation:
