@@ -702,10 +702,11 @@ class LCmodel(nn.Module):
         
         optimizer = optim.SGD(self.parameters(), lr=learning_rate)
         #scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10, verbose=True)
-        #scheduler = LambdaLR(optimizer,lr_lambda = lambda epoch:learning_rate/(1+epoch))
+        scheduler = LambdaLR(optimizer,lr_lambda = lambda epoch:learning_rate/(1+epoch))
 
         for e in range(epochs):
-            #scheduler.step()
+
+            scheduler.step()
             
             _lex_loss,_lex_action_loss, _struct_action_loss, _struct_loss = 0,0,0,0
             N = 0
@@ -747,7 +748,7 @@ class LCmodel(nn.Module):
                 optimizer.step()
 
             L = _lex_loss + _lex_action_loss + _struct_action_loss + _struct_loss
-            print("Epoch",e,'training loss (NLL) =', L/(4*N),'learning rate =')#,scheduler.get_lr()[0])
+            print("Epoch",e,'training loss (NLL) =', L/(4*N),'learning rate =',scheduler.get_lr()[0],N)
             print('        lex loss           (NLL) = ',_lex_loss/N)
             print('        lex action loss    (NLL) = ',_lex_action_loss/N)
             print('        struct loss        (NLL) = ', _struct_loss/N)
