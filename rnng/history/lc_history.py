@@ -589,7 +589,7 @@ class LCmodel(nn.Module):
         for (idx,token,laction,ntlabel,ntaction) in zip(range(N),lextokens,lexactions,structlabs,structactions):
             #STRUCTURAL STATE
             d = len(Stack) if Stack else 0  #stack depth
-            r = N - idx           #remaining words
+            r = N - 1 - idx           #remaining words
             if idx > 0 : #skips start of sentence dummy state
                 #preconditions (we mask for log probs)
                 ntaction[ struct_pad_c ] = np.NINF
