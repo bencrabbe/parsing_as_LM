@@ -642,6 +642,8 @@ class LCmodel(nn.Module):
         #print('summary : r',r-1,'d',d)
         if len(Stack) != 1:
             print("invalid output stack",len(Stack))
+            for elt in reversed(Stack):
+                print(elt)
         return derivation, Stack[-1]
 
     def predict(self,dev_set,batch_size=1,device=-1): 
