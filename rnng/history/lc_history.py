@@ -601,7 +601,7 @@ class LCmodel(nn.Module):
                 if d == 1:
                     ntaction[ attach_c ]  = np.NINF
                 #decision
-                #print('ntlabel',list(zip(self.ref_set.struct_vocab.itos,np.exp(ntlabel))))
+                print('ntlabel',list(zip(self.ref_set.struct_vocab.itos,np.exp(ntlabel))))
                 ntlabel,struct_action = decode_structural(np.argmax(ntlabel),np.argmax(ntaction))
                 #exec
                 if struct_action ==  LCmodel.ACTION_PREDICT :
@@ -623,7 +623,7 @@ class LCmodel(nn.Module):
                 laction[ shift_init_c ] = np.NINF
             elif not d < r:
                 laction[ shift_init_c ] = np.NINF
-            #decision
+            #decision 
             ytoken,lex_action = decode_lexical(np.argmax(token), np.argmax(laction)) #pick the relevant prob for the token here ! (to be reworked)
             #exec
             b0 = decode_lexical(Buffer[idx]) #forces the xtoken to be the reference rather than the predicted one
