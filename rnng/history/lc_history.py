@@ -695,12 +695,12 @@ class LCmodel(nn.Module):
             
             _lex_loss,_lex_action_loss, _struct_action_loss, _struct_loss = 0,0,0,0
             N = 0
+            print('train')
             dataloader = BucketLoader(train_set,batch_size,device,alpha)
             for batch in dataloader:
                 
                 self.zero_grad()
 
-                print('train')
                 seq_representation =  self.forward_base(batch.xtokens,batch.tokens_length)
 
                 
