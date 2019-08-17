@@ -650,6 +650,9 @@ class LCmodel(nn.Module):
                 pred_ytokens       =  self.forward_lexical_tokens(seq_representation)
                 pred_structlabels  =  self.forward_structural_labels(seq_representation)
 
+                print('predict slabels',pred_structlabels)
+
+                
                 #here we reshape sentence_wise :
                 #   input  [dim] = (batch_size*sent_len) x hidden_size
                 batch_size,batch_len = batch.ytokens.shape
@@ -711,6 +714,8 @@ class LCmodel(nn.Module):
                 pred_ytokens       =  self.forward_lexical_tokens(seq_representation)
                 pred_structlabels  =  self.forward_structural_labels(seq_representation)
 
+                print('train slabels',pred_structlabels)
+                
                 ref_lexactions     =  batch.lex_actions.view(-1)      #flattens the target too
                 ref_structactions  =  batch.struct_actions.view(-1)   #flattens the target too
                 ref_ytokens        =  batch.ytokens.view(-1)          #flattens the target too
