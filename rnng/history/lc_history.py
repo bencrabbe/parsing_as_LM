@@ -292,7 +292,7 @@ class ParsingDataSet(object):
                 return self.unk 
             return token
 
-        def subst_unk(token):
+        def subst_unk(token): 
             C = self.lex_vocab.counts[token]
             if C == 0:
                 return self.unk
@@ -674,10 +674,10 @@ class LCmodel(nn.Module):
           dev_set   (ParsingDataSet): xxx
           epochs               (int): xxx
         """
-        lex_action_loss    = nn.NLLLoss(ignore_index=train_set.lex_action_vocab.stoi[train_set.pad])
-        struct_action_loss = nn.NLLLoss(ignore_index=train_set.struct_action_vocab.stoi[train_set.pad])
-        lex_loss           = nn.NLLLoss(ignore_index=train_set.lex_vocab.stoi[train_set.pad])
-        struct_loss        = nn.NLLLoss(ignore_index=train_set.struct_vocab.stoi[train_set.pad])
+        lex_action_loss    = nn.NLLLoss()#ignore_index=train_set.lex_action_vocab.stoi[train_set.pad])
+        struct_action_loss = nn.NLLLoss()#ignore_index=train_set.struct_action_vocab.stoi[train_set.pad])
+        lex_loss           = nn.NLLLoss()#ignore_index=train_set.lex_vocab.stoi[train_set.pad])
+        struct_loss        = nn.NLLLoss()#ignore_index=train_set.struct_vocab.stoi[train_set.pad])
         #reduction='mean'
         optimizer = optim.SGD(self.parameters(), lr=learning_rate)
         #scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10, verbose=True)
@@ -717,12 +717,14 @@ class LCmodel(nn.Module):
                 _struct_loss        += loss4.item()
                 _struct_action_loss += loss2.item()
                 N += sum(batch.tokens_length)
+
+                loss = loss1 + loss2 + loss3 + loss4
                 
                 loss1.backward(retain_graph=True)
                 loss2.backward(retain_graph=True)
                 loss3.backward(retain_graph=True)
                 loss4.backward()
-            
+                loss.backward()
                 optimizer.step()
 
             L = _lex_loss + _lex_action_loss + _struct_action_loss + _struct_loss
@@ -848,5 +850,5 @@ if __name__ == '__main__':
     
     parser = LCmodel(dev_df,rnn_memory=300,embedding_size=100,device=3)
     parser.cuda(device=3)
-    parser.train(dev_df,dev_df,400,batch_size=4,learning_rate=5.0,device=3,alpha=0.0) 
+    parser.train(dev_df,dev_df,400,batch_size=4,learning_rate=5.0,device=3,alpha=0.0)  
  
