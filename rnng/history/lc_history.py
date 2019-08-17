@@ -599,7 +599,6 @@ class LCmodel(nn.Module):
                     print('structural action problem',struct_action)
                 derivation.append( (struct_action,ntlabel,idx) )
             #LEXICAL STATE
-            print(idx,'lex_action',list(zip(self.ref_set.lex_action_vocab.itos,np.exp(laction))))
             d = len(Stack) if Stack else 0  #stack depth
             #preconditions
             laction[ lex_pad_c ] = np.NINF
@@ -611,6 +610,9 @@ class LCmodel(nn.Module):
                 laction[ shift_init_c ] = np.NINF
             #decision 
             ytoken,lex_action = decode_lexical(np.argmax(token), np.argmax(laction)) #pick the relevant prob for the token here ! (to be reworked)
+            print(idx,'lex_action',list(zip(self.ref_set.lex_action_vocab.itos,np.exp(laction))))
+            print(lex_action)
+
             #exec
             b0 = decode_lexical(Buffer[idx]) #forces the xtoken to be the reference rather than the predicted one
             if lex_action ==  LCmodel.ACTION_SHIFT_INIT:
