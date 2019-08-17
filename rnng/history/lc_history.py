@@ -719,7 +719,7 @@ class LCmodel(nn.Module):
                 pred_ytokens       =  self.forward_lexical_tokens(seq_representation)
                 pred_structlabels  =  self.forward_structural_labels(seq_representation)
 
-               
+                print(pred_lexaction)
                 ref_lexactions     =  batch.lex_actions.view(-1)      #flattens the target too
                 ref_structactions  =  batch.struct_actions.view(-1)   #flattens the target too
                 ref_ytokens        =  batch.ytokens.view(-1)          #flattens the target too
