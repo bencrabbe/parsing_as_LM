@@ -604,8 +604,8 @@ class LCmodel(nn.Module):
             laction[ lex_pad_c ] = np.NINF
             if d == 0 :
                 laction[ shift_attach_c ] = np.NINF
-            #elif d > 0 and Stack[-1].is_complete():  # <==== raises a problem
-            #    laction[ shift_init_c ] = np.NINF
+            elif d > 0 and Stack[-1].is_complete():  # <==== raises a problem
+                laction[ shift_init_c ] = np.NINF
             elif not d < r:
                 laction[ shift_init_c ] = np.NINF
             #decision 
