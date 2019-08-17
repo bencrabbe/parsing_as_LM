@@ -575,8 +575,8 @@ class LCmodel(nn.Module):
                 ntaction[ struct_sos_c]  = np.NINF
                 if d > 0 and not Stack[-1].is_complete():
                     ntaction[ predict_c ] = np.NINF
-                #if not d <= r+1:
-                #    ntaction[ predict_c ]  = np.NINF
+                if not d <= r+1:
+                    ntaction[ predict_c ]  = np.NINF
                 if d == 1:
                     ntaction[ attach_c ]  = np.NINF
                 #decision
@@ -598,8 +598,8 @@ class LCmodel(nn.Module):
             laction[ lex_pad_c ] = np.NINF
             if d == 0 :
                 laction[ shift_attach_c ] = np.NINF
-            #elif d > 0 and Stack[-1].is_complete():
-            #    laction[ shift_init_c ] = np.NINF
+            elif d > 0 and Stack[-1].is_complete():
+                laction[ shift_init_c ] = np.NINF
             elif not d < r:
                 laction[ shift_init_c ] = np.NINF
             #decision 
@@ -637,7 +637,7 @@ class LCmodel(nn.Module):
             
             for batch in dataloader:
                 seq_representation =  self.forward_base(batch.xtokens,batch.tokens_length)
-                
+                 
                 pred_lexaction     =  self.forward_lexical_actions(seq_representation)
                 pred_structaction  =  self.forward_structural_actions(seq_representation)
                 pred_ytokens       =  self.forward_lexical_tokens(seq_representation)
@@ -683,7 +683,7 @@ class LCmodel(nn.Module):
         #scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10, verbose=True)
         scheduler = LambdaLR(optimizer,lr_lambda = lambda epoch:learning_rate/(1+epoch))
 
-        for e in range(epochs):
+        for e in range(epochs): 
 
             scheduler.step()
             
@@ -847,5 +847,5 @@ if __name__ == '__main__':
     
     parser = LCmodel(dev_df,rnn_memory=300,embedding_size=100,device=3)
     parser.cuda(device=3)
-    parser.train(dev_df,dev_df,400,batch_size=4,learning_rate=5.0,device=3,alpha=0.0)  
+    parser.train(dev_df,dev_df,400,batch_size=1,learning_rate=5.0,device=3,alpha=0.0)  
  
