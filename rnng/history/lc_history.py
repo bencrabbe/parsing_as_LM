@@ -621,6 +621,7 @@ class LCmodel(nn.Module):
 
         #print("Derivation",derivation)
         print("stack tree",Stack[-1])
+        print('derivation',derivation)
         return derivation, Stack[-1]
 
     def predict(self,dev_set,batch_size=1,device=-1): 
@@ -632,6 +633,7 @@ class LCmodel(nn.Module):
         Returns:
            a list of trees. Returns the predicted data set as whole. The original ordering of dev_set is guaranteed to be preserved.
         """
+        
         with torch.no_grad():
             
             dataloader = BucketLoader(dev_set,batch_size,device)
@@ -865,3 +867,4 @@ if __name__ == '__main__':
     parser.cuda(device=3)
     parser.train(dev_df,dev_df,400,batch_size=1,learning_rate=5.0,device=3,alpha=0.0)  
  
+#['<pad>', '<sos>', 'TOP@S', 'VP', 'NP', 'S:']kihy
