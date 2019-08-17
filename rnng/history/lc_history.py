@@ -714,13 +714,14 @@ class LCmodel(nn.Module):
                 pred_ytokens       =  self.forward_lexical_tokens(seq_representation)
                 pred_structlabels  =  self.forward_structural_labels(seq_representation)
 
-                print('train slabels',pred_structlabels)
-                print('train reflabels',ref_structlabels)
-                
+               
                 ref_lexactions     =  batch.lex_actions.view(-1)      #flattens the target too
                 ref_structactions  =  batch.struct_actions.view(-1)   #flattens the target too
                 ref_ytokens        =  batch.ytokens.view(-1)          #flattens the target too
                 ref_structlabels   =  batch.struct_labels.view(-1)    #flattens the target too
+
+                print('train slabels',pred_structlabels)
+                print('train reflabels',ref_structlabels)
                 
                 loss1 = lex_action_loss(pred_lexaction,ref_lexactions)       
                 loss2 = struct_action_loss(pred_structaction,ref_structactions)       
