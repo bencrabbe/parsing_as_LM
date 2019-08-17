@@ -596,7 +596,7 @@ class LCmodel(nn.Module):
                     Stack.pop() 
                 else:
                     print('structural action problem',struct_action)
-                derivation.append( (struct_action,ntlabel) )
+                derivation.append( (struct_action,ntlabel,idx) )
             #LEXICAL STATE
             print(idx,'lex_action',list(zip(self.ref_set.lex_action_vocab.itos,np.exp(laction))))
             d = len(Stack) if Stack else 0  #stack depth
@@ -620,7 +620,7 @@ class LCmodel(nn.Module):
                 rc.add_child( LCtree(b0) )
             else:
                 print('lexical action problem',struct_action)
-            derivation.append( (lex_action,b0) )
+            derivation.append( (lex_action,b0,idx) )
 
         #print("Derivation",derivation)
         print("stack tree",Stack[-1])
