@@ -642,6 +642,7 @@ class LCmodel(nn.Module):
 
             
             for batch in dataloader:
+                print('predict xtokens',batch.xtokens)
                 seq_representation =  self.forward_base(batch.xtokens,batch.tokens_length)
                  
                 pred_lexaction     =  self.forward_lexical_actions(seq_representation)
@@ -698,7 +699,8 @@ class LCmodel(nn.Module):
             print('train')
             dataloader = BucketLoader(train_set,batch_size,device,alpha)
             for batch in dataloader:
-                
+                print('train xtokens',batch.xtokens)
+
                 self.zero_grad()
 
                 seq_representation =  self.forward_base(batch.xtokens,batch.tokens_length)
