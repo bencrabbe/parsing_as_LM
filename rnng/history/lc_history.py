@@ -543,6 +543,7 @@ class LCmodel(nn.Module):
             """
             Converts back integer codes to strings for the lexical case
             """
+            print('D!')
             label  = self.ref_set.lex_vocab.itos[token]
             if lexaction:
                 action = self.ref_set.lex_action_vocab.itos[lexaction]
