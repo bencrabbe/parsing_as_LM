@@ -717,14 +717,11 @@ class LCmodel(nn.Module):
                 _struct_loss        += loss4.item()
                 _struct_action_loss += loss2.item()
                 N += sum(batch.tokens_length)
-
-                loss = loss1 + loss2 + loss3 + loss4
                 
                 loss1.backward(retain_graph=True)
                 loss2.backward(retain_graph=True)
                 loss3.backward(retain_graph=True)
                 loss4.backward()
-                loss.backward()
                 optimizer.step()
 
             L = _lex_loss + _lex_action_loss + _struct_action_loss + _struct_loss
