@@ -584,7 +584,7 @@ class LCmodel(nn.Module):
                     ntaction[ attach_c ]  = np.NINF
                 #decision
                 #print('ntlabel',list(zip(self.ref_set.struct_vocab.itos,np.exp(ntlabel))))
-                print('struct_action',list(zip(self.ref_set.struct_action_vocab.itos,np.exp(ntlabel))))
+                print('struct_action',list(zip(self.ref_set.struct_action_vocab.itos,np.exp(ntaction))))
                 ntlabel,struct_action = decode_structural(np.argmax(ntlabel),np.argmax(ntaction))
                 print('  ',struct_action)
                 #exec
