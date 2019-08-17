@@ -575,8 +575,8 @@ class LCmodel(nn.Module):
                 ntaction[ struct_sos_c]  = np.NINF
                 if d > 0 and not Stack[-1].is_complete():
                     ntaction[ predict_c ] = np.NINF
-                if not d <= r+1:
-                    ntaction[ predict_c ]  = np.NINF
+                #if not d <= r+1:
+                #    ntaction[ predict_c ]  = np.NINF
                 if d == 1:
                     ntaction[ attach_c ]  = np.NINF
                 #decision
@@ -598,8 +598,8 @@ class LCmodel(nn.Module):
             laction[ lex_pad_c ] = np.NINF
             if d == 0 :
                 laction[ shift_attach_c ] = np.NINF
-            elif d > 0 and Stack[-1].is_complete():
-                laction[ shift_init_c ] = np.NINF
+            #elif d > 0 and Stack[-1].is_complete():
+            #    laction[ shift_init_c ] = np.NINF
             elif not d < r:
                 laction[ shift_init_c ] = np.NINF
             #decision 
