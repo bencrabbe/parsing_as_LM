@@ -585,6 +585,7 @@ class LCmodel(nn.Module):
                 #decision
                 #print('ntlabel',list(zip(self.ref_set.struct_vocab.itos,np.exp(ntlabel))))
                 print('struct_action',list(zip(self.ref_set.struct_action_vocab.itos,np.exp(ntaction))))
+                print('lex_action',list(zip(self.ref_set.lex_action_vocab.itos,np.exp(laction))))
                 ntlabel,struct_action = decode_structural(np.argmax(ntlabel),np.argmax(ntaction))
                 print('  ',struct_action)
                 #exec
