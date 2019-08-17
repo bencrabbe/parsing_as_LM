@@ -580,7 +580,7 @@ class LCmodel(nn.Module):
                 if d == 1:
                     ntaction[ attach_c ]  = np.NINF
                 #decision
-                print('ntlabel',list(zip(self.ref_set.struct_vocab.itos,np.exp(ntlabel))))
+                #print('ntlabel',list(zip(self.ref_set.struct_vocab.itos,np.exp(ntlabel))))
                 ntlabel,struct_action = decode_structural(np.argmax(ntlabel),np.argmax(ntaction))
                 #exec
                 if struct_action ==  LCmodel.ACTION_PREDICT :
@@ -846,7 +846,7 @@ if __name__ == '__main__':
     #print('Train label size',train_df.struct_vocab.size(),train_df.struct_vocab.itos)
     print('Dev label size',dev_df.struct_vocab.size(),dev_df.struct_vocab.itos)
     
-    parser = LCmodel(dev_df,rnn_memory=600,embedding_size=300,device=3)
+    parser = LCmodel(dev_df,rnn_memory=300,embedding_size=100,device=3)
     parser.cuda(device=3)
     parser.train(dev_df,dev_df,400,batch_size=4,learning_rate=0.5,device=3,alpha=0.0) 
  
