@@ -655,6 +655,7 @@ class LCmodel(nn.Module):
                 pred_ytokens       =  self.forward_lexical_tokens(seq_representation)
                 pred_structlabels  =  self.forward_structural_labels(seq_representation)
 
+                print('predict lexactions', pred_lexaction )
                 print('predict slabels',pred_structlabels)
 
                 
