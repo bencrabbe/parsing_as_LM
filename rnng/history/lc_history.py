@@ -446,7 +446,6 @@ class LCmodel(nn.Module):
         """
         self.E               = nn.Embedding( self.ref_set.lex_vocab.size(),self.embedding_size)
         self.lstm            = nn.LSTM(self.embedding_size, self.rnn_memory,num_layers=1,bidirectional=False)
-        self.lstm2            = nn.LSTM(self.embedding_size, self.rnn_memory,num_layers=1,bidirectional=False)
         
         self.W_struct_label  = nn.Linear(self.rnn_memory, self.ref_set.struct_vocab.size())     
         self.W_lex_label     = nn.Linear(self.rnn_memory, self.ref_set.lex_vocab.size())    
@@ -508,26 +507,6 @@ class LCmodel(nn.Module):
         xembedded         = self.E(xinput)                                                        #xembedded [dim] = batch_size x sent_len x embedding_size
         xembedded         = pack_padded_sequence(xembedded, true_batch_lengths, batch_first=True)
         lstm_out, _       = self.lstm(xembedded)                                                 
-        lstm_out, _       = pad_packed_sequence(lstm_out,batch_first=True)                        #lstm_out  [dim] = batch_size x sent_len x hidden_size
-          
-        # We flatten the batch before applying the linear outputs (required by the loss functions at the end)
-        batch_size,sent_len,hidden_size = lstm_out.shape
-        #Reshapes the output as a flat sequence compatible with softmax and loss functions
-        lstm_out = lstm_out.contiguous().view(batch_size*sent_len,hidden_size)                    #lstm_out  [dim] = (batch_size*sent_len) x hidden_size
-        return lstm_out
-
-    def forward_base2(self,xinput,true_batch_lengths,train_mode=True):
-        """
-        Args :
-           xinput           (tensor): an integer coded input 
-           true_batch_lengths (list): list of integers (true lengths of inputs)
-        Returns: 
-           The RNN output as a pytorch flattened Sequence of wordwise encodings
-        """
-        #@see (packing) https://gist.github.com/HarshTrivedi/f4e7293e941b17d19058f6fb90ab0fec
-        xembedded         = self.E(xinput)                                                        #xembedded [dim] = batch_size x sent_len x embedding_size
-        xembedded         = pack_padded_sequence(xembedded, true_batch_lengths, batch_first=True)
-        lstm_out, _       = self.lstm2(xembedded)                                                 
         lstm_out, _       = pad_packed_sequence(lstm_out,batch_first=True)                        #lstm_out  [dim] = batch_size x sent_len x hidden_size
           
         # We flatten the batch before applying the linear outputs (required by the loss functions at the end)
@@ -695,11 +674,11 @@ class LCmodel(nn.Module):
           dev_set   (ParsingDataSet): xxx
           epochs               (int): xxx
         """
-        lex_action_loss    = nn.NLLLoss(reduction='mean',ignore_index=train_set.lex_action_vocab.stoi[train_set.pad])
-        struct_action_loss = nn.NLLLoss(reduction='mean',ignore_index=train_set.struct_action_vocab.stoi[train_set.pad])
-        lex_loss           = nn.NLLLoss(reduction='mean',ignore_index=train_set.lex_vocab.stoi[train_set.pad])
-        struct_loss        = nn.NLLLoss(reduction='mean',ignore_index=train_set.struct_vocab.stoi[train_set.pad])
-        
+        lex_action_loss    = nn.NLLLoss(ignore_index=train_set.lex_action_vocab.stoi[train_set.pad])
+        struct_action_loss = nn.NLLLoss(ignore_index=train_set.struct_action_vocab.stoi[train_set.pad])
+        lex_loss           = nn.NLLLoss(ignore_index=train_set.lex_vocab.stoi[train_set.pad])
+        struct_loss        = nn.NLLLoss(ignore_index=train_set.struct_vocab.stoi[train_set.pad])
+        #reduction='mean'
         optimizer = optim.SGD(self.parameters(), lr=learning_rate)
         #scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10, verbose=True)
         scheduler = LambdaLR(optimizer,lr_lambda = lambda epoch:learning_rate/(1+epoch))
@@ -715,14 +694,13 @@ class LCmodel(nn.Module):
                 
                 self.zero_grad()
                 
-                #seq_representation =  self.forward_base(batch.xtokens,batch.tokens_length)
-                seq_representation2 =  self.forward_base2(batch.xtokens,batch.tokens_length)
+                seq_representation =  self.forward_base(batch.xtokens,batch.tokens_length)
 
                 
-                pred_lexaction     =  self.forward_lexical_actions(seq_representation2)
-                pred_structaction  =  self.forward_structural_actions(seq_representation2)
-                pred_ytokens       =  self.forward_lexical_tokens(seq_representation2)
-                pred_structlabels  =  self.forward_structural_labels(seq_representation2)
+                pred_lexaction     =  self.forward_lexical_actions(seq_representation)
+                pred_structaction  =  self.forward_structural_actions(seq_representation)
+                pred_ytokens       =  self.forward_lexical_tokens(seq_representation)
+                pred_structlabels  =  self.forward_structural_labels(seq_representation)
 
                 ref_lexactions     =  batch.lex_actions.view(-1)      #flattens the target too
                 ref_structactions  =  batch.struct_actions.view(-1)   #flattens the target too
