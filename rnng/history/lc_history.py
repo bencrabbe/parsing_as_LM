@@ -715,6 +715,7 @@ class LCmodel(nn.Module):
                 pred_structlabels  =  self.forward_structural_labels(seq_representation)
 
                 print('train slabels',pred_structlabels)
+                print('train reflabels',ref_structlabels)
                 
                 ref_lexactions     =  batch.lex_actions.view(-1)      #flattens the target too
                 ref_structactions  =  batch.struct_actions.view(-1)   #flattens the target too
