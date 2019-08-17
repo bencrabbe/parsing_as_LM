@@ -375,6 +375,9 @@ class BucketLoader:
         xtoken_tensor  = torch.tensor(xtoken_matrix,dtype=torch.long,device=self.device)
         ytoken_tensor  = torch.tensor(ytoken_matrix,dtype=torch.long,device=self.device)
 
+        print(raw_tokens)
+
+        
         if self.dataset.is_training_set():
             
             lex_action_matrix     = [self.dataset.numericalize_example( self.dataset.lex_actions[batch_idxes[step]], max_token_length,self.dataset.lex_action_vocab)  for step in range(batchN) ]
@@ -634,6 +637,9 @@ class LCmodel(nn.Module):
             dataloader = BucketLoader(dev_set,batch_size,device)
             orig_idxes = [ ]
             pred_trees = [ ]
+
+            print('predict')
+
             
             for batch in dataloader:
                 seq_representation =  self.forward_base(batch.xtokens,batch.tokens_length)
@@ -693,7 +699,8 @@ class LCmodel(nn.Module):
             for batch in dataloader:
                 
                 self.zero_grad()
-                
+
+                print('train')
                 seq_representation =  self.forward_base(batch.xtokens,batch.tokens_length)
 
                 
