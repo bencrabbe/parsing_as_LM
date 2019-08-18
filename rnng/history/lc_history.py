@@ -580,8 +580,8 @@ class LCmodel(nn.Module):
                     ntaction[ predict_c ] = np.NINF
                 #if d > r+1:
                 #    ntaction[ predict_c ]  = np.NINF
-                if d == 1:
-                    ntaction[ attach_c ]  = np.NINF
+                #if d == 1:
+                #    ntaction[ attach_c ]  = np.NINF
                 #decision
                 #print('ntlabel',list(zip(self.ref_set.struct_vocab.itos,np.exp(ntlabel))))
                 #print(idx,'struct_action',list(zip(self.ref_set.struct_action_vocab.itos,np.exp(ntaction))))
