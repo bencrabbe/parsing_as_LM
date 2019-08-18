@@ -844,9 +844,6 @@ if __name__ == '__main__':
     trainset = list(input_treebank('../ptb_train.mrg'))
     devset   = list(input_treebank('../ptb_dev.mrg'))
 
-    trainset   =  [ ConsTree.read_tree('(S (DP The (NP little monkey)) (VP screams loud))')]
-    devset     =  [ ConsTree.read_tree('(S (DP The (NP little monkey)) (VP screams loud))')]
-
     train_df       = ParsingDataSet(trainset,min_lex_counts=10)
     dev_df         = ParsingDataSet(devset,root_dataset=train_df)
     #dev_df         = ParsingDataSet([ConsTree.read_tree(t) for t in devset])
