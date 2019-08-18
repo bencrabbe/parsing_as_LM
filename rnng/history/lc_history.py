@@ -375,7 +375,7 @@ class BucketLoader:
         xtoken_tensor  = torch.tensor(xtoken_matrix,dtype=torch.long,device=self.device)
         ytoken_tensor  = torch.tensor(ytoken_matrix,dtype=torch.long,device=self.device)
 
-        print(raw_tokens)
+        #print(raw_tokens)
 
         
         if self.dataset.is_training_set():
@@ -839,7 +839,7 @@ def output_treebank(treelist,filename=None):
         
 if __name__ == '__main__':
     
-    devset   =  [ '(TOP@S I (S: (VP love (NP em both)) .))']#,'(S (DP The (NP little monkey)) (VP screams loud))','(S (NP the dog) walks)','(S (NP a cat) (VP chases (NP the mouse)))','(S (NP A wolf) (VP eats (NP the pig)))']
+    devset   =  [ '(TOP@S I (S: (VP love (NP em both)) .))','(S (DP The (NP little monkey)) (VP screams loud))','(S (NP the dog) walks)','(S (NP a cat) (VP chases (NP the mouse)))','(S (NP A wolf) (VP eats (NP the pig)))']
     #print(treebank)
     trainset = list(input_treebank('../ptb_train.mrg'))
     #devset   = list(input_treebank('../ptb_dev.mrg'))
@@ -857,7 +857,7 @@ if __name__ == '__main__':
     
     parser = LCmodel(dev_df,rnn_memory=300,embedding_size=100,device=3)
     parser.cuda(device=3)
-    parser.train(dev_df,dev_df,400,batch_size=1,learning_rate=5.0,device=3,alpha=0.0)  
+    parser.train(dev_df,dev_df,400,batch_size=4,learning_rate=5.0,device=3,alpha=0.0)  
     print('Dev label size',dev_df.struct_vocab.size(),dev_df.struct_vocab.itos)
     print('Dev struct action size',dev_df.struct_action_vocab.size(),dev_df.struct_action_vocab.itos)
     print('Dev lex action size',dev_df.lex_action_vocab.size(),dev_df.lex_action_vocab.itos)
