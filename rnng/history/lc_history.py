@@ -843,10 +843,10 @@ if __name__ == '__main__':
     
     #devset   =  [ '(TOP@S I (S: (VP love (NP em both)) .))','(S (DP The (NP little monkey)) (VP screams loud))','(S (NP the dog) walks)','(S (NP a cat) (VP chases (NP the mouse)))','(S (NP A wolf) (VP eats (NP the pig)))']
     #print(treebank)
-    #trainset = list(input_treebank('../ptb_train.mrg'))
+    trainset = list(input_treebank('../ptb_train.mrg'))
     devset   = list( input_treebank('../ptb_dev.mrg') )
 
-    #train_df       = ParsingDataSet(trainset,min_lex_counts=1)
+    train_df       = ParsingDataSet(trainset,min_lex_counts=1)
     dev_df         = ParsingDataSet(devset)#,root_dataset=train_df)
     #dev_df         = ParsingDataSet([ConsTree.read_tree(t) for t in devset])
     #print('Train Vocab size',train_df.lex_vocab.size())
@@ -854,8 +854,8 @@ if __name__ == '__main__':
     #print('Train label size',train_df.struct_vocab.size())
     #print('Train label size',train_df.struct_vocab.size(),train_df.struct_vocab.itos)
     
-    parser = LCmodel(dev_df,rnn_memory=600,embedding_size=100,device=1)
+    parser = LCmodel(train_df,rnn_memory=600,embedding_size=100,device=1)
     parser.cuda(device=1) 
-    parser.train(dev_df,dev_df,400,batch_size=32,learning_rate=0.01,device=1,alpha=0.0)  
+    parser.train(train_df,dev_df,400,batch_size=32,learning_rate=0.001,device=1,alpha=0.0)  
 
     #Use ReduceLR on Plateau with *0.1 increment and LR = 0.001 
