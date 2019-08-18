@@ -703,6 +703,7 @@ class LCmodel(nn.Module):
             _lex_loss,_lex_action_loss, _struct_action_loss, _struct_loss = 0,0,0,0
             N = 0
             dataloader = BucketLoader(train_set,batch_size,device,alpha)
+
             for batch in dataloader:
  
                 self.zero_grad()
@@ -733,7 +734,8 @@ class LCmodel(nn.Module):
                 
                 loss1.backward(retain_graph=True)
                 loss2.backward(retain_graph=True)
-                loss3.backward(retain_graph=True)
+                if e < 20:
+                    loss3.backward(retain_graph=True)
                 loss4.backward()
                 optimizer.step()
 
