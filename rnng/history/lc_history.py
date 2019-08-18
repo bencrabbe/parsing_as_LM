@@ -627,6 +627,8 @@ class LCmodel(nn.Module):
         #print("Derivation",derivation)
         #print("stack tree",Stack[-1])
         #print('derivation',derivation)
+        if len(Stack) != 1:
+            print("illegal stack",len(Stack))
         return derivation, Stack[-1]
 
     def predict(self,dev_set,batch_size=1,device=-1): 
