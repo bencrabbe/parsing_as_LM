@@ -694,7 +694,7 @@ class LCmodel(nn.Module):
         #reduction='mean'
         optimizer = optim.SGD(self.parameters(), lr=learning_rate)
         #scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10, verbose=True)
-        scheduler = LambdaLR(optimizer,lr_lambda = lambda epoch:learning_rate/(1+0.5*epoch))
+        scheduler = LambdaLR(optimizer,lr_lambda = lambda epoch:learning_rate/(1+0.75*epoch))
 
         for e in range(epochs): 
 
@@ -856,4 +856,4 @@ if __name__ == '__main__':
     
     parser = LCmodel(dev_df,rnn_memory=600,embedding_size=300,device=3)
     parser.cuda(device=3)
-    parser.train(dev_df,dev_df,800,batch_size=32,learning_rate=0.1,device=3,alpha=0.0)  
+    parser.train(dev_df,dev_df,400,batch_size=32,learning_rate=0.1,device=3,alpha=0.0)  
