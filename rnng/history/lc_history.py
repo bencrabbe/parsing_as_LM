@@ -694,7 +694,7 @@ class LCmodel(nn.Module):
         #reduction='mean'
         optimizer = optim.SGD(self.parameters(), lr=learning_rate)
         #scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10, verbose=True)
-        scheduler = LambdaLR(optimizer,lr_lambda = lambda epoch:learning_rate/(1+0.5*epoch))
+        scheduler = LambdaLR(optimizer,lr_lambda = lambda epoch:learning_rate)#/(1+0.5*epoch))
 
         for e in range(epochs): 
 
