@@ -545,7 +545,6 @@ class LCmodel(nn.Module):
             """
             label  = self.ref_set.lex_vocab.itos[token]
             if lexaction:
-                print('D!')
                 action = self.ref_set.lex_action_vocab.itos[lexaction]
                 return label,action
             return label
@@ -585,9 +584,9 @@ class LCmodel(nn.Module):
                     ntaction[ attach_c ]  = np.NINF
                 #decision
                 #print('ntlabel',list(zip(self.ref_set.struct_vocab.itos,np.exp(ntlabel))))
-                print(idx,'struct_action',list(zip(self.ref_set.struct_action_vocab.itos,np.exp(ntaction))))
+                #print(idx,'struct_action',list(zip(self.ref_set.struct_action_vocab.itos,np.exp(ntaction))))
                 ntlabel,struct_action = decode_structural(np.argmax(ntlabel),np.argmax(ntaction))
-                print('  ',struct_action)
+                #print('  ',struct_action)
                 #exec
                 if struct_action ==  LCmodel.ACTION_PREDICT :
                     Stack[-1] = LCtree(ntlabel,children=[Stack[-1]])
@@ -610,8 +609,8 @@ class LCmodel(nn.Module):
                 laction[ shift_init_c ] = np.NINF
             #decision 
             ytoken,lex_action = decode_lexical(np.argmax(token), np.argmax(laction)) #pick the relevant prob for the token here ! (to be reworked)
-            print(idx,'lex_action',list(zip(self.ref_set.lex_action_vocab.itos,np.exp(laction))))
-            print(lex_action)
+            #print(idx,'lex_action',list(zip(self.ref_set.lex_action_vocab.itos,np.exp(laction))))
+            #print(lex_action)
 
             #exec
             b0 = decode_lexical(Buffer[idx]) #forces the xtoken to be the reference rather than the predicted one
@@ -626,8 +625,8 @@ class LCmodel(nn.Module):
             derivation.append( (lex_action,b0,idx) )
 
         #print("Derivation",derivation)
-        print("stack tree",Stack[-1])
-        print('derivation',derivation)
+        #print("stack tree",Stack[-1])
+        #print('derivation',derivation)
         return derivation, Stack[-1]
 
     def predict(self,dev_set,batch_size=1,device=-1): 
@@ -646,11 +645,8 @@ class LCmodel(nn.Module):
             orig_idxes = [ ]
             pred_trees = [ ]
 
-            print('predict')
-
             
             for batch in dataloader:
-                print('predict xtokens',batch.xtokens)
                 seq_representation =  self.forward_base(batch.xtokens,batch.tokens_length)
                  
                 pred_lexaction     =  self.forward_lexical_actions(seq_representation)
@@ -658,10 +654,6 @@ class LCmodel(nn.Module):
                 pred_ytokens       =  self.forward_lexical_tokens(seq_representation)
                 pred_structlabels  =  self.forward_structural_labels(seq_representation)
 
-                print('predict lexactions', pred_lexaction )
-                print('predict slabels',pred_structlabels)
-
-                
                 #here we reshape sentence_wise :
                 #   input  [dim] = (batch_size*sent_len) x hidden_size
                 batch_size,batch_len = batch.ytokens.shape
@@ -708,10 +700,8 @@ class LCmodel(nn.Module):
             
             _lex_loss,_lex_action_loss, _struct_action_loss, _struct_loss = 0,0,0,0
             N = 0
-            print('train')
             dataloader = BucketLoader(train_set,batch_size,device,alpha)
             for batch in dataloader:
-                print('train xtokens',batch.xtokens)
  
                 self.zero_grad()
 
@@ -723,15 +713,10 @@ class LCmodel(nn.Module):
                 pred_ytokens       =  self.forward_lexical_tokens(seq_representation)
                 pred_structlabels  =  self.forward_structural_labels(seq_representation)
 
-                print(pred_lexaction)
                 ref_lexactions     =  batch.lex_actions.view(-1)      #flattens the target too
                 ref_structactions  =  batch.struct_actions.view(-1)   #flattens the target too
                 ref_ytokens        =  batch.ytokens.view(-1)          #flattens the target too
                 ref_structlabels   =  batch.struct_labels.view(-1)    #flattens the target too
-
-                print('train slabels',pred_structlabels)
-                print('train reflabels',ref_structlabels)
-                print('train reflexlabels',ref_lexactions)
                 
                 loss1 = lex_action_loss(pred_lexaction,ref_lexactions)       
                 loss2 = struct_action_loss(pred_structaction,ref_structactions)       
