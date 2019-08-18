@@ -839,17 +839,17 @@ def output_treebank(treelist,filename=None):
         
 if __name__ == '__main__':
     
-    devset   =  [ '(TOP@S I (S: (VP love (NP em both)) .))','(S (DP The (NP little monkey)) (VP screams loud))','(S (NP the dog) walks)','(S (NP a cat) (VP chases (NP the mouse)))','(S (NP A wolf) (VP eats (NP the pig)))']
+    #devset   =  [ '(TOP@S I (S: (VP love (NP em both)) .))','(S (DP The (NP little monkey)) (VP screams loud))','(S (NP the dog) walks)','(S (NP a cat) (VP chases (NP the mouse)))','(S (NP A wolf) (VP eats (NP the pig)))']
     #print(treebank)
     trainset = list(input_treebank('../ptb_train.mrg'))
-    #devset   = list(input_treebank('../ptb_dev.mrg'))
+    devset   = list(input_treebank('../ptb_dev.mrg'))
 
-    #trainset   =  [ ConsTree.read_tree('(S (DP The (NP little monkey)) (VP screams loud))')]
-    #devset     =  [ ConsTree.read_tree('(S (DP The (NP little monkey)) (VP screams loud))')]
+    trainset   =  [ ConsTree.read_tree('(S (DP The (NP little monkey)) (VP screams loud))')]
+    devset     =  [ ConsTree.read_tree('(S (DP The (NP little monkey)) (VP screams loud))')]
 
-    #train_df       = ParsingDataSet(trainset,min_lex_counts=10)
-    #dev_df         = ParsingDataSet(devset,root_dataset=train_df)
-    dev_df         = ParsingDataSet([ConsTree.read_tree(t) for t in devset])
+    train_df       = ParsingDataSet(trainset,min_lex_counts=10)
+    dev_df         = ParsingDataSet(devset,root_dataset=train_df)
+    #dev_df         = ParsingDataSet([ConsTree.read_tree(t) for t in devset])
     #print('Train Vocab size',train_df.lex_vocab.size())
     print('Dev   Vocab size',dev_df.lex_vocab.size())
     #print('Train label size',train_df.struct_vocab.size())
@@ -857,8 +857,4 @@ if __name__ == '__main__':
     
     parser = LCmodel(dev_df,rnn_memory=300,embedding_size=100,device=3)
     parser.cuda(device=3)
-    parser.train(dev_df,dev_df,400,batch_size=4,learning_rate=5.0,device=3,alpha=0.0)  
-    print('Dev label size',dev_df.struct_vocab.size(),dev_df.struct_vocab.itos)
-    print('Dev struct action size',dev_df.struct_action_vocab.size(),dev_df.struct_action_vocab.itos)
-    print('Dev lex action size',dev_df.lex_action_vocab.size(),dev_df.lex_action_vocab.itos)
-#['<pad>', '<sos>', 'TOP@S', 'VP', 'NP', 'S:']kihy
+    parser.train(dev_df,dev_df,400,batch_size=32,learning_rate=1.0,device=3,alpha=0.0)  
