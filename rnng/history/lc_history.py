@@ -605,7 +605,7 @@ class LCmodel(nn.Module):
                 laction[ shift_attach_c ] = np.NINF
             if d > 0 and Stack[-1].is_complete(): 
                 laction[ shift_init_c ] = np.NINF
-            if d >= r+1: 
+            if d > r+1: 
                 laction[ shift_init_c ] = np.NINF
             #decision 
             ytoken,lex_action = decode_lexical(np.argmax(token), np.argmax(laction)) #pick the relevant prob for the token here ! (to be reworked)
