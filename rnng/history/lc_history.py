@@ -603,8 +603,8 @@ class LCmodel(nn.Module):
             laction[ lex_pad_c ] = np.NINF
             if d == 0 :
                 laction[ shift_attach_c ] = np.NINF
-            if d > 0 and Stack[-1].is_complete(): 
-                laction[ shift_init_c ] = np.NINF
+            #if d > 0 and Stack[-1].is_complete(): 
+            #    laction[ shift_init_c ] = np.NINF
             if d >= r+1: 
                 laction[ shift_init_c ] = np.NINF
             #decision 
