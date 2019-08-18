@@ -687,6 +687,7 @@ class LCmodel(nn.Module):
           dev_set   (ParsingDataSet): xxx
           epochs               (int): xxx
         """
+        print('LR',learning_rate)
         lex_action_loss    = nn.NLLLoss(reduction='sum',ignore_index=train_set.lex_action_vocab.stoi[train_set.pad])
         struct_action_loss = nn.NLLLoss(reduction='sum',ignore_index=train_set.struct_action_vocab.stoi[train_set.pad])
         lex_loss           = nn.NLLLoss(reduction='sum',ignore_index=train_set.lex_vocab.stoi[train_set.pad])
