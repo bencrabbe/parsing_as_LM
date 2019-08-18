@@ -687,10 +687,10 @@ class LCmodel(nn.Module):
           dev_set   (ParsingDataSet): xxx
           epochs               (int): xxx
         """
-        lex_action_loss    = nn.NLLLoss()#ignore_index=train_set.lex_action_vocab.stoi[train_set.pad])
-        struct_action_loss = nn.NLLLoss()#ignore_index=train_set.struct_action_vocab.stoi[train_set.pad])
-        lex_loss           = nn.NLLLoss()#ignore_index=train_set.lex_vocab.stoi[train_set.pad])
-        struct_loss        = nn.NLLLoss()#ignore_index=train_set.struct_vocab.stoi[train_set.pad])
+        lex_action_loss    = nn.NLLLoss(reduction='sum',ignore_index=train_set.lex_action_vocab.stoi[train_set.pad])
+        struct_action_loss = nn.NLLLoss(reduction='sum',ignore_index=train_set.struct_action_vocab.stoi[train_set.pad])
+        lex_loss           = nn.NLLLoss(reduction='sum',ignore_index=train_set.lex_vocab.stoi[train_set.pad])
+        struct_loss        = nn.NLLLoss(reduction='sum',ignore_index=train_set.struct_vocab.stoi[train_set.pad])
         #reduction='mean'
         optimizer = optim.SGD(self.parameters(), lr=learning_rate)
         #scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10, verbose=True)
