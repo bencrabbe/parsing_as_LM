@@ -694,7 +694,7 @@ class LCmodel(nn.Module):
         #reduction='mean'
         optimizer = optim.SGD(self.parameters(),lr=1.0)
         #scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10, verbose=True)
-        scheduler = LambdaLR(optimizer,lr_lambda = lambda epoch:learning_rate/(1+0.2*epoch))
+        scheduler = LambdaLR(optimizer,lr_lambda = lambda epoch:learning_rate/(1+0.001*epoch))
 
         for e in range(epochs): 
 
@@ -856,6 +856,6 @@ if __name__ == '__main__':
     #print('Train label size',train_df.struct_vocab.size())
     #print('Train label size',train_df.struct_vocab.size(),train_df.struct_vocab.itos)
     
-    parser = LCmodel(dev_df,rnn_memory=300,embedding_size=100,device=1)
-    parser.cuda(device=1)
-    parser.train(dev_df,dev_df,400,batch_size=32,learning_rate=0.001,device=1,alpha=0.0)  
+    parser = LCmodel(dev_df,rnn_memory=300,embedding_size=100,device=3)
+    parser.cuda(device=3)
+    parser.train(dev_df,dev_df,400,batch_size=32,learning_rate=0.001,device=3,alpha=0.0)  
