@@ -687,7 +687,6 @@ class LCmodel(nn.Module):
           dev_set   (ParsingDataSet): xxx
           epochs               (int): xxx
         """
-        print('LR',learning_rate)
         lex_action_loss    = nn.NLLLoss(reduction='sum',ignore_index=train_set.lex_action_vocab.stoi[train_set.pad])
         struct_action_loss = nn.NLLLoss(reduction='sum',ignore_index=train_set.struct_action_vocab.stoi[train_set.pad])
         lex_loss           = nn.NLLLoss(reduction='sum',ignore_index=train_set.lex_vocab.stoi[train_set.pad])
@@ -695,7 +694,7 @@ class LCmodel(nn.Module):
         #reduction='mean'
         optimizer = optim.SGD(self.parameters(),lr=1.0)
         #scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10, verbose=True)
-        scheduler = LambdaLR(optimizer,lr_lambda = lambda epoch:learning_rate/(1+0.5*epoch))
+        scheduler = LambdaLR(optimizer,lr_lambda = lambda epoch:learning_rate/(1+epoch))
 
         for e in range(epochs): 
 
@@ -855,6 +854,6 @@ if __name__ == '__main__':
     #print('Train label size',train_df.struct_vocab.size())
     #print('Train label size',train_df.struct_vocab.size(),train_df.struct_vocab.itos)
     
-    parser = LCmodel(dev_df,rnn_memory=600,embedding_size=300,device=3)
+    parser = LCmodel(dev_df,rnn_memory=1200,embedding_size=300,device=3)
     parser.cuda(device=3)
     parser.train(dev_df,dev_df,400,batch_size=32,learning_rate=0.1,device=3,alpha=0.0)  
