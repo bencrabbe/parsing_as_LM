@@ -510,7 +510,6 @@ class LCmodel(nn.Module):
         xembedded         = self.E(xinput)                                                        #xembedded [dim] = batch_size x sent_len x embedding_size
         xembedded         = pack_padded_sequence(xembedded, true_batch_lengths, batch_first=True)
 
-        print(xembedded.shape)
         print(xembedded)
         lstm_out, _       = self.lstm(xembedded.cpu())                                                 
         lstm_out, _       = pad_packed_sequence(lstm_out,batch_first=True)                        #lstm_out  [dim] = batch_size x sent_len x hidden_size
