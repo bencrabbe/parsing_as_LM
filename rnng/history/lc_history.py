@@ -700,6 +700,8 @@ class LCmodel(nn.Module):
             
             _lex_loss,_lex_action_loss, _struct_action_loss, _struct_loss = 0,0,0,0
             N = 0
+
+            print(' *** train ***')
             dataloader = BucketLoader(train_set,batch_size,device,alpha)
 
             for batch in dataloader:
@@ -745,12 +747,13 @@ class LCmodel(nn.Module):
             scheduler.step(L)
             #Development f-score computation
             #pred_trees = list(tree for (derivation,tree) in self.predict(dev_set,batch_size))
+            print(' *** dev ***')
             pred_trees = list(tree for (derivation,tree) in self.predict(dev_set,batch_size,device))
             #for t in pred_trees[:10]:
             #    print(t)
             fscores    = [ reftree.compare(predtree)[2]   for (predtree,reftree) in zip(pred_trees,dev_set.tree_set) ]
             print("        development F-score = ", sum(fscores) / len(fscores))
-            
+            exit(1)
     @staticmethod 
     def derivation2tree(derivation):
         """
