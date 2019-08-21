@@ -844,9 +844,8 @@ def output_treebank(treelist,filename=None):
         
 if __name__ == '__main__':
 
-    trainset = [ '(TOP@S I (S: (VP love (NP em both)) .))']
-    devset   = [ '(TOP@S I (S: (VP love (NP em both)) .))']
-    #devset   =  [ '(TOP@S I (S: (VP love (NP em both)) .))','(S (DP The (NP little monkey)) (VP screams loud))','(S (NP the dog) walks)','(S (NP a cat) (VP chases (NP the mouse)))','(S (NP A wolf) (VP eats (NP the pig)))']
+    trainset   =  [ '(TOP@S I (S: (VP love (NP em both)) .))','(S (DP The (NP little monkey)) (VP screams loud))','(S (NP the dog) walks)','(S (NP a cat) (VP chases (NP the mouse)))','(S (NP A wolf) (VP eats (NP the pig)))']
+    devset   =  [ '(TOP@S I (S: (VP love (NP em both)) .))','(S (DP The (NP little monkey)) (VP screams loud))','(S (NP the dog) walks)','(S (NP a cat) (VP chases (NP the mouse)))','(S (NP A wolf) (VP eats (NP the pig)))']
     #print(treebank)
     #trainset = list( input_treebank('../ptb_train.mrg') )
     #devset   = list( input_treebank('../ptb_dev.mrg') )
