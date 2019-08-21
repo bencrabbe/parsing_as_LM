@@ -631,7 +631,7 @@ class LCmodel(nn.Module):
             print("illegal stack",len(Stack))
         return derivation, Stack[-1]
 
-    def predict(self,dev_set,batch_size=1,device=-1): 
+    def predict(self,dev_set,batch_size=1,device=-1,with_loss=False): 
         """
         Evaluates the parser on a dev set.
         Args:
@@ -647,6 +647,8 @@ class LCmodel(nn.Module):
             orig_idxes = [ ]
             pred_trees = [ ]
 
+            N   = 0
+            NLL = 0
             
             for batch in dataloader:
                 seq_representation =  self.forward_base(batch.xtokens,batch.tokens_length)
@@ -667,6 +669,21 @@ class LCmodel(nn.Module):
                 pred_ytokens      = pred_ytokens.view(batch_size,batch_len,-1)   
                 pred_structlabels = pred_structlabels.view(batch_size,batch_len,-1)   
 
+                if with_loss:
+                    ref_lexactions     =  batch.lex_actions.view(-1)      #flattens the target too
+                    ref_structactions  =  batch.struct_actions.view(-1)   #flattens the target too
+                    ref_ytokens        =  batch.ytokens.view(-1)          #flattens the target too
+                    ref_structlabels   =  batch.struct_labels.view(-1)    #flattens the target too
+                
+                    loss1 = lex_action_loss(pred_lexaction,ref_lexactions)       
+                    loss2 = struct_action_loss(pred_structaction,ref_structactions)       
+                    loss3 = lex_loss(pred_ytokens,ref_ytokens)       
+                    loss4 = struct_loss(pred_structlabels,ref_structlabels)       
+
+                    NLL += loss1.item() + loss2.item() + loss3.item() + loss4.item()
+                    N   += sum(batch.tokens_length)
+
+                    
                 orig_idxes.extend(batch.orig_idxes)
                 batch_preds = [ self.decode(batch.ytokens[idx],\
                                             pred_lexaction[idx],\
@@ -678,6 +695,8 @@ class LCmodel(nn.Module):
                 pred_trees.extend(batch_preds)
                 
             matched_idxes = enumerate(orig_idxes) #iterates using the ascending original order of the data set                    
+            if with_loss:
+                print("        development loss (NLL) = ", NLL/N)
             return [ pred_trees[current_idx] for (current_idx,orig_idx) in sorted(matched_idxes,key=lambda x:x[1]) ]
 
     def train(self,train_set,dev_set,epochs,raw_loader=None,batch_size=1,learning_rate=0.1,device=-1,alpha=0.0):
@@ -701,7 +720,6 @@ class LCmodel(nn.Module):
             _lex_loss,_lex_action_loss, _struct_action_loss, _struct_loss = 0,0,0,0
             N = 0
 
-            print(' *** train ***')
             dataloader = BucketLoader(train_set,batch_size,device,alpha)
 
             for batch in dataloader:
@@ -747,7 +765,6 @@ class LCmodel(nn.Module):
             scheduler.step(L)
             #Development f-score computation
             #pred_trees = list(tree for (derivation,tree) in self.predict(dev_set,batch_size))
-            print(' *** dev ***')
             pred_trees = list(tree for (derivation,tree) in self.predict(dev_set,batch_size,device))
             #for t in pred_trees[:10]:
             #    print(t)
@@ -860,5 +877,5 @@ if __name__ == '__main__':
     
     parser = LCmodel(train_df,rnn_memory=1200,embedding_size=300,device=0)
     parser.cuda(device=0)  
-    parser.train(dev_df,dev_df,400,batch_size=32,learning_rate=0.001,device=0,alpha=0.0)  
+    parser.train(dev_df,dev_df,400,batch_size=32,learning_rate=0.0001,device=0,alpha=0.0)  
 
