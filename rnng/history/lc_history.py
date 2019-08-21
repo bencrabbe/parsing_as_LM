@@ -861,6 +861,6 @@ if __name__ == '__main__':
     
     parser = LCmodel(train_df,rnn_memory=300,embedding_size=100,device=3)
     parser.cuda(device=3) 
-    parser.train(train_df,dev_df,400,batch_size=32,learning_rate=0.001,device=3,alpha=0.0)  
+    parser.train(train_df,train_df,400,batch_size=32,learning_rate=0.001,device=3,alpha=0.0)  
 
     #Use ReduceLR on Plateau with *0.1 increment and LR = 0.001 
