@@ -701,7 +701,7 @@ class LCmodel(nn.Module):
                 
             matched_idxes = enumerate(orig_idxes) #iterates using the ascending original order of the data set                    
             if with_loss:
-                print("        development loss (NLL)   =", NLL/N)
+                print("        development loss (NLL)   =", NLL/(4*N))
             return [ pred_trees[current_idx] for (current_idx,orig_idx) in sorted(matched_idxes,key=lambda x:x[1]) ]
 
     def train(self,train_set,dev_set,epochs,raw_loader=None,batch_size=1,learning_rate=0.1,device=-1,alpha=0.0):
@@ -773,7 +773,7 @@ class LCmodel(nn.Module):
             #for t in pred_trees[:10]:
             #    print(t)
             fscores    = [ reftree.compare(predtree)[2]   for (predtree,reftree) in zip(pred_trees,dev_set.tree_set) ]
-            print("        development F-score     = ", sum(fscores) / len(fscores))
+            print("        development F-score      =", sum(fscores) / len(fscores))
     @staticmethod 
     def derivation2tree(derivation):
         """
