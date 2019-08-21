@@ -664,17 +664,6 @@ class LCmodel(nn.Module):
                 pred_ytokens       =  self.forward_lexical_tokens(seq_representation)
                 pred_structlabels  =  self.forward_structural_labels(seq_representation)
 
-                #here we reshape sentence_wise :
-                #   input  [dim] = (batch_size*sent_len) x hidden_size
-                batch_size,batch_len = batch.ytokens.shape
-                #print('eval batch size x batch len (', batch_size,batch_len,')')
-                #   output [dim] = batch_size x sent_len x hidden_size
-
-                pred_lexaction    = pred_lexaction.view(batch_size,batch_len,-1)   
-                pred_structaction = pred_structaction.view(batch_size,batch_len,-1)   
-                pred_ytokens      = pred_ytokens.view(batch_size,batch_len,-1)   
-                pred_structlabels = pred_structlabels.view(batch_size,batch_len,-1)   
-
                 if with_loss:
                     ref_lexactions     =  batch.lex_actions.view(-1)      #flattens the target too
                     ref_structactions  =  batch.struct_actions.view(-1)   #flattens the target too
@@ -689,6 +678,16 @@ class LCmodel(nn.Module):
                     NLL += loss1.item() + loss2.item() + loss3.item() + loss4.item()
                     N   += sum(batch.tokens_length)
 
+                #here we reshape sentence_wise :
+                #   input  [dim] = (batch_size*sent_len) x hidden_size
+                batch_size,batch_len = batch.ytokens.shape
+                #print('eval batch size x batch len (', batch_size,batch_len,')')
+                #   output [dim] = batch_size x sent_len x hidden_size
+
+                pred_lexaction    = pred_lexaction.view(batch_size,batch_len,-1)   
+                pred_structaction = pred_structaction.view(batch_size,batch_len,-1)   
+                pred_ytokens      = pred_ytokens.view(batch_size,batch_len,-1)   
+                pred_structlabels = pred_structlabels.view(batch_size,batch_len,-1)   
                     
                 orig_idxes.extend(batch.orig_idxes)
                 batch_preds = [ self.decode(batch.ytokens[idx],\
