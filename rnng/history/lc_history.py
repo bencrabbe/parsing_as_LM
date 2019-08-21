@@ -773,7 +773,7 @@ class LCmodel(nn.Module):
             #for t in pred_trees[:10]:
             #    print(t)
             fscores    = [ reftree.compare(predtree)[2]   for (predtree,reftree) in zip(pred_trees,dev_set.tree_set) ]
-            print("        development F-score = ", sum(fscores) / len(fscores))
+            print("        development F-score     = ", sum(fscores) / len(fscores))
     @staticmethod 
     def derivation2tree(derivation):
         """
