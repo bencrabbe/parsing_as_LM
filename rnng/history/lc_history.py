@@ -146,7 +146,6 @@ class ParsingDataSet(object):
              sos                    (str): a string for the start of sentence (sos) token
              min_lex_counts         (int): count threshold under which tokens are excluded from the lexical vocabulary built from the data
         """
-
         is_treebank = isinstance(dataset[0],ConsTree)
         
         #1. Data structuration 
@@ -166,6 +165,7 @@ class ParsingDataSet(object):
         #2. Vocabularies
         if root_dataset :
             self.lex_vocab = root_dataset.lex_vocab
+            print('is_treebank',is_treebank)
             if is_treebank :
                 self.lex_action_vocab    = root_dataset.lex_action_vocab   
                 self.struct_vocab        = root_dataset.struct_vocab
