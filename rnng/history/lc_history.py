@@ -649,6 +649,13 @@ class LCmodel(nn.Module):
 
             N   = 0
             NLL = 0
+
+            if with_loss:
+                lex_action_loss    = nn.NLLLoss(reduction='sum',ignore_index=dev_set.lex_action_vocab.stoi[dev_set.pad])
+                struct_action_loss = nn.NLLLoss(reduction='sum',ignore_index=dev_set.struct_action_vocab.stoi[dev_set.pad])
+                lex_loss           = nn.NLLLoss(reduction='sum',ignore_index=dev_set.lex_vocab.stoi[dev_set.pad])
+                struct_loss        = nn.NLLLoss(reduction='sum',ignore_index=dev_set.struct_vocab.stoi[dev_set.pad])
+
             
             for batch in dataloader:
                 seq_representation =  self.forward_base(batch.xtokens,batch.tokens_length)
