@@ -870,7 +870,7 @@ if __name__ == '__main__':
     trainset = list( input_treebank('../ptb_train.mrg') )
     devset   = list( input_treebank('../ptb_dev.mrg') )
 
-    train_df       = ParsingDataSet(trainset,min_lex_counts=2)
+    train_df       = ParsingDataSet(trainset,min_lex_counts=5)
     dev_df         = ParsingDataSet(devset,root_dataset=train_df)
     #train_df       = ParsingDataSet([ConsTree.read_tree(t) for t in trainset])
     #dev_df         = ParsingDataSet([ConsTree.read_tree(t) for t in devset])
@@ -879,7 +879,7 @@ if __name__ == '__main__':
     #print('Train label size',train_df.struct_vocab.size())
     #print('Train label size',train_df.struct_vocab.size(),train_df.struct_vocab.itos)
     
-    parser = LCmodel(train_df,rnn_memory=100,embedding_size=100,device=0)
+    parser = LCmodel(train_df,rnn_memory=400,embedding_size=50,device=0)
     parser.cuda(device=0)  
     parser.train(train_df,dev_df,400,batch_size=32,learning_rate=0.001,device=0,alpha=1.0)  
 
