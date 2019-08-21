@@ -165,7 +165,6 @@ class ParsingDataSet(object):
         #2. Vocabularies
         if root_dataset :
             self.lex_vocab = root_dataset.lex_vocab
-            print('is_treebank',is_treebank)
             if is_treebank :
                 self.lex_action_vocab    = root_dataset.lex_action_vocab   
                 self.struct_vocab        = root_dataset.struct_vocab
@@ -750,8 +749,8 @@ class LCmodel(nn.Module):
             #pred_trees = list(tree for (derivation,tree) in self.predict(dev_set,batch_size))
             print(' *** dev ***')
             pred_trees = list(tree for (derivation,tree) in self.predict(dev_set,batch_size,device))
-            for t in pred_trees[:10]:
-                print(t)
+            #for t in pred_trees[:10]:
+            #    print(t)
             fscores    = [ reftree.compare(predtree)[2]   for (predtree,reftree) in zip(pred_trees,dev_set.tree_set) ]
             print("        development F-score = ", sum(fscores) / len(fscores))
     @staticmethod 
