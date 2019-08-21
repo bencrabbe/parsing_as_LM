@@ -369,6 +369,7 @@ class BucketLoader:
         max_token_length   = max(token_lengths)
         
         raw_tokens    = [ self.dataset.sample_tokens(self.dataset.tokens[batch_idxes[step]],max_token_length,alpha=self.alpha) for step in range(batchN) ]
+        print(raw_tokens)
         ytoken_matrix = [ self.dataset.numericalize_example(elt,max_token_length,self.dataset.lex_vocab) for elt in raw_tokens ]
         xtoken_matrix = [ self.dataset.numericalize_example([self.dataset.sos]+elt[:-1],max_token_length,self.dataset.lex_vocab) for elt in raw_tokens ]
 
@@ -522,7 +523,7 @@ class LCmodel(nn.Module):
         """
         This decodes a batched prediction into a tree. (~ performs best first parsing)
         Args:
-           tokens           (tensor) : a list of integers (the true input tokens)
+           tokens            (tensor) : a list of integers (the true input tokens)
            pred_lexaction    (tensor) : a word sync tensor encoding lexical actions
            pred_ytokens      (tensor) : a word sync tensor encoding lexical labels
            pred_structaction (tensor) : a word sync tensor encoding structural actions
@@ -846,13 +847,13 @@ if __name__ == '__main__':
     
     #devset   =  [ '(TOP@S I (S: (VP love (NP em both)) .))','(S (DP The (NP little monkey)) (VP screams loud))','(S (NP the dog) walks)','(S (NP a cat) (VP chases (NP the mouse)))','(S (NP A wolf) (VP eats (NP the pig)))']
     #print(treebank)
-    trainset = list(input_treebank('../ptb_train.mrg'))
+    trainset = list( input_treebank('../ptb_train.mrg') )
     devset   = list( input_treebank('../ptb_dev.mrg') )
 
     train_df       = ParsingDataSet(trainset,min_lex_counts=10)
     dev_df         = ParsingDataSet(devset,root_dataset=train_df)
     #dev_df         = ParsingDataSet([ConsTree.read_tree(t) for t in devset])
-    #print('Train Vocab size',train_df.lex_vocab.size())
+    print('Train Vocab size',train_df.lex_vocab.size())
     print('Dev   Vocab size',dev_df.lex_vocab.size())
     #print('Train label size',train_df.struct_vocab.size())
     #print('Train label size',train_df.struct_vocab.size(),train_df.struct_vocab.itos)
