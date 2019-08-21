@@ -640,7 +640,6 @@ class LCmodel(nn.Module):
         Returns:
            a list of trees. Returns the predicted data set as whole. The original ordering of dev_set is guaranteed to be preserved.
         """
-        
         with torch.no_grad():
             
             dataloader = BucketLoader(dev_set,batch_size,device)
