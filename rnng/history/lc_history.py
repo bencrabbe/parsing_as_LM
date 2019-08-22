@@ -448,7 +448,7 @@ class LCmodel(nn.Module):
            device        (int): the device where to store the params (-1 :cpu ; 0,1,2... : GPU identifier)
         """
         self.E               = nn.Embedding( self.ref_set.lex_vocab.size(),self.embedding_size)
-        self.lstm            = nn.LSTM(self.embedding_size, self.rnn_memory,num_layers=1,bidirectional=False)
+        self.lstm            = nn.LSTM(self.embedding_size, self.rnn_memory,num_layers=3,bidirectional=False)
         
         self.W_struct_label  = nn.Linear(self.rnn_memory, self.ref_set.struct_vocab.size())     
         self.W_lex_label     = nn.Linear(self.rnn_memory, self.ref_set.lex_vocab.size())    
