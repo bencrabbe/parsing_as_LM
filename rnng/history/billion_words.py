@@ -67,4 +67,4 @@ if __name__ == '__main__':
     print('vocab size (>=20)',len([tok for tok, count in vocab.items() if int(count) >= 20]))
     print('vocab size (>=50)',len([tok for tok, count in vocab.items() if int(count) >= 50]))
     print('vocab size (>=100)',len([tok for tok, count in vocab.items() if int(count) >= 100]))
-    
+    print(vocab.most_common(100))
