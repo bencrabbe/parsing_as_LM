@@ -53,8 +53,11 @@ def extract_vocabulary(root_path):
     Returns a Counter with token counts in the whole corpus
     """
     vocabulary = Counter()
-    for filename in process_files('/home/bcrabbe/parsing_as_LM/rnng/history/billion_words'):
+    for filename in process_files(root_path):
         print('processing file %s'%(filename,),file=sys.stderr)
         for sentence in next_sentence(filename):
             vocabulary.update(sentence)
     return vocabulary
+
+if __name__ == '__main__': 
+    extract_vocabulary('/home/bcrabbe/parsing_as_LM/rnng/history/billion_words')
