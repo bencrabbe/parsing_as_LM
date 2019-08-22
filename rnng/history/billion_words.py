@@ -60,4 +60,11 @@ def extract_vocabulary(root_path):
     return vocabulary
 
 if __name__ == '__main__': 
-    extract_vocabulary('/home/bcrabbe/parsing_as_LM/rnng/history/billion_words')
+    vocab = extract_vocabulary('/home/bcrabbe/parsing_as_LM/rnng/history/billion_words')
+    print('vocab size',len(vocab))
+    print('vocab size (>=5)',len([tok for tok, count in vocab.items() if int(count) >= 5]))
+    print('vocab size (>=10)',len([tok for tok, count in vocab.items() if int(count) >= 10]))
+    print('vocab size (>=20)',len([tok for tok, count in vocab.items() if int(count) >= 20]))
+    print('vocab size (>=50)',len([tok for tok, count in vocab.items() if int(count) >= 50]))
+    print('vocab size (>=100)',len([tok for tok, count in vocab.items() if int(count) >= 100]))
+    
