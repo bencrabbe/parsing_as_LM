@@ -2,6 +2,7 @@
 
 import os
 import random
+import sys
 from collections import Counter
 """
 This is a module dedicated to preprocess and extract stats from the 1 billion word corpus.
@@ -30,7 +31,6 @@ def sample_file(root_path):
     file_list = list(process_files(root_path))
     yield random.choice(file_list)
     
-
 def normalise_token(token):
     return token
 
@@ -47,8 +47,14 @@ def next_sentence(filename):
         yield [normalise_token(token) for token in sentence.split()]
     istream.close()
     return None
-    
-for filename in process_files('/home/bcrabbe/parsing_as_LM/rnng/history/billion_words'):
-    for sentence in next_sentence(filename):
-        print(sentence)
-    break
+
+def extract_vocabulary(root_path):
+    """
+    Returns a Counter with token counts in the whole corpus
+    """
+    vocabulary = Counter()
+    for filename in process_files('/home/bcrabbe/parsing_as_LM/rnng/history/billion_words'):
+        print('processing file %s'%(filename,),file=sys.stderr)
+        for sentence in next_sentence(filename):
+            vocabulary.update(sentence)
+    return vocabulary
