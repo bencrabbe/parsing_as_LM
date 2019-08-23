@@ -114,7 +114,7 @@ class Vocabulary:
         ostream.close() 
              
     @staticmethod
-    def load(self,filename):
+    def load(filename):
         """
         Loads a vocabulary from file and returns it
         """
