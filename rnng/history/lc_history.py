@@ -898,7 +898,7 @@ def output_treebank(treelist,filename=None):
 
 if __name__ == '__main__':
 
-    vocab = Vocabulary(extract_vocabulary('/home/bcrabbe/parsing_as_LM/rnng/history/billion_words'),unk='<unk>')
+    vocab = Vocabulary(extract_vocabulary('/home/bcrabbe/parsing_as_LM/rnng/history/billion_words'),unk='<unk>',sos='<sos>',min_freq=50)
     vocab.save('toto')
     print(vocab.itos[:100])
     vocab.save('toto')

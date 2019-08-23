@@ -61,7 +61,7 @@ def extract_vocabulary(root_path):
         print('processing file %s'%(filename,),file=sys.stderr)
         for sentence in next_sentence(filename):
             vocabulary.update(sentence)
-        return vocabulary
+    return vocabulary
 
 if __name__ == '__main__':  
    
