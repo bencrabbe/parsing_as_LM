@@ -470,7 +470,7 @@ class LCmodel(nn.Module):
         self.rnn_memory     = rnn_memory
         self.embedding_size = embedding_size
         self.allocate_structure(device)
-        
+        self.half() # casts model to 16 bits floats rather than 32 bits
     def allocate_structure(self,device=-1):
         """
         This allocates the model parameters on the machine.
