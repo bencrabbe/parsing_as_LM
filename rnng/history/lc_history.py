@@ -103,9 +103,9 @@ class Vocabulary:
         Saves vocabulary to file
         """
         ostream = open(filename+'.specials','w')
-        print(self.unk,file=ostream)
-        print(self.pad,file=ostream)
-        print(self.sos,file=ostream)        
+        print(self.unk,file=ostream,end='')
+        print(self.pad,file=ostream,end='')
+        print(self.sos,file=ostream,end='')        
         ostream.close()
  
         ostream = open(filename+'.counts','w')
