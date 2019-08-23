@@ -822,7 +822,7 @@ class LCmodel(nn.Module):
                 optimizer.step()
 
             L = _lex_loss + _lex_action_loss + _struct_action_loss + _struct_loss
-            print("Epoch",e,'training loss (NLL) =', L/(4*N),'learning rate =',optimizer.param_group[0]['lr'])#,scheduler.get_lr()[0],N)
+            print("Epoch",e,'training loss (NLL) =', L/(4*N),'learning rate =',optimizer.param_groups[0]['lr'])#,scheduler.get_lr()[0],N)
             print('        lex loss           (NLL) = ',_lex_loss/N)
             print('        lex action loss    (NLL) = ',_lex_action_loss/N)
             print('        struct loss        (NLL) = ', _struct_loss/N)
