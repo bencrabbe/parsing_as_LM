@@ -89,9 +89,9 @@ class Vocabulary:
         self.counts = Counter(dict([ (item,count) for (item,count) in counter.items() if count >= min_freq] ))
 
         self.itos   = [ ] 
-        if not unk in self.counts:
+        if unk and not unk in self.counts:
             self.itos.append( unk ) 
-        if not pad in self.counts:
+        if pad and not pad in self.counts:
             self.itos.append( pad )
         if sos and sos not in self.counts:
             self.itos.append( sos )    
