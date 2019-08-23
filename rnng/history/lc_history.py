@@ -666,7 +666,7 @@ class LCmodel(nn.Module):
             print("illegal stack",len(Stack))
         return derivation, Stack[-1]
 
-    def predict(self,dev_set,batch_size=1,device=-1,with_loss=False): 
+    def eval_parser(self,dev_set,batch_size=1,device=-1,with_loss=False): 
         """
         Evaluates the parser on a dev set.
         Args:
@@ -803,9 +803,8 @@ class LCmodel(nn.Module):
             print('        struct loss        (NLL) = ', _struct_loss/N)
             print('        struct action loss (NLL) = ',_struct_action_loss/N)
             scheduler.step(L)
-            #torch.cuda.empty_cache()
             #Development f-score computation 
-            pred_trees = list(tree for (derivation,tree) in self.predict(dev_set,batch_size,device,with_loss=True))
+            pred_trees = list(tree for (derivation,tree) in self.eval_parser(dev_set,batch_size,device,with_loss=True))
             #for t in pred_trees[:10]:
             #    print(t)
             fscores    = [ reftree.compare(predtree)[2]   for (predtree,reftree) in zip(pred_trees,dev_set.tree_set) ]
@@ -915,6 +914,7 @@ if __name__ == '__main__':
     #train_df       = ParsingDataSet([ConsTree.read_tree(t) for t in trainset])
     #dev_df         = ParsingDataSet([ConsTree.read_tree(t) for t in devset])
     print('Train Vocab size',train_df.lex_vocab.size())
+    print('Train struct action',train_df.struct_action_vocab.itos)
     print('Dev   Vocab size',dev_df.lex_vocab.size())
     #print('Train label size',train_df.struct_vocab.size())
     #print('Train label size',train_df.struct_vocab.size(),train_df.struct_vocab.itos)
