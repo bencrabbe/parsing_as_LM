@@ -898,21 +898,17 @@ def output_treebank(treelist,filename=None):
 
 if __name__ == '__main__':
 
-    vocab = Vocabulary(extract_vocabulary('/home/bcrabbe/parsing_as_LM/rnng/history/billion_words'),unk='<unk>',sos='<sos>',min_freq=50)
-    vocab.save('toto')
-    print(vocab.itos[:100])
-    vocab.save('toto')
-    vocab = Vocabulary.load('toto')
-    print(vocab.itos[:100])
-    exit(0)
+    #vocab = Vocabulary(extract_vocabulary('/home/bcrabbe/parsing_as_LM/rnng/history/billion_words'),unk='<unk>',sos='<sos>',min_freq=50)
+    #vocab.save('toto')
+    evocab = Vocabulary.load('toto')
     
     #trainset   =  [ '(TOP@S I (S: (VP love (NP em both)) .))','(S (DP The (NP little monkey)) (VP screams loud))','(S (NP the dog) walks)','(S (NP a cat) (VP chases (NP the mouse)))','(S (NP A wolf) (VP eats (NP the pig)))']
     #devset   =  [ '(TOP@S I (S: (VP love (NP em both)) .))','(S (DP The (NP little monkey)) (VP screams loud))','(S (NP the dog) walks)','(S (NP a cat) (VP chases (NP the mouse)))','(S (NP A wolf) (VP eats (NP the pig)))']
     #print(treebank)
-    trainset = list( input_treebank('../ptb_train.mrg') )
-    devset   = list( input_treebank('../ptb_dev.mrg') )
+    trainset = list(input_treebank('../ptb_train.mrg'))
+    devset   = list(input_treebank('../ptb_dev.mrg'))
 
-    train_df       = ParsingDataSet(trainset,min_lex_counts=5)
+    train_df       = ParsingDataSet(trainset,min_lex_counts=5,ext_vocab=evocab)
     dev_df         = ParsingDataSet(devset,root_dataset=train_df)
     #train_df       = ParsingDataSet([ConsTree.read_tree(t) for t in trainset])
     #dev_df         = ParsingDataSet([ConsTree.read_tree(t) for t in devset])
