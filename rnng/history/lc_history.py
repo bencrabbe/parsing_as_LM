@@ -803,6 +803,7 @@ class LCmodel(nn.Module):
             print('        struct loss        (NLL) = ', _struct_loss/N)
             print('        struct action loss (NLL) = ',_struct_action_loss/N)
             scheduler.step(L)
+            torch.cuda.empty_cache()
             #Development f-score computation 
             pred_trees = list(tree for (derivation,tree) in self.predict(dev_set,batch_size,device,with_loss=True))
             #for t in pred_trees[:10]:
@@ -898,9 +899,9 @@ def output_treebank(treelist,filename=None):
 
 if __name__ == '__main__':
 
-    #Max vocab size with float64
-    vocab = Vocabulary(extract_vocabulary('/home/bcrabbe/parsing_as_LM/rnng/history/billion_words'),unk='<unk>',sos='<sos>',min_freq=100)
-    vocab.save('toto')
+    #Max vocab size with float32
+    #vocab = Vocabulary(extract_vocabulary('/home/bcrabbe/parsing_as_LM/rnng/history/billion_words'),unk='<unk>',sos='<sos>',min_freq=100)
+    #vocab.save('toto')
     evocab = Vocabulary.load('toto')
     
     #trainset   =  [ '(TOP@S I (S: (VP love (NP em both)) .))','(S (DP The (NP little monkey)) (VP screams loud))','(S (NP the dog) walks)','(S (NP a cat) (VP chases (NP the mouse)))','(S (NP A wolf) (VP eats (NP the pig)))']
