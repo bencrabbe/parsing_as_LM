@@ -666,6 +666,31 @@ class LCmodel(nn.Module):
             print("illegal stack",len(Stack))
         return derivation, Stack[-1]
 
+    def eval_lm(self,dev_set,batch_size=1,device=-1): 
+        """
+        Only evaluates the core language model without parsing (only perplexity)
+        Args:
+           dev_set (ParsingDataSet): the development set
+           batch_size         (int): the size of the batch
+        Returns:
+          float. The perplexity on this dev set
+        """
+        with torch.no_grad():
+            lex_loss    = nn.NLLLoss(reduction='sum',ignore_index=dev_set.lex_action_vocab.stoi[dev_set.pad])
+            dataloader = BucketLoader(dev_set,batch_size,device)
+
+            N   = 0
+            NLL = 0
+            
+            for batch in dataloader:
+                seq_representation =  self.forward_base(batch.xtokens,batch.tokens_length)
+                pred_ytokens       =  self.forward_lexical_tokens(seq_representation)
+                ref_ytokens        =  batch.ytokens.view(-1) #flattens the target too
+                loss = lex_loss(pred_ytokens,ref_ytokens) 
+                NLL += loss.item()
+                N   += sum(batch.tokens_length)
+            return np.exp(NLL/N)
+    
     def eval_parser(self,dev_set,batch_size=1,device=-1,with_loss=False): 
         """
         Evaluates the parser on a dev set.
@@ -797,7 +822,7 @@ class LCmodel(nn.Module):
                 optimizer.step()
 
             L = _lex_loss + _lex_action_loss + _struct_action_loss + _struct_loss
-            print("Epoch",e,'training loss (NLL) =', L/(4*N),'learning rate =')#,scheduler.get_lr()[0],N)
+            print("Epoch",e,'training loss (NLL) =', L/(4*N),'learning rate =',optimizer.param_group[0]['lr'])#,scheduler.get_lr()[0],N)
             print('        lex loss           (NLL) = ',_lex_loss/N)
             print('        lex action loss    (NLL) = ',_lex_action_loss/N)
             print('        struct loss        (NLL) = ', _struct_loss/N)
@@ -914,11 +939,10 @@ if __name__ == '__main__':
     #train_df       = ParsingDataSet([ConsTree.read_tree(t) for t in trainset])
     #dev_df         = ParsingDataSet([ConsTree.read_tree(t) for t in devset])
     print('Train Vocab size',train_df.lex_vocab.size())
-    print('Train struct action',train_df.struct_action_vocab.itos)
     print('Dev   Vocab size',dev_df.lex_vocab.size())
     #print('Train label size',train_df.struct_vocab.size())
     #print('Train label size',train_df.struct_vocab.size(),train_df.struct_vocab.itos)
     parser = LCmodel(train_df,rnn_memory=600,embedding_size=300,device=3)
-    parser.cuda(device=3)  
-    parser.train(train_df,dev_df,400,batch_size=32,learning_rate=0.001,device=3,alpha=1.0)  
-
+    parser.cuda(device=3)
+    parser.train(train_df,dev_df,400,batch_size=32,learning_rate=0.001,device=3,alpha=0.0)  
+ 
