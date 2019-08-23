@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import re
 import os
 import random
 import sys
@@ -30,37 +31,41 @@ def sample_file(root_path):
     """ 
     file_list = list(process_files(root_path))
     yield random.choice(file_list)
+
+def normalise_token(token,num_token='<num>'):
     
-def normalise_token(token):
-    return token
+    if re.match(r'[0-9]+([,/\.][0-9]+)*',token):
+        return num_token
+    return token 
 
 def next_sentence(filename):
-    """
+    """ 
     Generator function.
     Yields the next sentence from filename or returns None if file is
-    empty
+    empty 
     Returns.
        a list of strings. The tokenized sentence.
     """
     istream = open(filename)
     for sentence in istream:
         yield [normalise_token(token) for token in sentence.split()]
-    istream.close()
+    istream.close( )
     return None
 
 def extract_vocabulary(root_path):
     """
-    Returns a Counter with token counts in the whole corpus
+    Returns a Counter with token counts in the whole billion word corpus
     """
     vocabulary = Counter()
     for filename in process_files(root_path):
         print('processing file %s'%(filename,),file=sys.stderr)
         for sentence in next_sentence(filename):
             vocabulary.update(sentence)
-    return vocabulary
+        return vocabulary
 
-if __name__ == '__main__': 
-    vocab = extract_vocabulary('/home/bcrabbe/parsing_as_LM/rnng/history/billion_words')
+if __name__ == '__main__':  
+   
+    
     print('vocab size',len(vocab))
     print('vocab size (>=5)',len([tok for tok, count in vocab.items() if int(count) >= 5]))
     print('vocab size (>=10)',len([tok for tok, count in vocab.items() if int(count) >= 10]))

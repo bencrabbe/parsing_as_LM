@@ -1,13 +1,14 @@
 import sys
 import torch
-import torch.nn as nn
-import torch.optim as optim
-from torch.optim.lr_scheduler import LambdaLR,ReduceLROnPlateau
 import numpy as np
 from constree    import *
+from billion_words import *
 from collections import Counter
 from random      import shuffle,random
+import torch.nn as nn
+import torch.optim as optim
 from torch.nn.utils.rnn import pack_padded_sequence,pad_packed_sequence
+from torch.optim.lr_scheduler import LambdaLR,ReduceLROnPlateau
 
 #MODELS
 #Derivation = w1 s1 w2 s2   ...   wN sN
@@ -41,7 +42,6 @@ from torch.nn.utils.rnn import pack_padded_sequence,pad_packed_sequence
 #                          (for training it is not sure that it changes a lot, requires to input the struct actions but that's it)
 #  unsupervised = xxx boils down to basic domain adaptation   
 
- 
 class LCtree (ConsTree):
     """
     Specialization of ConsTree for coding complete/incomplete constituents as used in this transition system.
@@ -73,7 +73,7 @@ class LCtree (ConsTree):
     
 class Vocabulary:
 
-    def __init__(self,counter,min_freq=1,pad='<pad>',unk=None,sos=None,vectors=None):
+    def __init__(self,counter,min_freq=1,pad='<pad>',unk=None,sos=None):
         """
         New vocabulary.
         Args:
@@ -82,26 +82,59 @@ class Vocabulary:
             unk                  (string): the reserved 'unk' token
             pad                  (string): the reserved 'pad' token
             sos                  (string): the reserved start of sentence token
-            vectors              (string): filename where to load pretrained embeddings vectors
         """
-        self.unk = None
-        
+        self.unk = unk
+        self.pad = pad
+        self.sos = sos
         self.counts = Counter(dict([ (item,count) for (item,count) in counter.items() if count >= min_freq] ))
-        self.itos   = [ ]
 
-        if unk and not unk in self.counts:
-            self.itos.append(unk)
-            self.unk = unk
-        if pad and pad not in self.counts:
-            self.itos.append(pad)
-            self.pad = pad
+        self.itos   = [ ] 
+        if not unk in self.counts:
+            self.itos.append( unk ) 
+        if not pad in self.counts:
+            self.itos.append( pad )
         if sos and sos not in self.counts:
-            self.itos.append(sos)
-            self.sos = sos
-    
-        self.itos.extend( self.counts.keys() )    
-        self.stoi = dict(zip(self.itos,range(len(self.itos))))
-        self.vectors = vectors
+            self.itos.append( sos )    
+        self.itos.extend( sorted(self.counts.keys()))    
+        self.stoi = dict( zip(self.itos,range(len(self.itos))))
+  
+    def save(self,filename):
+        """
+        Saves vocabulary to file
+        """
+        ostream = open(filename+'.specials','w')
+        ostream.write('\n'.join([self.unk,self.pad,self.sos,'']))
+        ostream.close()
+ 
+        ostream = open(filename+'.counts','w')
+        for token,counts in self.counts.items():
+            print("%s\t%d"%(token,counts),file=ostream)
+        ostream.close() 
+             
+    @staticmethod
+    def load(self,filename):
+        """
+        Loads a vocabulary from file and returns it
+        """
+        istream     = open(filename+'.counts')
+        counts = Counter()   
+        for line in istream:
+            token, counts = line.split()
+            counts[token] = int(counts)
+        istream.close()
+        
+        istream   = open(filename+'.specials') 
+        unk  = istream.readline()
+        pad  = istream.readline()
+        sos  = istream.readline()
+        istream.close()
+        if unk == 'None':
+            unk = None
+        if pad == 'None':
+            pad = None
+        if sos == 'None':
+            sos = None
+        return Vocabulary(counts,pad=pad,sos=sos,unk=unk,min_freq=0)
 
     def size(self):
         """
@@ -704,7 +737,7 @@ class LCmodel(nn.Module):
                 print("        development loss   (NLL) = ", NLL/(4*N))
             return [ pred_trees[current_idx] for (current_idx,orig_idx) in sorted(matched_idxes,key=lambda x:x[1]) ]
 
-    def train(self,train_set,dev_set,epochs,raw_loader=None,batch_size=1,learning_rate=0.1,device=-1,alpha=0.0):
+    def train_parser(self,train_set,dev_set,epochs,raw_loader=None,batch_size=1,learning_rate=0.1,device=-1,alpha=0.0):
         """
         Args :    
           train_set (ParsingDataSet): xxx
@@ -861,9 +894,16 @@ def output_treebank(treelist,filename=None):
     if filename: 
         ostream.close()
 
-        
 if __name__ == '__main__':
 
+    vocab = extract_vocabulary('/home/bcrabbe/parsing_as_LM/rnng/history/billion_words')
+    vocab.save('toto')
+    print(vocab.itos[:100])
+    vocab.save('toto')
+    vocab = Vocabulary.load('toto')
+    print(vocab.itos[:100])
+    exit(0)
+    
     #trainset   =  [ '(TOP@S I (S: (VP love (NP em both)) .))','(S (DP The (NP little monkey)) (VP screams loud))','(S (NP the dog) walks)','(S (NP a cat) (VP chases (NP the mouse)))','(S (NP A wolf) (VP eats (NP the pig)))']
     #devset   =  [ '(TOP@S I (S: (VP love (NP em both)) .))','(S (DP The (NP little monkey)) (VP screams loud))','(S (NP the dog) walks)','(S (NP a cat) (VP chases (NP the mouse)))','(S (NP A wolf) (VP eats (NP the pig)))']
     #print(treebank)
