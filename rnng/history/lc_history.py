@@ -126,13 +126,10 @@ class Vocabulary:
         istream.close()
         
         istream   = open(filename+'.specials') 
-        unk  = istream.readline()
-        pad  = istream.readline()
-        sos  = istream.readline()
+        unk  = istream.readline()[:-1]
+        pad  = istream.readline()[:-1]
+        sos  = istream.readline()[:-1]
         istream.close()
-        unk.pop()
-        pad.pop()
-        sos.pop()
         if unk == 'None':
             unk = None
         if pad == 'None':
