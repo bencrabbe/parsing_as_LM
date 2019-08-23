@@ -483,7 +483,7 @@ class LCmodel(nn.Module):
            device        (int): the device where to store the params (-1 :cpu ; 0,1,2... : GPU identifier)
         """
         self.E               = nn.Embedding( self.ref_set.lex_vocab.size(),self.embedding_size)
-        self.lstm            = nn.LSTM(self.embedding_size, self.rnn_memory,num_layers=3,bidirectional=False)
+        self.lstm            = nn.LSTM(self.embedding_size, self.rnn_memory,num_layers=1,bidirectional=False)
         
         self.W_struct_label  = nn.Linear(self.rnn_memory, self.ref_set.struct_vocab.size())     
         self.W_lex_label     = nn.Linear(self.rnn_memory, self.ref_set.lex_vocab.size())    
@@ -899,7 +899,7 @@ def output_treebank(treelist,filename=None):
 
 if __name__ == '__main__':
 
-    #Max vocab size with float32
+    #Max vocab size with float32 (still fits in memory, maybe still fits with threshold 75)
     #vocab = Vocabulary(extract_vocabulary('/home/bcrabbe/parsing_as_LM/rnng/history/billion_words'),unk='<unk>',sos='<sos>',min_freq=100)
     #vocab.save('toto')
     evocab = Vocabulary.load('toto')
@@ -918,7 +918,7 @@ if __name__ == '__main__':
     print('Dev   Vocab size',dev_df.lex_vocab.size())
     #print('Train label size',train_df.struct_vocab.size())
     #print('Train label size',train_df.struct_vocab.size(),train_df.struct_vocab.itos)
-    parser = LCmodel(train_df,rnn_memory=600,embedding_size=1200,device=3)
+    parser = LCmodel(train_df,rnn_memory=1200,embedding_size=1200,device=3)
     parser.cuda(device=3)  
     parser.train(train_df,dev_df,400,batch_size=32,learning_rate=0.001,device=3,alpha=1.0)  
 
