@@ -121,8 +121,8 @@ class Vocabulary:
         istream     = open(filename+'.counts')
         counts = Counter()   
         for line in istream:
-            token, counts = line.split()
-            counts[token] = int(counts)
+            token, count = line.split()
+            counts[token] = int(count)
         istream.close()
         
         istream   = open(filename+'.specials') 
