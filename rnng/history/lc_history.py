@@ -506,7 +506,6 @@ class LCmodel(nn.Module):
         """
         #  @see AdaptiveLogSoftmaxWithLoss in pytorch + requirements (sorting etc.)
         #  @see https://towardsdatascience.com/speed-up-your-deep-learning-language-model-up-to-1000-with-the-adaptive-softmax-part-1-e7cc1f89fcc9
-        print(base_output.shape,flush=True)
         return self.softmax(self.W_lex_label(base_output))    
     
     def forward_structural_actions(self,base_output):
@@ -708,7 +707,7 @@ class LCmodel(nn.Module):
             dataloader = BucketLoader(train_set,batch_size,device,alpha)
 
             for batch in dataloader:
-                print('batch',flush=True)
+
                 self.zero_grad()
 
                 seq_representation =  self.forward_base(batch.xtokens,batch.tokens_length)
@@ -718,7 +717,7 @@ class LCmodel(nn.Module):
                 loss = lex_loss(pred_ytokens,ref_ytokens)    
                 loss.backward()
                 NLL += loss.item()  
-                N += sum(batch.tokens_length)
+                N   += sum(batch.tokens_length)
                 optimizer.step()
                 
             print("Epoch",e,'training loss (NLL) =', NLL/N ,'learning rate =',optimizer.param_groups[0]['lr'])
@@ -963,7 +962,6 @@ if __name__ == '__main__':
     #vocab.save('toto')
     evocab   = Vocabulary.load('toto')
     lm_df    = ParsingDataSet(list(load_billion_full('/home/bcrabbe/parsing_as_LM/rnng/history/billion_words')),ext_vocab=evocab)
-    print(lm_df.lex_vocab.size())
     trainset = list(input_treebank('../ptb_train.mrg'))
     devset   = list(input_treebank('../ptb_dev.mrg'))
 
@@ -972,7 +970,7 @@ if __name__ == '__main__':
 
     parser = LCmodel(train_df,rnn_memory=600,embedding_size=300,device=3)
     parser.cuda(device=3)
-    parser.train_language_model(lm_df,dev_df,1,batch_size=1,learning_rate=0.001,device=3,alpha=0.0)
+    parser.train_language_model(lm_df,dev_df,1,batch_size=32,learning_rate=0.001,device=3,alpha=0.0)
     exit(0)
     parser.train_parser(train_df,dev_df,400,batch_size=32,learning_rate=0.001,device=3,alpha=0.0) 
  
