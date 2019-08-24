@@ -385,6 +385,9 @@ class BucketLoader:
         self.max_sent_len = max_len #maximum length of a sentence (batches with outlier style lengths may cause memory blowup)
         self.data_idxes   = list(range(len(self.dataset)))
 
+    def nbatches():
+        return len(self.dataset)/self.batch_size
+
         
     def encode_batch(self,batch_idxes):
         """
@@ -708,7 +711,7 @@ class LCmodel(nn.Module):
             N   = 0
             dataloader = BucketLoader(train_set,batch_size,device,alpha)
 
-            for batch in tqdm.tqdm(dataloader):
+            for batch in tqdm.tqdm(dataloader,total=dataloader.nbatches()):
                 self.zero_grad()
 
                 seq_representation =  self.forward_base(batch.xtokens,batch.tokens_length)
@@ -721,7 +724,7 @@ class LCmodel(nn.Module):
                 N   += sum(batch.tokens_length)
                 optimizer.step()
                 
-            print("Epoch",e,'training loss (NLL) =', NLL/N ,'learning rate =',optimizer.param_groups[0]['lr'])
+            print("Epoch",e,'training loss (NLL) =', NLL/N ,'training PPL =',np.exp(NLL/N), 'learning rate =',optimizer.param_groups[0]['lr'])
 
         
     def eval_parser(self,dev_set,batch_size=1,device=-1,with_loss=False): 
