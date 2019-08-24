@@ -666,7 +666,7 @@ class LCmodel(nn.Module):
             print("illegal stack",len(Stack))
         return derivation, Stack[-1]
 
-    def eval_lm(self,lm_set,batch_size=1,device=-1): 
+    def eval_language_model(self,eval_set,batch_size=1,device=-1): 
         """
         Only evaluates the core language model without parsing (only perplexity)
         Args:
@@ -678,6 +678,7 @@ class LCmodel(nn.Module):
         with torch.no_grad():
             
             lex_loss    = nn.NLLLoss(reduction='sum',ignore_index=dev_set.lex_action_vocab.stoi[dev_set.pad])
+
             dataloader = BucketLoader(lm_set,batch_size,device)
 
             N   = 0
@@ -704,7 +705,7 @@ class LCmodel(nn.Module):
         """
         lex_loss  = nn.NLLLoss(reduction='sum',ignore_index=train_set.lex_vocab.stoi[train_set.pad])
         optimizer = optim.Adam(self.parameters(),lr=learning_rate)
-        
+        min_ppl   = 10000000000
         for e in range(epochs): 
             
             NLL = 0
@@ -725,7 +726,11 @@ class LCmodel(nn.Module):
                 optimizer.step()
                 
             print("Epoch",e,'training loss (NLL) =', NLL/N ,'training PPL =',np.exp(NLL/N), 'learning rate =',optimizer.param_groups[0]['lr'])
-
+            ppl = self.eval_language_model(dev_set,batch_size,device)
+            print("     ",' ','dev         (PPL) =',ppl)
+            if ppl < min_ppl:
+                print('save')
+                pass
         
     def eval_parser(self,dev_set,batch_size=1,device=-1,with_loss=False): 
         """
