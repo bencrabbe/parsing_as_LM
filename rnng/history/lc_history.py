@@ -221,7 +221,12 @@ class ParsingDataSet(object):
 
     @staticmethod
     def load_dataset(path):
-        pass
+        p = ParsingDataSet([ ])
+        p.lex_vocab = Vocabulary.load(os.path.join(path,'lex_vocab'))
+        p.struct_vocab = Vocabulary.load(os.path.join(path,'struct_vocab'))
+        p.struct_action = Vocabulary.load(os.path.join(path,'struct_action_vocab'))
+        p.lex_action_vocab = Vocabulary.load(os.path.join(path,'lex_action_vocab'))
+        return p
     
     def save_dataset(self,path):
         """
@@ -401,7 +406,6 @@ class BucketLoader:
 
     def nbatches(self):
         return len(self.dataset)/self.batch_size
-
         
     def encode_batch(self,batch_idxes):
         """
@@ -692,7 +696,6 @@ class LCmodel(nn.Module):
         with torch.no_grad():
             
             lex_loss    = nn.NLLLoss(reduction='sum',ignore_index=eval_set.lex_action_vocab.stoi[eval_set.pad])
-
             dataloader = BucketLoader(eval_set,batch_size,device)
 
             N   = 0
@@ -741,7 +744,7 @@ class LCmodel(nn.Module):
                 
             print("Epoch",e,'training loss (NLL) =', NLL/N ,'training PPL =',np.exp(NLL/N), 'learning rate =',optimizer.param_groups[0]['lr'])
             ppl = self.eval_language_model(dev_set,batch_size,device)
-            print("     ",' ','dev         (PPL) =',ppl)
+            print("                                          dev      PPL =",ppl)
             if ppl < min_ppl:
                 print('save')
                 pass
