@@ -741,7 +741,7 @@ class LCmodel(nn.Module):
             return np.exp(NLL/N)
 
 
-    def train_language_model(self,train_set,dev_set,epochs,batch_size=64,learning_rate=0.001,device=-1,alpha=0.0):
+    def train_language_model(self,train_set,dev_set,epochs,batch_size=64,learning_rate=0.001,device=-1,alpha=0.0,save_path='default'):
         """
         This trains a language model only (that can be used as a submodel of the parser).
         Meant to be used on very large data sets (such as the billion words corpus).
@@ -776,8 +776,8 @@ class LCmodel(nn.Module):
             ppl = self.eval_language_model(dev_set,batch_size,device)
             print("                                          dev      PPL =",ppl)
             if ppl < min_ppl:
-                print('save')
-                pass
+                print('model saved.')
+                self.save(self,save_path)   
         
     def eval_parser(self,dev_set,batch_size=1,device=-1,with_loss=False): 
         """
