@@ -513,7 +513,7 @@ class LCmodel(nn.Module):
             os.mkdir(path)
         except :
             pass
-        self.ref_set.save(os.path.join(path,'data'))
+        self.ref_set.save_dataset(os.path.join(path,'data'))
         torch.save(self.state_dict(), os.path.join(path,'weights.wt'))
         ostream = open(os.path.join(path,'hyperparams.json'),'w')
         print(json.dumps({'rnn_hidden':self.rnn_memory,'embedding_size':self.embedding_size}),file=ostream)
