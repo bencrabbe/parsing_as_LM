@@ -385,7 +385,7 @@ class BucketLoader:
         self.max_sent_len = max_len #maximum length of a sentence (batches with outlier style lengths may cause memory blowup)
         self.data_idxes   = list(range(len(self.dataset)))
 
-    def nbatches():
+    def nbatches(self):
         return len(self.dataset)/self.batch_size
 
         
