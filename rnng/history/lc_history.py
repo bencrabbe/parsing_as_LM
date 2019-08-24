@@ -1,3 +1,4 @@
+import os
 import sys
 import torch
 import tqdm
@@ -100,7 +101,7 @@ class Vocabulary:
         self.stoi = dict( zip(self.itos,range(len(self.itos))))
   
     def save(self,filename):
-        """
+        """ 
         Saves vocabulary to file
         """
         ostream = open(filename+'.specials','w')
@@ -217,7 +218,20 @@ class ParsingDataSet(object):
             self.unk = unk
             self.pad = pad
             self.sos = sos
-            
+
+    @staticmethod
+    def load_dataset(path):
+        pass
+    
+    def save_dataset(self,path):
+        """
+        Saves the dataset to a set of files prefixed by path
+        """
+        self.lex_vocab.save(os.path.join(path,'lex_vocab'))
+        self.struct_vocab.save(os.path.join(path,'struct_vocab'))
+        self.struct_action_vocab.save(os.path.join(path,'struct_action_vocab'))
+        self.lex_action_vocab.save(os.path.join(path,'lex_action_vocab'))
+        
     def decode_derivation(self,derivation): #pred_lexaction,pred_ytokens,pred_structaction,pred_structlabels
         """
         This translates an integer coded derivation back to a string.
@@ -677,9 +691,9 @@ class LCmodel(nn.Module):
         """
         with torch.no_grad():
             
-            lex_loss    = nn.NLLLoss(reduction='sum',ignore_index=dev_set.lex_action_vocab.stoi[dev_set.pad])
+            lex_loss    = nn.NLLLoss(reduction='sum',ignore_index=eval_set.lex_action_vocab.stoi[dev_set.pad])
 
-            dataloader = BucketLoader(lm_set,batch_size,device)
+            dataloader = BucketLoader(eval_set,batch_size,device)
 
             N   = 0
             NLL = 0
