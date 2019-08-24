@@ -364,7 +364,7 @@ class BucketLoader:
     """
     This BucketLoader is an iterator that reformulates torch.text.data.BucketIterator
     """
-    def __init__(self,dataset,batch_size,device=-1,alpha=0.0): 
+    def __init__(self,dataset,batch_size,device=-1,alpha=0.0,max_len=100): 
         """
         This function is responsible for delivering batches of examples from the dataset for a given epoch.
         It attempts to bucket examples of the same size in the same batches.
@@ -375,13 +375,13 @@ class BucketLoader:
           device               (str): a string that says on which device the batched data should live (defaults to cpu).
           alpha              (float): param for sampling unk words
         """ 
-        self.dataset     = dataset
-        self.batch_size  = batch_size
-        self.device      = device
-        self.current_idx = 0
-        self.alpha       = alpha
-        
-        self.data_idxes  = list(range(len(self.dataset)))
+        self.dataset      = dataset
+        self.batch_size   = batch_size
+        self.device       = device
+        self.current_idx  = 0
+        self.alpha        = alpha
+        self.max_sent_len = max_len #maximum length of a sentence (batches with outlier style lengths may cause memory blowup)
+        self.data_idxes   = list(range(len(self.dataset)))
 
         
     def encode_batch(self,batch_idxes):
@@ -433,9 +433,9 @@ class BucketLoader:
         if self.current_idx == 0 :#init epoch
             shuffle(self.data_idxes)
             lengths         = [ self.dataset.example_length(idx) for idx in self.data_idxes ]
-            self.data_idxes = [idx for (idx,length) in sorted(zip(self.data_idxes,lengths),key=lambda x:x[1],reverse=True) ]
+            self.data_idxes = [idx for (idx,length) in sorted(zip(self.data_idxes,lengths),key=lambda x:x[1],reverse=True) if length < self.max_sent_len]
 
-        if self.current_idx < len(self.data_idxes):            
+        if self.current_idx < len(self.data_idxes):             
             batch_idxes  = self.data_idxes[ self.current_idx:self.current_idx+self.batch_size ]
             self.current_idx += self.batch_size
             return self.encode_batch(batch_idxes)
