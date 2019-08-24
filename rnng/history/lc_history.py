@@ -391,7 +391,7 @@ class BucketLoader:
     This BucketLoader is an iterator that reformulates torch.text.data.BucketIterator
     TODO: add multiprocessing capacities (load batch while computing another)
     """
-    def __init__(self,dataset,batch_size,device=-1,alpha=0.0,max_len=150): 
+    def __init__(self,dataset,batch_size,device=-1,alpha=0.0,max_len=100): 
         """
         This function is responsible for delivering batches of examples from the dataset for a given epoch.
         It attempts to bucket examples of the same size in the same batches.
@@ -1027,9 +1027,9 @@ if __name__ == '__main__':
     train_df        = ParsingDataSet(trainset,ext_vocab=evocab)
     dev_df          = ParsingDataSet(devset,root_dataset=train_df)
 
-    parser = LCmodel(train_df,rnn_memory=600,embedding_size=300,device=3)
-    parser.cuda(device=3)
-    parser.train_language_model(lm_df,dev_df,5,batch_size=32,learning_rate=0.001,device=3,alpha=0.0)
+    parser = LCmodel(train_df,rnn_memory=1200,embedding_size=300,device=3)
+    parser.cuda(device=0)
+    parser.train_language_model(lm_df,dev_df,5,batch_size=32,learning_rate=0.001,device=0,alpha=0.0)
     exit(0)
-    parser.train_parser(train_df,dev_df,400,batch_size=32,learning_rate=0.001,device=3,alpha=0.0) 
+    parser.train_parser(train_df,dev_df,400,batch_size=32,learning_rate=0.001,device=0,alpha=0.0) 
  
