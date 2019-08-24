@@ -174,8 +174,8 @@ class ParsingDataSet(object):
         """
         Args:
              dataset               (list): a list of trees (or a list of strings for test and unsupervised setups)
-             ext_vocab       (Vocabulary): if specified use existing external vocabulary, otherwise builds it from the data
-             root_dataset(ParsingDataSet): if specified uses the vocabulary encoding from this external dataset rather than inferring encodings from this one. 
+             ext_vocab       (Vocabulary): if specified use existing external vocabulary for lexical words only, otherwise builds it from the data
+             root_dataset(ParsingDataSet): if specified uses the encodings from this external dataset rather than inferring encodings from this one. 
              unk                    (str): a string for the unk token for internal vocab
              pad                    (str): a string for the pad token for internal vocab
              sos                    (str): a string for the start of sentence (sos) token
@@ -199,16 +199,16 @@ class ParsingDataSet(object):
 
         #2. Vocabularies
         if root_dataset :
-            self.lex_vocab = root_dataset.lex_vocab
+            self.lex_vocab = ext_vocab if ext_vocab else root_dataset.lex_vocab
             if is_treebank :
                 self.lex_action_vocab    = root_dataset.lex_action_vocab   
                 self.struct_vocab        = root_dataset.struct_vocab
                 self.struct_action_vocab = root_dataset.struct_action_vocab
             self.unk = root_dataset.unk
             self.pad = root_dataset.pad
-            self.sos = root_dataset.sos       
+            self.sos = root_dataset.sos    
         else:
-            self.lex_vocab               = ParsingDataSet.build_vocab(self.tokens,unk_lex=unk,pad=pad,sos=sos,min_counts=min_lex_counts)
+            self.lex_vocab = ext_vocab if ext_vocab else ParsingDataSet.build_vocab(self.tokens,unk_lex=unk,pad=pad,sos=sos,min_counts=min_lex_counts)
             if is_treebank :
                 self.lex_action_vocab    = ParsingDataSet.build_vocab(self.lex_actions,pad=pad)
                 self.struct_vocab        = ParsingDataSet.build_vocab(self.struct_labels,pad=pad,sos=sos)
@@ -216,11 +216,6 @@ class ParsingDataSet(object):
             self.unk = unk
             self.pad = pad
             self.sos = sos
-            
-        #3. External vocabulary
-        if ext_vocab:
-            assert(ext_vocab.unk == unk and ext_vocab.sos == sos and ext_vocab.pad == pad)
-            self.lex_vocab = ext_vocab
             
     def decode_derivation(self,derivation): #pred_lexaction,pred_ytokens,pred_structaction,pred_structlabels
         """
@@ -666,18 +661,19 @@ class LCmodel(nn.Module):
             print("illegal stack",len(Stack))
         return derivation, Stack[-1]
 
-    def eval_lm(self,dev_set,batch_size=1,device=-1): 
+    def eval_lm(self,lm_set,batch_size=1,device=-1): 
         """
         Only evaluates the core language model without parsing (only perplexity)
         Args:
-           dev_set (ParsingDataSet): the development set
-           batch_size         (int): the size of the batch
+           lm_set (ParsingDataSet): the development set
+           batch_size        (int): the size of the batch
         Returns:
           float. The perplexity on this dev set
         """
         with torch.no_grad():
+            
             lex_loss    = nn.NLLLoss(reduction='sum',ignore_index=dev_set.lex_action_vocab.stoi[dev_set.pad])
-            dataloader = BucketLoader(dev_set,batch_size,device)
+            dataloader = BucketLoader(lm_set,batch_size,device)
 
             N   = 0
             NLL = 0
@@ -764,7 +760,7 @@ class LCmodel(nn.Module):
                 print("        development loss   (NLL) = ", NLL/(4*N))
             return [ pred_trees[current_idx] for (current_idx,orig_idx) in sorted(matched_idxes,key=lambda x:x[1]) ]
 
-    def train(self,train_set,dev_set,epochs,raw_loader=None,batch_size=1,learning_rate=0.1,device=-1,alpha=0.0):
+    def train_parser(self,train_set,dev_set,epochs,raw_loader=None,batch_size=1,learning_rate=0.1,device=-1,alpha=0.0):
         """
         Args :    
           train_set (ParsingDataSet): xxx
@@ -927,15 +923,17 @@ if __name__ == '__main__':
     #vocab = Vocabulary(extract_vocabulary('/home/bcrabbe/parsing_as_LM/rnng/history/billion_words'),unk='<unk>',sos='<sos>',min_freq=100)
     #vocab.save('toto')
     evocab = Vocabulary.load('toto')
-    
+
+    lmset = ParsingDataSet(list(load_billion_full('/home/bcrabbe/parsing_as_LM/rnng/history/billion_words')),ext_vocab=evocab,root_dataset=)
+    exit(0)
     #trainset   =  [ '(TOP@S I (S: (VP love (NP em both)) .))','(S (DP The (NP little monkey)) (VP screams loud))','(S (NP the dog) walks)','(S (NP a cat) (VP chases (NP the mouse)))','(S (NP A wolf) (VP eats (NP the pig)))']
     #devset   =  [ '(TOP@S I (S: (VP love (NP em both)) .))','(S (DP The (NP little monkey)) (VP screams loud))','(S (NP the dog) walks)','(S (NP a cat) (VP chases (NP the mouse)))','(S (NP A wolf) (VP eats (NP the pig)))']
     #print(treebank)
     trainset = list(input_treebank('../ptb_train.mrg'))
     devset   = list(input_treebank('../ptb_dev.mrg'))
 
-    train_df       = ParsingDataSet(trainset,min_lex_counts=5,ext_vocab=evocab)
-    dev_df         = ParsingDataSet(devset,root_dataset=train_df)
+    train_df        = ParsingDataSet(trainset,min_lex_counts=5,ext_vocab=evocab)
+    dev_df          = ParsingDataSet(devset,root_dataset=train_df)
     #train_df       = ParsingDataSet([ConsTree.read_tree(t) for t in trainset])
     #dev_df         = ParsingDataSet([ConsTree.read_tree(t) for t in devset])
     print('Train Vocab size',train_df.lex_vocab.size())
@@ -944,5 +942,5 @@ if __name__ == '__main__':
     #print('Train label size',train_df.struct_vocab.size(),train_df.struct_vocab.itos)
     parser = LCmodel(train_df,rnn_memory=600,embedding_size=300,device=3)
     parser.cuda(device=3)
-    parser.train(train_df,dev_df,400,batch_size=32,learning_rate=0.001,device=3,alpha=0.0)  
+    parser.train_parser(train_df,dev_df,400,batch_size=32,learning_rate=0.001,device=3,alpha=0.0)  
  

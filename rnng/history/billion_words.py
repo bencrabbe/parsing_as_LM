@@ -52,6 +52,20 @@ def next_sentence(filename):
     istream.close( )
     return None
 
+def load_billion_full(root_path):
+    """
+    Gets the full dataset as a list of strings
+    Args:
+       root_path (string): the path from the root dir of the billion words.
+    Returns:
+       list. A list of (list of tokens)
+    """
+    for filename in process_files(root_path):
+        print('processing file %s'%(filename,),file=sys.stderr)
+        for sentence in next_sentence(filename):
+            yield sentence
+    
+
 def extract_vocabulary(root_path):
     """
     Returns a Counter with token counts in the whole billion word corpus
