@@ -501,7 +501,7 @@ class LCmodel(nn.Module):
         istream = open(os.path.join(path,'hyperparams.json'))
         hparams = json.loads(istream.read())
         istream.close()
-        m = LCmodel(refset,rnn_memory=int(hparams['rnn_hidden']),embedding_size=int(hparams['embedding_size']),device)
+        m = LCmodel(refset,rnn_memory=int(hparams['rnn_hidden']),embedding_size=int(hparams['embedding_size']),device=device)
         m.load_state_dict(torch.load(os.path.join(path,'weight.wt')))
         return m
     
