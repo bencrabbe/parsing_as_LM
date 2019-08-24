@@ -507,7 +507,6 @@ class LCmodel(nn.Module):
         #  @see AdaptiveLogSoftmaxWithLoss in pytorch + requirements (sorting etc.)
         #  @see https://towardsdatascience.com/speed-up-your-deep-learning-language-model-up-to-1000-with-the-adaptive-softmax-part-1-e7cc1f89fcc9
         print(base_output.shape,flush=True)
-        print(self.W_lex_label.shape,flush=True)
         return self.softmax(self.W_lex_label(base_output))    
     
     def forward_structural_actions(self,base_output):
