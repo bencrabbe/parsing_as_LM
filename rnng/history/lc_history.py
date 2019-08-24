@@ -1,5 +1,6 @@
 import sys
 import torch
+import tqdm
 import numpy as np
 from constree    import *
 from billion_words import *
@@ -365,7 +366,7 @@ class BucketLoader:
     This BucketLoader is an iterator that reformulates torch.text.data.BucketIterator
     TODO: add multiprocessing capacities (load batch while computing another)
     """
-    def __init__(self,dataset,batch_size,device=-1,alpha=0.0,max_len=100): 
+    def __init__(self,dataset,batch_size,device=-1,alpha=0.0,max_len=150): 
         """
         This function is responsible for delivering batches of examples from the dataset for a given epoch.
         It attempts to bucket examples of the same size in the same batches.
@@ -707,8 +708,7 @@ class LCmodel(nn.Module):
             N   = 0
             dataloader = BucketLoader(train_set,batch_size,device,alpha)
 
-            for batch in dataloader:
-                print('***')
+            for batch in tqdm.tqdm(dataloader):
                 self.zero_grad()
 
                 seq_representation =  self.forward_base(batch.xtokens,batch.tokens_length)
