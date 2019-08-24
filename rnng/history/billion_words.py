@@ -33,8 +33,12 @@ def sample_file(root_path):
     yield random.choice(file_list)
 
 def normalise_token(token,num_token='<num>'):
-    
-    if re.match(r'[0-9]+([,/\.][0-9]+)*',token):
+
+    if token == '(':
+        return '-LRB-'
+    elif token == ')':
+        return '-RRB-'
+    elif re.match(r'[0-9]+([,/\.][0-9]+)*',token):
         return num_token
     return token 
 
@@ -64,7 +68,7 @@ def load_billion_full(root_path):
         print('  processing file %s'%(filename,),file=sys.stderr,flush=True)
         for sentence in next_sentence(filename):
             yield ' '.join(sentence)
-        break #remove me
+        #break #remove me
         
 def extract_vocabulary(root_path):
     """

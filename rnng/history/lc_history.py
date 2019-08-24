@@ -751,7 +751,7 @@ class LCmodel(nn.Module):
           epochs               (int): xxx
         """
         lex_loss  = nn.NLLLoss(reduction='sum',ignore_index=train_set.lex_vocab.stoi[train_set.pad])
-        optimizer = optim.SGD(self.parameters(),lr=learning_rate)
+        optimizer = optim.Adam(self.parameters(),lr=learning_rate)
         min_ppl   = 10000000000
 
         print('Starting...\n\n')
@@ -1027,7 +1027,7 @@ if __name__ == '__main__':
     train_df        = ParsingDataSet(trainset,ext_vocab=evocab)
     dev_df          = ParsingDataSet(devset,root_dataset=train_df)
 
-    parser = LCmodel(train_df,rnn_memory=2048,embedding_size=300,device=3)
+    parser = LCmodel(train_df,rnn_memory=1200,embedding_size=300,device=3)
     parser.cuda(device=0)
     parser.train_language_model(lm_df,dev_df,5,batch_size=32,learning_rate=0.001,device=0,alpha=0.0,save_path="def12")
     exit(0)
