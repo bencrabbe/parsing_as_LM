@@ -2,6 +2,7 @@ import os
 import sys
 import torch
 import tqdm
+import json
 import numpy as np
 from constree    import *
 from billion_words import *
@@ -232,6 +233,11 @@ class ParsingDataSet(object):
         """
         Saves the dataset to a set of files prefixed by path
         """
+        try:
+            os.mkdir(path)
+        except :
+            pass
+        
         self.lex_vocab.save(os.path.join(path,'lex_vocab'))
         self.struct_vocab.save(os.path.join(path,'struct_vocab'))
         self.struct_action_vocab.save(os.path.join(path,'struct_action_vocab'))
@@ -488,7 +494,31 @@ class LCmodel(nn.Module):
         self.rnn_memory     = rnn_memory
         self.embedding_size = embedding_size
         self.allocate_structure(device)
-                    
+
+    @staticmethod
+    def load(path,device=-1):
+        refset  = ParsingDataSet.load(os.path.join(path,'data'))
+        istream = open(os.path.join(path,'hyperparams.json'))
+        hparams = json.loads(istream.read())
+        istream.close()
+        m = LCmodel(refset,rnn_memory=int(hparams['rnn_hidden']),embedding_size=int(hparams['embedding_size']),device)
+        m.load_state_dict(torch.load(os.path.join(path,'weight.wt')))
+        return m
+    
+    def save(self,path):
+        """
+        Saves the model to prefix path
+        """
+        try:
+            os.mkdir(path)
+        except :
+            pass
+        self.ref_set.save(os.path.join(path,'data'))
+        torch.save(self.state_dict(), os.path.join(path,'weights.wt'))
+        ostream = open(os.path.join(path,'hyperparams.json'),'w')
+        print(json.dumps({'rnn_hidden':self.rnn_memory,'embedding_size':self.embedding_size}),file=ostream)
+        ostream.close() 
+      
     def allocate_structure(self,device=-1):
         """
         This allocates the model parameters on the machine.
