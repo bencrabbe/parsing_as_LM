@@ -775,11 +775,11 @@ class LCmodel(nn.Module):
                 N   += sum(batch.tokens_length)
                 optimizer.step()
                 
-            print("Epoch",e,'training loss (NLL) =', NLL/N ,'training PPL =',np.exp(NLL/N), 'learning rate =',optimizer.param_groups[0]['lr'])
+            print("Epoch",e,'training loss (NLL) =', NLL/N ,'training PPL =',np.exp(NLL/N), 'learning rate =',optimizer.param_groups[0]['lr'],flush=True)
             ppl = self.eval_language_model(dev_set,batch_size,device)
-            print("                                          dev      PPL =",ppl)
+            print("                                          dev      PPL =",ppl,flush=True)
             if ppl < min_ppl:
-                print('model saved.')
+                print('model saved.',flush=True)
                 self.save(save_path)   
         
     def eval_parser(self,dev_set,batch_size=1,device=-1,with_loss=False): 
@@ -852,7 +852,7 @@ class LCmodel(nn.Module):
                 
             matched_idxes = enumerate(orig_idxes) #iterates using the ascending original order of the data set                    
             if with_loss:
-                print("        development loss   (NLL) = ", NLL/(4*N))
+                print("        development loss   (NLL) = ", NLL/(4*N),flush=True)
             return [ pred_trees[current_idx] for (current_idx,orig_idx) in sorted(matched_idxes,key=lambda x:x[1]) ]
 
 
@@ -915,18 +915,18 @@ class LCmodel(nn.Module):
                 optimizer.step()
 
             L = _lex_loss + _lex_action_loss + _struct_action_loss + _struct_loss
-            print("Epoch",e,'training loss (NLL) =', L/(4*N),'learning rate =',optimizer.param_groups[0]['lr'])#,scheduler.get_lr()[0],N)
-            print('        lex loss           (NLL) = ',_lex_loss/N)
-            print('        lex action loss    (NLL) = ',_lex_action_loss/N)
-            print('        struct loss        (NLL) = ', _struct_loss/N)
-            print('        struct action loss (NLL) = ',_struct_action_loss/N)
+            print("Epoch",e,'training loss (NLL) =', L/(4*N),'learning rate =',optimizer.param_groups[0]['lr'],flush=True)#,scheduler.get_lr()[0],N)
+            print('        lex loss           (NLL) = ',_lex_loss/N,flush=True)
+            print('        lex action loss    (NLL) = ',_lex_action_loss/N,flush=True)
+            print('        struct loss        (NLL) = ', _struct_loss/N,flush=True)
+            print('        struct action loss (NLL) = ',_struct_action_loss/N,flush=True)
             scheduler.step(L)
             #Development f-score computation 
             pred_trees = list(tree for (derivation,tree) in self.eval_parser(dev_set,batch_size,device,with_loss=True))
             #for t in pred_trees[:10]:
             #    print(t)
             fscores    = [ reftree.compare(predtree)[2]   for (predtree,reftree) in zip(pred_trees,dev_set.tree_set) ]
-            print("        development F-score      = ", sum(fscores) / len(fscores))
+            print("        development F-score      = ", sum(fscores) / len(fscores),flush=True)
     @staticmethod 
     def derivation2tree(derivation):
         """
@@ -1027,7 +1027,7 @@ if __name__ == '__main__':
     train_df        = ParsingDataSet(trainset,ext_vocab=evocab)
     dev_df          = ParsingDataSet(devset,root_dataset=train_df)
 
-    parser = LCmodel(train_df,rnn_memory=1200,embedding_size=300,device=3)
+    parser = LCmodel(train_df,rnn_memory=600,embedding_size=300,device=3)
     parser.cuda(device=3)
     parser.train_language_model(lm_df,dev_df,5,batch_size=32,learning_rate=0.001,device=3,alpha=0.0)
     exit(0)

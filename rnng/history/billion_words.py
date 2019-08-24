@@ -61,7 +61,7 @@ def load_billion_full(root_path):
        list. A list of (list of tokens)
     """
     for filename in process_files(root_path):
-        print('  processing file %s'%(filename,),file=sys.stderr)
+        print('  processing file %s'%(filename,),file=sys.stderr,flush=True)
         for sentence in next_sentence(filename):
             yield ' '.join(sentence)
         #break #remove me
@@ -72,7 +72,7 @@ def extract_vocabulary(root_path):
     """
     vocabulary = Counter()
     for filename in process_files(root_path):
-        print('processing file %s'%(filename,),file=sys.stderr)
+        print('processing file %s'%(filename,),file=sys.stderr,flush=True)
         for sentence in next_sentence(filename):
             vocabulary.update(sentence)
     return vocabulary
