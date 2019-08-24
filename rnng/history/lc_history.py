@@ -686,7 +686,43 @@ class LCmodel(nn.Module):
                 NLL += loss.item()
                 N   += sum(batch.tokens_length)
             return np.exp(NLL/N)
-    
+
+
+    def train_language_model(self,train_set,dev_set,epochs,batch_size=64,learning_rate=0.001,device=-1,alpha=0.0):
+        """
+        This trains a language model only (that can be used as a submodel of the parser).
+        Meant to be used on very large data sets (such as the billion words corpus).
+        Args :    
+          train_set (ParsingDataSet): xxx
+          dev_set   (ParsingDataSet): xxx
+          epochs               (int): xxx
+        """
+        lex_loss  = nn.NLLLoss(reduction='sum',ignore_index=train_set.lex_vocab.stoi[train_set.pad])
+        optimizer = optim.Adam(self.parameters(),lr=learning_rate)
+        
+        for e in range(epochs): 
+            
+            NLL = 0
+            N   = 0
+            dataloader = BucketLoader(train_set,batch_size,device,alpha)
+
+            for batch in dataloader:
+                
+                self.zero_grad()
+
+                seq_representation =  self.forward_base(batch.xtokens,batch.tokens_length)
+                pred_ytokens       =  self.forward_lexical_tokens(seq_representation)
+                ref_ytokens        =  batch.ytokens.view(-1)                             #flattens the target too
+                
+                loss = lex_loss(pred_ytokens,ref_ytokens)    
+                loss.backward()
+                NLL += loss.item()  
+                N += sum(batch.tokens_length)
+                optimizer.step()
+                
+            print("Epoch",e,'training loss (NLL) =', NLL/N ,'learning rate =',optimizer.param_groups[0]['lr'])
+
+        
     def eval_parser(self,dev_set,batch_size=1,device=-1,with_loss=False): 
         """
         Evaluates the parser on a dev set.
@@ -760,7 +796,9 @@ class LCmodel(nn.Module):
                 print("        development loss   (NLL) = ", NLL/(4*N))
             return [ pred_trees[current_idx] for (current_idx,orig_idx) in sorted(matched_idxes,key=lambda x:x[1]) ]
 
-    def train_parser(self,train_set,dev_set,epochs,raw_loader=None,batch_size=1,learning_rate=0.1,device=-1,alpha=0.0):
+
+        
+    def train_parser(self,train_set,dev_set,epochs,batch_size=1,learning_rate=0.1,device=-1,alpha=0.0):
         """
         Args :    
           train_set (ParsingDataSet): xxx
