@@ -1027,7 +1027,7 @@ if __name__ == '__main__':
     train_df        = ParsingDataSet(trainset,ext_vocab=evocab)
     dev_df          = ParsingDataSet(devset,root_dataset=train_df)
 
-    parser = LCmodel(train_df,rnn_memory=1200,embedding_size=300,device=3)
+    parser = LCmodel(train_df,rnn_memory=1200,embedding_size=300,device=0)
     parser.cuda(device=0)
     parser.train_language_model(lm_df,dev_df,5,batch_size=32,learning_rate=0.001,device=0,alpha=0.0,save_path="def12")
     exit(0)
