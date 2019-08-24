@@ -707,7 +707,7 @@ class LCmodel(nn.Module):
             dataloader = BucketLoader(train_set,batch_size,device,alpha)
 
             for batch in dataloader:
-                
+                print('batch')
                 self.zero_grad()
 
                 seq_representation =  self.forward_base(batch.xtokens,batch.tokens_length)
