@@ -64,7 +64,6 @@ def load_billion_full(root_path):
         print('processing file %s'%(filename,),file=sys.stderr)
         for sentence in next_sentence(filename):
             yield ' '.join(sentence)
-        break #remove me
 
 def extract_vocabulary(root_path):
     """
