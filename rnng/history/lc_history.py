@@ -1017,9 +1017,9 @@ def output_treebank(treelist,filename=None):
 if __name__ == '__main__':
 
     #Max vocab size with float32 (still fits in memory, maybe still fits with threshold 75)
-    #vocab = Vocabulary(extract_vocabulary('/home/bcrabbe/parsing_as_LM/rnng/history/billion_words'),unk='<unk>',sos='<sos>',min_freq=100)
-    #vocab.save('toto')
-    evocab   = Vocabulary.load('toto')
+    vocab = Vocabulary(extract_vocabulary('/home/bcrabbe/parsing_as_LM/rnng/history/billion_words'),unk='<unk>',sos='<sos>',min_freq=100)
+    vocab.save('vocab100')
+    evocab   = Vocabulary.load('vocab100')
     lm_df    = ParsingDataSet(list(load_billion_full('/home/bcrabbe/parsing_as_LM/rnng/history/billion_words')),ext_vocab=evocab)
     trainset = list(input_treebank('../ptb_train.mrg'))
     devset   = list(input_treebank('../ptb_dev.mrg'))
