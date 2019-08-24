@@ -949,37 +949,28 @@ def output_treebank(treelist,filename=None):
     ostream = sys.stdout if filename is None else open(filename,'w')
     for tree in treelist:
         tree.expand_unaries()
-        tree.unbinarize()
-        tree.strip_eos()
+        tree.unbinarize( )
+        tree.strip_eos( )
         print(tree,file=ostream)
     if filename: 
-        ostream.close()
+        ostream.close( )
 
 if __name__ == '__main__':
 
     #Max vocab size with float32 (still fits in memory, maybe still fits with threshold 75)
     #vocab = Vocabulary(extract_vocabulary('/home/bcrabbe/parsing_as_LM/rnng/history/billion_words'),unk='<unk>',sos='<sos>',min_freq=100)
     #vocab.save('toto')
-    evocab = Vocabulary.load('toto')
-
-    lmset = ParsingDataSet(list(load_billion_full('/home/bcrabbe/parsing_as_LM/rnng/history/billion_words')),ext_vocab=evocab)
-    print(len(lmset.tokens))
-    exit(0)
-    #trainset   =  [ '(TOP@S I (S: (VP love (NP em both)) .))','(S (DP The (NP little monkey)) (VP screams loud))','(S (NP the dog) walks)','(S (NP a cat) (VP chases (NP the mouse)))','(S (NP A wolf) (VP eats (NP the pig)))']
-    #devset   =  [ '(TOP@S I (S: (VP love (NP em both)) .))','(S (DP The (NP little monkey)) (VP screams loud))','(S (NP the dog) walks)','(S (NP a cat) (VP chases (NP the mouse)))','(S (NP A wolf) (VP eats (NP the pig)))']
-    #print(treebank)
+    evocab   = Vocabulary.load('toto')
+    lm_df    = ParsingDataSet(list(load_billion_full('/home/bcrabbe/parsing_as_LM/rnng/history/billion_words')),ext_vocab=evocab)
     trainset = list(input_treebank('../ptb_train.mrg'))
     devset   = list(input_treebank('../ptb_dev.mrg'))
 
-    train_df        = ParsingDataSet(trainset,min_lex_counts=5,ext_vocab=evocab)
+    train_df        = ParsingDataSet(trainset,ext_vocab=evocab)
     dev_df          = ParsingDataSet(devset,root_dataset=train_df)
-    #train_df       = ParsingDataSet([ConsTree.read_tree(t) for t in trainset])
-    #dev_df         = ParsingDataSet([ConsTree.read_tree(t) for t in devset])
-    print('Train Vocab size',train_df.lex_vocab.size())
-    print('Dev   Vocab size',dev_df.lex_vocab.size())
-    #print('Train label size',train_df.struct_vocab.size())
-    #print('Train label size',train_df.struct_vocab.size(),train_df.struct_vocab.itos)
+
     parser = LCmodel(train_df,rnn_memory=600,embedding_size=300,device=3)
     parser.cuda(device=3)
-    parser.train_parser(train_df,dev_df,400,batch_size=32,learning_rate=0.001,device=3,alpha=0.0)  
+    parser.train_language_model(lm_df,dev_df,1,batch_size=64,learning_rate=0.001,device=3,alpha=0.0)
+    exit(0)
+    parser.train_parser(train_df,dev_df,400,batch_size=32,learning_rate=0.001,device=3,alpha=0.0) 
  
