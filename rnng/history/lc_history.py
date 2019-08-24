@@ -962,6 +962,7 @@ if __name__ == '__main__':
     #vocab.save('toto')
     evocab   = Vocabulary.load('toto')
     lm_df    = ParsingDataSet(list(load_billion_full('/home/bcrabbe/parsing_as_LM/rnng/history/billion_words')),ext_vocab=evocab)
+    print(lm_df.lex_vocab.size())
     trainset = list(input_treebank('../ptb_train.mrg'))
     devset   = list(input_treebank('../ptb_dev.mrg'))
 
