@@ -1017,8 +1017,8 @@ def output_treebank(treelist,filename=None):
 if __name__ == '__main__':
 
     #Max vocab size with float32 (still fits in memory, maybe still fits with threshold 75)
-    vocab = Vocabulary(extract_vocabulary('/home/bcrabbe/parsing_as_LM/rnng/history/billion_words'),unk='<unk>',sos='<sos>',min_freq=100)
-    vocab.save('vocab100')
+    #vocab = Vocabulary(extract_vocabulary('/home/bcrabbe/parsing_as_LM/rnng/history/billion_words'),unk='<unk>',sos='<sos>',min_freq=100)
+    #vocab.save('vocab100')
     evocab   = Vocabulary.load('vocab100')
     lm_df    = ParsingDataSet(list(load_billion_full('/home/bcrabbe/parsing_as_LM/rnng/history/billion_words')),ext_vocab=evocab)
     trainset = list(input_treebank('../ptb_train.mrg'))
@@ -1029,7 +1029,7 @@ if __name__ == '__main__':
 
     parser = LCmodel(train_df,rnn_memory=600,embedding_size=300,device=3)
     parser.cuda(device=3)
-    parser.train_language_model(lm_df,dev_df,1,batch_size=32,learning_rate=0.001,device=3,alpha=0.0)
+    parser.train_language_model(lm_df,dev_df,5,batch_size=32,learning_rate=0.001,device=3,alpha=0.0)
     exit(0)
     parser.train_parser(train_df,dev_df,400,batch_size=32,learning_rate=0.001,device=3,alpha=0.0) 
  
