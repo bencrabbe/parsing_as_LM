@@ -777,7 +777,7 @@ class LCmodel(nn.Module):
             print("                                          dev      PPL =",ppl)
             if ppl < min_ppl:
                 print('model saved.')
-                self.save(self,save_path)   
+                self.save(save_path)   
         
     def eval_parser(self,dev_set,batch_size=1,device=-1,with_loss=False): 
         """
