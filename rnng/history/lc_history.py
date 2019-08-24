@@ -363,6 +363,7 @@ class ParseBatch:
 class BucketLoader:
     """
     This BucketLoader is an iterator that reformulates torch.text.data.BucketIterator
+    TODO: add multiprocessing capacities (load batch while computing another)
     """
     def __init__(self,dataset,batch_size,device=-1,alpha=0.0,max_len=100): 
         """
@@ -707,7 +708,7 @@ class LCmodel(nn.Module):
             dataloader = BucketLoader(train_set,batch_size,device,alpha)
 
             for batch in dataloader:
-
+                print('***')
                 self.zero_grad()
 
                 seq_representation =  self.forward_base(batch.xtokens,batch.tokens_length)
