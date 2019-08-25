@@ -1051,7 +1051,7 @@ if __name__ == '__main__':
     print('Dev vocab',dev_df.lex_vocab.size())
     
     parser = LCmodel(train_df,rnn_memory=600,embedding_size=300,device=0)
-    parser.train_language_model(lm_df,dev_df,5,batch_size=32,learning_rate=0.001,device=0,alpha=0.0,save_path="mem1200")
+    parser.train_language_model(lm_df,dev_df,5,batch_size=32,learning_rate=0.001,device=0,alpha=0.0,save_path="mem600")
 
     #parser = LCmodel.load('def12',device=0)
     #print(parser.eval_language_model(lm_df,batch_size=32,device=0)) 
