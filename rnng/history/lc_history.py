@@ -1041,7 +1041,7 @@ if __name__ == '__main__':
     
     #parser = LCmodel(train_df,rnn_memory=600,embedding_size=300,device=0)
     parser = LCmodel.load('def12',device=0)
-    parser.eval_language_model(self,eval_set,batch_size=1,device=-1): 
+    parser.eval_language_model(dev_df,batch_size=32,device=0) 
     
     parser.train_language_model(lm_df,dev_df,1,batch_size=32,learning_rate=0.001,device=0,alpha=0.0,save_path="def12")
     exit(0)
