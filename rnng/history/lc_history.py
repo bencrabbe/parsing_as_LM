@@ -243,12 +243,12 @@ class ParsingDataSet(object):
         except :
             pass
         if hasattr(self,'tree_set'):
-            ostream = open(os.path.join(path,'train.mrg'))
+            ostream = open(os.path.join(path,'train.mrg'),'w')
             for tree in self.tree_set:
                 print(str(tree),file=ostream)
             ostream.close()
         else:
-            ostream = open(os.path.join(path,'train.raw'))
+            ostream = open(os.path.join(path,'train.raw'),'w')
             for toklist in self.tokens:
                 print(' '.join(toklist),file=ostream)
             ostream.close()
