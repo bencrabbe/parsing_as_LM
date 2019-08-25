@@ -778,7 +778,6 @@ class LCmodel(nn.Module):
             N   = 0
             dataloader = BucketLoader(train_set,batch_size,device,alpha)
 
-            idx = 0
             for batch in tqdm.tqdm(dataloader,total=dataloader.nbatches()):
                 
                 self.zero_grad()
@@ -793,14 +792,9 @@ class LCmodel(nn.Module):
                 N   += sum(batch.tokens_length)
                 clip_grad_norm_(self.parameters(), clip)
                 optimizer.step()
-                if idx % 100 == 0:
-                    ppl = self.eval_language_model(dev_set,batch_size,device)
-                    print('train PPL',np.exp(NLL/N))
-                    print('dev   PPL',ppl)
-                idx += 1
             print("Epoch",e,'training loss (NLL) =', NLL/N ,'training PPL =',np.exp(NLL/N), 'learning rate =',optimizer.param_groups[0]['lr'],flush=True)
             ppl = self.eval_language_model(dev_set,batch_size,device)
-            print("                                          dev      PPL =",ppl,flush=True)
+            print("                                             dev      PPL =",ppl,flush=True)
             if ppl < min_ppl:
                 print('model saved.',flush=True)
                 self.save(save_path)   
@@ -1055,19 +1049,14 @@ if __name__ == '__main__':
     print('Lm vocab',lm_df.lex_vocab.size())
     print('Train vocab',train_df.lex_vocab.size())
     print('Dev vocab',dev_df.lex_vocab.size())
-    print('contents')
-    print('Lm',lm_df.lex_vocab.itos[:30])
-    print('train',dev_df.lex_vocab.itos[:30])
-    print('dev',dev_df.lex_vocab.itos[:30])
     
+    parser = LCmodel(train_df,rnn_memory=1200,embedding_size=300,device=3)
+    parser.train_language_model(lm_df,dev_df,1,batch_size=32,learning_rate=0.001,device=3,alpha=0.0,save_path="mem1200")
 
-    
-    parser = LCmodel(train_df,rnn_memory=600,embedding_size=300,device=3)
     #parser = LCmodel.load('def12',device=0)
     #print(parser.eval_language_model(lm_df,batch_size=32,device=0)) 
     #exit(0)
 
-    parser.train_language_model(lm_df,dev_df,1,batch_size=32,learning_rate=0.001,device=3,alpha=0.0,save_path="def11")
     exit(0)
     parser.train_parser(train_df,dev_df,400,batch_size=32,learning_rate=0.001,device=3,alpha=0.0) 
  
