@@ -749,6 +749,7 @@ class LCmodel(nn.Module):
                 seq_representation =  self.forward_base(batch.xtokens,batch.tokens_length)
                 pred_ytokens       =  self.forward_lexical_tokens(seq_representation)
                 ref_ytokens        =  batch.ytokens.view(-1) #flattens the target too
+                print(eval_set.lex_vocab.stoi[eval_set.pad],ref_ytokens)
                 loss = lex_loss(pred_ytokens,ref_ytokens) 
                 NLL += loss.item()
                 print(loss.item(),batch.tokens_length,sum(batch.tokens_length))
