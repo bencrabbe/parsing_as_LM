@@ -746,12 +746,12 @@ class LCmodel(nn.Module):
             N   = 0
             NLL = 0
             for batch in dataloader:
-                self.zero_grad()
                 seq_representation =  self.forward_base(batch.xtokens,batch.tokens_length)
                 pred_ytokens       =  self.forward_lexical_tokens(seq_representation)
                 ref_ytokens        =  batch.ytokens.view(-1) #flattens the target too
                 loss = lex_loss(pred_ytokens,ref_ytokens) 
                 NLL += loss.item()
+                print(loss.item())
                 N   += sum(batch.tokens_length)
             print('NLL',NLL,'N',N)
             return np.exp(NLL/N)
@@ -767,7 +767,7 @@ class LCmodel(nn.Module):
           epochs               (int): xxx
         """
         lex_loss  = nn.NLLLoss(reduction='sum',ignore_index=train_set.lex_vocab.stoi[train_set.pad])
-        optimizer = optim.Adam(self.parameters(),lr=learning_rate)
+        optimizer = optim.SGD(self.parameters(),lr=learning_rate)
         min_ppl   = 10000000000
 
         print('Starting...\n\n')
