@@ -749,10 +749,8 @@ class LCmodel(nn.Module):
                 seq_representation =  self.forward_base(batch.xtokens,batch.tokens_length)
                 pred_ytokens       =  self.forward_lexical_tokens(seq_representation)
                 ref_ytokens        =  batch.ytokens.view(-1) #flattens the target too
-                print(eval_set.lex_vocab.stoi[eval_set.pad],ref_ytokens)
                 loss = lex_loss(pred_ytokens,ref_ytokens) 
                 NLL += loss.item()
-                print(loss.item(),batch.tokens_length,sum(batch.tokens_length))
                 N   += sum(batch.tokens_length)
             print('NLL',NLL,'N',N)
             return np.exp(NLL/N) 
@@ -1056,12 +1054,12 @@ if __name__ == '__main__':
     
 
     
-    #parser = LCmodel(train_df,rnn_memory=600,embedding_size=300,device=0)
-    parser = LCmodel.load('def12',device=0)
-    print(parser.eval_language_model(lm_df,batch_size=32,device=0)) 
-    exit(0)
+    parser = LCmodel(train_df,rnn_memory=600,embedding_size=300,device=0)
+    #parser = LCmodel.load('def12',device=0)
+    #print(parser.eval_language_model(lm_df,batch_size=32,device=0)) 
+    #exit(0)
 
-    parser.train_language_model(lm_df,dev_df,1,batch_size=32,learning_rate=0.001,device=0,alpha=0.0,save_path="def12")
+    parser.train_language_model(lm_df,lm_df,40,batch_size=32,learning_rate=0.001,device=0,alpha=0.0,save_path="def12")
     exit(0)
     parser.train_parser(train_df,dev_df,400,batch_size=32,learning_rate=0.001,device=0,alpha=0.0) 
  
