@@ -751,9 +751,9 @@ class LCmodel(nn.Module):
                 ref_ytokens        =  batch.ytokens.view(-1) #flattens the target too
                 loss = lex_loss(pred_ytokens,ref_ytokens) 
                 NLL += loss.item()
-                print(loss.item(),sum(batch.tokens_length))
+                print(loss.item(),batch.tokens_length,sum(batch.tokens_length))
                 N   += sum(batch.tokens_length)
-            print('NLL',NLL,batch.tokens_length,'N',N)
+            print('NLL',NLL,'N',N)
             return np.exp(NLL/N) 
 
 
