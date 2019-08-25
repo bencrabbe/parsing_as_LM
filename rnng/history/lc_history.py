@@ -481,7 +481,7 @@ class BucketLoader:
             shuffle(self.start_positions)
 
         if self.start_positions:
-            start_pos    = start_positions.pop()
+            start_pos    = self.start_positions.pop()
             batch_idxes  = self.data_idxes[ start_pos:start_pos+self.batch_size ]
             return self.encode_batch(batch_idxes)
         else:
