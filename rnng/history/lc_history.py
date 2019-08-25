@@ -747,6 +747,7 @@ class LCmodel(nn.Module):
             N   = 0
             NLL = 0
             for batch in dataloader:
+                self.zero_grad()
                 seq_representation =  self.forward_base(batch.xtokens,batch.tokens_length)
                 pred_ytokens       =  self.forward_lexical_tokens(seq_representation)
                 ref_ytokens        =  batch.ytokens.view(-1) #flattens the target too
