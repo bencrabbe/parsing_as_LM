@@ -10,7 +10,7 @@ from collections import Counter
 from random      import shuffle,random
 import torch.nn as nn
 import torch.optim as optim
-from torch.nn.utils import clip_grad_norm
+from torch.nn.utils import clip_grad_norm_
 from torch.nn.utils.rnn import pack_padded_sequence,pad_packed_sequence
 from torch.optim.lr_scheduler import LambdaLR,ReduceLROnPlateau
 
@@ -766,7 +766,7 @@ class LCmodel(nn.Module):
           epochs               (int): xxx
         """
         lex_loss  = nn.NLLLoss(reduction='sum',ignore_index=train_set.lex_vocab.stoi[train_set.pad])
-        optimizer = optim.Adam(self.parameters(),lr=learning_rate)
+        optimizer = optim.SGD(self.parameters(),lr=learning_rate)
         min_ppl   = 10000000000
 
         print('Starting...\n\n')
@@ -790,7 +790,7 @@ class LCmodel(nn.Module):
                 loss.backward()
                 NLL += loss.item()  
                 N   += sum(batch.tokens_length)
-                clip_grad_norm(self.parameters(), clip)
+                clip_grad_norm_(self.parameters(), clip)
                 optimizer.step()
                 if idx % 100 == 0:
                     ppl = self.eval_language_model(dev_set,batch_size,device)
@@ -1066,7 +1066,7 @@ if __name__ == '__main__':
     #print(parser.eval_language_model(lm_df,batch_size=32,device=0)) 
     #exit(0)
 
-    parser.train_language_model(lm_df,dev_df,1,batch_size=32,learning_rate=0.001,device=0,alpha=0.0,save_path="def12")
+    parser.train_language_model(lm_df,dev_df,1,batch_size=32,learning_rate=0.001,device=3,alpha=0.0,save_path="def12")
     exit(0)
-    parser.train_parser(train_df,dev_df,400,batch_size=32,learning_rate=0.001,device=0,alpha=0.0) 
+    parser.train_parser(train_df,dev_df,400,batch_size=32,learning_rate=0.001,device=3,alpha=0.0) 
  
