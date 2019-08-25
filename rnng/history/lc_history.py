@@ -752,7 +752,6 @@ class LCmodel(nn.Module):
                 loss = lex_loss(pred_ytokens,ref_ytokens) 
                 NLL += loss.item()
                 N   += sum(batch.tokens_length)
-            print('NLL',NLL,'N',N)
             return np.exp(NLL/N) 
 
 
@@ -777,7 +776,9 @@ class LCmodel(nn.Module):
             N   = 0
             dataloader = BucketLoader(train_set,batch_size,device,alpha)
 
+            idx = 0
             for batch in tqdm.tqdm(dataloader,total=dataloader.nbatches()):
+                
                 self.zero_grad()
 
                 seq_representation =  self.forward_base(batch.xtokens,batch.tokens_length)
@@ -789,9 +790,11 @@ class LCmodel(nn.Module):
                 NLL += loss.item()  
                 N   += sum(batch.tokens_length)
                 optimizer.step()
-                ppl = self.eval_language_model(dev_set,batch_size,device)
-                print('PPL',ppl)
-                
+                if idx % 100 == 0:
+                    ppl = self.eval_language_model(dev_set,batch_size,device)
+                    print('train PPL',np.exp(NLL/N))
+                    print('dev   PPL',ppl)
+                    idx += 1
             print("Epoch",e,'training loss (NLL) =', NLL/N ,'training PPL =',np.exp(NLL/N), 'learning rate =',optimizer.param_groups[0]['lr'],flush=True)
             ppl = self.eval_language_model(dev_set,batch_size,device)
             print("                                          dev      PPL =",ppl,flush=True)
