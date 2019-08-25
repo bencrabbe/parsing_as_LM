@@ -421,7 +421,6 @@ class BucketLoader:
         self.dataset      = dataset
         self.batch_size   = batch_size
         self.device       = device
-        self.current_idx  = 0
         self.alpha        = alpha
         self.max_sent_len = max_len #maximum length of a sentence (batches with outlier style lengths may cause memory blowup)
         self.data_idxes   = list(range(len(self.dataset)))
@@ -474,14 +473,14 @@ class BucketLoader:
         """
         This yields a batch of data.
         """
-        if self.current_idx == 0 :#init epoch
-            shuffle(self.data_idxes)
-            lengths         = [ self.dataset.example_length(idx) for idx in self.data_idxes ]
-            self.data_idxes = [idx for (idx,length) in sorted(zip(self.data_idxes,lengths),key=lambda x:x[1],reverse=True) if length < self.max_sent_len]
-
-        if self.current_idx < len(self.data_idxes):             
-            batch_idxes  = self.data_idxes[ self.current_idx:self.current_idx+self.batch_size ]
-            self.current_idx += self.batch_size
+        shuffle(self.data_idxes)
+        lengths         = [ self.dataset.example_length(idx) for idx in self.data_idxes ]
+        data_idxes      = [idx for (idx,length) in sorted(zip(self.data_idxes,lengths),key=lambda x:x[1],reverse=True) if length < self.max_sent_len]
+        start_idxes     = range(0, len(data_idxes),self.batch_size)
+        shuffle(start_idxes)
+            
+        for start_idx in start_idxes:
+            batch_idxes  = data_idxes[ start_idx:start_idx+self.batch_size ]
             return self.encode_batch(batch_idxes)
         else:
             raise StopIteration
@@ -766,7 +765,7 @@ class LCmodel(nn.Module):
           epochs               (int): xxx
         """
         lex_loss  = nn.NLLLoss(reduction='sum',ignore_index=train_set.lex_vocab.stoi[train_set.pad])
-        optimizer = optim.SGD(self.parameters(),lr=learning_rate)
+        optimizer = optim.Adam(self.parameters(),lr=learning_rate)
         min_ppl   = 10000000000
 
         print('Starting...\n\n')
