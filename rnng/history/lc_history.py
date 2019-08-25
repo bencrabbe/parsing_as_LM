@@ -1067,7 +1067,7 @@ if __name__ == '__main__':
     #print(parser.eval_language_model(lm_df,batch_size=32,device=0)) 
     #exit(0)
 
-    parser.train_language_model(lm_df,dev_df,1,batch_size=32,learning_rate=0.1,device=3,alpha=0.0,save_path="def11")
+    parser.train_language_model(lm_df,dev_df,1,batch_size=32,learning_rate=0.001,device=3,alpha=0.0,save_path="def11")
     exit(0)
     parser.train_parser(train_df,dev_df,400,batch_size=32,learning_rate=0.001,device=3,alpha=0.0) 
  
