@@ -1023,7 +1023,7 @@ if __name__ == '__main__':
     #vocab.save('vocab100')
 
     evocab   = Vocabulary.load('vocab100')
-    lmset    = list(load_billion_full('/home/bcrabbe/parsing_as_LM/rnng/history/billion_words')),ext_vocab=evocab)
+    lmset    = list(load_billion_full('/home/bcrabbe/parsing_as_LM/rnng/history/billion_words'),ext_vocab=evocab)
     trainset = list(input_treebank('../ptb_train.mrg'))
     devset   = list(input_treebank('../ptb_dev.mrg'))
 
