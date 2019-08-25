@@ -1029,34 +1029,69 @@ def output_treebank(treelist,filename=None):
         tree.strip_eos( )
         print(tree,file=ostream)
     if filename: 
-        ostream.close( )
-
+        ostream.close()
+ 
 if __name__ == '__main__':
 
-    #Max vocab size with float32 (still fits in memory, maybe still fits with threshold 75)
-    #vocab = Vocabulary(extract_vocabulary('/home/bcrabbe/parsing_as_LM/rnng/history/billion_words'),unk='<unk>',sos='<sos>',min_freq=100)
-    #vocab.save('vocab100')
+    import argparse
+    parser = argparse.ArgumentParser(description='Trains and predicts parsing language models on GPUs with a left corner algorithm. MODELDIR and VOCABNAME are mandatory arguments. The parser performs training if both TRAIN and DEV are provided and testing if TEST is provided. A new language model is trained if TRAIN, DEV and LMTRAIN are provided. A new vocabulary is generated if VOCABTRAIN is provided too. If MODELDIR is already existing, this existing model is updated. Training both a language model and a parsing model requires to run the command twice (with update).')
+    parser.add_argument('--epochs', dest='epochs',         type=int,default=10,help='max number of epochs')
+    parser.add_argument('--rnn-memory', dest='rnn_memory', type=int,default=600,help='Size of the RNN memory')
+    parser.add_argument('--device', dest='device',       type=int,default=-1,help='Device (GPU) number where to run the computations (-1 for CPU)')
+    parser.add_argument('--embedding', dest='embedding', type=int,default=300,help='Size of the embeddings')
+    parser.add_argument('--batch', dest='batch_size', type=int,default=32,help='Size of the mini-batches')
+    parser.add_argument('--lm-train', dest='lmtrain', type=str,help='Path to the root of the billion word dataset')
+    parser.add_argument('--vocab-train', dest='vocabtrain', type=str,help='Path to the corpus where to extract the vocab')
+    parser.add_argument('--train', dest='train', type=str,help='Path to the train treebank')
+    parser.add_argument('--dev', dest='dev',     type=str,help='Path to the development treebank')
+    parser.add_argument('--test', dest='test',     type=str,help='Path to the test treebank')
+    parser.add_argument('--model-dir', dest='modeldir',     type=str,help='Path to the model directory',required=True)
+    parser.add_argument('--vocab-threshold', dest='lex_min_freq', type=int,default=100,help='Builds a new vocabulary from VOCABTRAIN dataset with words of frequency >= threshold.')
+    parser.add_argument('--vocab-name', dest='vocabname', type=str,help='Path to the lexical vocabulary file',required=True) #e.g. vocab100
 
-    evocab   = Vocabulary.load('vocab100')
-    lmset    = list(load_billion_full('/home/bcrabbe/parsing_as_LM/rnng/history/billion_words'))
-    trainset = list(input_treebank('../ptb_train.mrg'))
-    devset   = list(input_treebank('../ptb_dev.mrg'))
-
-    lm_df           = ParsingDataSet(lmset,ext_vocab=evocab)
-    train_df        = ParsingDataSet(trainset,ext_vocab=evocab)
-    dev_df          = ParsingDataSet(devset,root_dataset=train_df)
-
-    print('Lm vocab',lm_df.lex_vocab.size())
-    print('Train vocab',train_df.lex_vocab.size())
-    print('Dev vocab',dev_df.lex_vocab.size())
+    args = parser.parse_args()
     
-    parser = LCmodel(train_df,rnn_memory=600,embedding_size=300,device=0)
-    parser.train_language_model(lm_df,dev_df,5,batch_size=32,learning_rate=0.001,device=0,alpha=0.0,save_path="mem600")
+    if args.vocabtrain and args.lex_min_freq:
+        print('Extracting vocabulary from file %s with words of frequency >= %d'%(args.vocabtrain,args.lex_min_freq),file=sys.stderr,flush=True)
+        evocab = Vocabulary(extract_vocabulary(args.vocabtrain),unk='<unk>',sos='<sos>',min_freq=args.lex_min_freq) #'/home/bcrabbe/parsing_as_LM/rnng/history/billion_words'; 100
+        evocab.save( args.vocabname )
+        print('Vocab saved as %s'%(args.vocabname,),file=sys.stderr,flush=True)
+    else:
+        evocab = Vocabulary.load( args.vocabname )
+        
+    if args.train and args.dev:
+        print('Loading parser data...',file=sys.stderr)
+        trainset = list(input_treebank(args.train))
+        devset   = list(input_treebank(args.dev))
+        train_df = ParsingDataSet(trainset,ext_vocab=evocab)
+        dev_df   = ParsingDataSet(devset,root_dataset=train_df)
+        print('treebank data loaded.',file=sys.stderr,flush=True)
+        if args.lmtrain :
+            print('Loading language model data...',file=sys.stderr)
+            lmset    = list(load_billion_full(args.lmtrain))  #'/home/bcrabbe/parsing_as_LM/rnng/history/billion_words'
+            lm_df    = ParsingDataSet(lmset,ext_vocab=evocab)
+            print('language model data loaded.',file=sys.stderr,flush=True)
 
-    #parser = LCmodel.load('def12',device=0)
-    #print(parser.eval_language_model(lm_df,batch_size=32,device=0)) 
-    #exit(0)
+        if os.path.exists(args.modeldir):
+            print('Existing model detected at %s. Training will update this model.'%(args.modeldir,),file=sys.stderr,flush=True)
+            parser = LCmodel.load(args.modeldir,device=args.device)
+        else:
+            print('New model created at %s'%(args.modeldir,),file=sys.stderr,flush=True)
+            parser = LCmodel(train_df,rnn_memory=args.rnn_memory,embedding_size=args.embedding,device=args.device)
+            
+        if args.lmtrain:
+            parser.train_language_model(lm_df,dev_df,args.epochs,batch_size=args.batch_size,learning_rate=0.001,device=args.device,alpha=0.0,save_path=args.modeldir)
+        else:
+            parser.train_parser(train_df,dev_df,args.epochs,batch_size=args.batch_size,learning_rate=0.001,device=args.device,alpha=0.0)
+            
+        print('Model saved as %s'%(args.modeldir),file=sys.stderr)
+        print('done.',file=sys.stderr,flush=True)
+        
+    if args.test:
+        print('Running test...',file=sys.stderr,flush=True)
+        parser = LCmodel.load(args.modeldir,device=args.device)
+        #Todo (load a list of strings and generate a test set with help from the parser)
+        #parser.eval_parser(dev_set,batch_size=1,device=-1,with_loss=False): 
+        #Todo generate trees and unpack them
 
-    exit(0)
-    parser.train_parser(train_df,dev_df,400,batch_size=32,learning_rate=0.001,device=3,alpha=0.0) 
- 
+       

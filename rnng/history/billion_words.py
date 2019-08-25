@@ -65,11 +65,13 @@ def load_billion_full(root_path):
        list. A list of (list of tokens)
     """
     for filename in process_files(root_path):
-        print('  processing file %s'%(filename,),file=sys.stderr,flush=True)
+        #print('  processing file %s'%(filename,),file=sys.stderr,flush=True)
+        print('.',end='',file=sys.stderr,flush=True)
         for sentence in next_sentence(filename):
             yield ' '.join(sentence)
         #break #remove me
-        
+    print()
+    
 def extract_vocabulary(root_path):
     """
     Returns a Counter with token counts in the whole billion word corpus
