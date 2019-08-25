@@ -1043,7 +1043,7 @@ if __name__ == '__main__':
 
     lm_df           = ParsingDataSet(lmset[:1000],ext_vocab=evocab)
     train_df        = ParsingDataSet(trainset,ext_vocab=evocab)
-    dev_df          = ParsingDataSet(lmset[1000:2000],root_dataset=train_df)
+    dev_df          = ParsingDataSet(devset,root_dataset=train_df)
 
     print('Lm vocab',lm_df.lex_vocab.size())
     print('Train vocab',train_df.lex_vocab.size())
