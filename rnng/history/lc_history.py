@@ -519,7 +519,7 @@ class LCmodel(nn.Module):
         hparams = json.loads(istream.read())
         istream.close()
         m = LCmodel(refset,rnn_memory=hparams['rnn_hidden'],embedding_size=hparams['embedding_size'],device=device)
-        m.load_state_dict(torch.load(os.path.join(path,'weight.wt')))
+        m.load_state_dict(torch.load(os.path.join(path,'weights.wt')))
         return m
     
     def save(self,path):
