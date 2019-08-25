@@ -442,7 +442,6 @@ class BucketLoader:
         max_token_length   = max(token_lengths)
         
         raw_tokens    = [ self.dataset.sample_tokens(self.dataset.tokens[batch_idxes[step]],max_token_length,alpha=self.alpha) for step in range(batchN) ]
-        print(raw_tokens)
         ytoken_matrix = [ self.dataset.numericalize_example(elt,max_token_length,self.dataset.lex_vocab) for elt in raw_tokens ]
         xtoken_matrix = [ self.dataset.numericalize_example([self.dataset.sos]+elt[:-1],max_token_length,self.dataset.lex_vocab) for elt in raw_tokens ]
 
@@ -754,7 +753,7 @@ class LCmodel(nn.Module):
                 loss = lex_loss(pred_ytokens,ref_ytokens) 
                 NLL += loss.item()
                 N   += sum(batch.tokens_length)
-            print('NLL,'NLL,'N',N)
+            print('NLL',NLL,'N',N)
             return np.exp(NLL/N)
 
 
