@@ -427,7 +427,7 @@ class BucketLoader:
         max_token_length   = max(token_lengths)
         
         raw_tokens    = [ self.dataset.sample_tokens(self.dataset.tokens[batch_idxes[step]],max_token_length,alpha=self.alpha) for step in range(batchN) ]
-        #print(raw_tokens)
+        print(raw_tokens)
         ytoken_matrix = [ self.dataset.numericalize_example(elt,max_token_length,self.dataset.lex_vocab) for elt in raw_tokens ]
         xtoken_matrix = [ self.dataset.numericalize_example([self.dataset.sos]+elt[:-1],max_token_length,self.dataset.lex_vocab) for elt in raw_tokens ]
 
@@ -729,10 +729,8 @@ class LCmodel(nn.Module):
             
             lex_loss    = nn.NLLLoss(reduction='sum',ignore_index=eval_set.lex_action_vocab.stoi[eval_set.pad])
             dataloader = BucketLoader(eval_set,batch_size,device)
-
             N   = 0
             NLL = 0
-            
             for batch in dataloader:
                 seq_representation =  self.forward_base(batch.xtokens,batch.tokens_length)
                 pred_ytokens       =  self.forward_lexical_tokens(seq_representation)
@@ -1041,7 +1039,10 @@ if __name__ == '__main__':
     
 
     
-    parser = LCmodel(train_df,rnn_memory=600,embedding_size=300,device=0) 
+    #parser = LCmodel(train_df,rnn_memory=600,embedding_size=300,device=0)
+    parser = LCmodel.load('def12',device=0)
+    parser.eval_language_model(self,eval_set,batch_size=1,device=-1): 
+    
     parser.train_language_model(lm_df,dev_df,1,batch_size=32,learning_rate=0.001,device=0,alpha=0.0,save_path="def12")
     exit(0)
     parser.train_parser(train_df,dev_df,400,batch_size=32,learning_rate=0.001,device=0,alpha=0.0) 
