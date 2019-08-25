@@ -753,8 +753,8 @@ class LCmodel(nn.Module):
                 NLL += loss.item()
                 print(loss.item(),sum(batch.tokens_length))
                 N   += sum(batch.tokens_length)
-            print('NLL',NLL,'N',N)
-            return np.exp(NLL/N)
+            print('NLL',NLL,batch.tokens_length,'N',N)
+            return np.exp(NLL/N) 
 
 
     def train_language_model(self,train_set,dev_set,epochs,batch_size=64,learning_rate=0.001,device=-1,alpha=0.0,save_path='default'):
