@@ -790,7 +790,7 @@ class LCmodel(nn.Module):
                 loss.backward()
                 NLL += loss.item()  
                 N   += sum(batch.tokens_length)
-                clip_grad_norm_(self.parameters(), clip)
+                clip_grad_norm(self.parameters(), clip)
                 optimizer.step()
                 if idx % 100 == 0:
                     ppl = self.eval_language_model(dev_set,batch_size,device)
