@@ -789,6 +789,8 @@ class LCmodel(nn.Module):
                 NLL += loss.item()  
                 N   += sum(batch.tokens_length)
                 optimizer.step()
+                ppl = self.eval_language_model(dev_set,batch_size,device)
+                print('PPL',ppl)
                 
             print("Epoch",e,'training loss (NLL) =', NLL/N ,'training PPL =',np.exp(NLL/N), 'learning rate =',optimizer.param_groups[0]['lr'],flush=True)
             ppl = self.eval_language_model(dev_set,batch_size,device)
@@ -1040,7 +1042,7 @@ if __name__ == '__main__':
     trainset = list(input_treebank('../ptb_train.mrg'))
     devset   = list(input_treebank('../ptb_dev.mrg'))
 
-    lm_df           = ParsingDataSet(lmset[:1000],ext_vocab=evocab)
+    lm_df           = ParsingDataSet(lmset,ext_vocab=evocab)
     train_df        = ParsingDataSet(trainset,ext_vocab=evocab)
     dev_df          = ParsingDataSet(devset,root_dataset=train_df)
 
@@ -1059,7 +1061,7 @@ if __name__ == '__main__':
     #print(parser.eval_language_model(lm_df,batch_size=32,device=0)) 
     #exit(0)
 
-    parser.train_language_model(lm_df,dev_df,40,batch_size=32,learning_rate=0.001,device=0,alpha=0.0,save_path="def12")
+    parser.train_language_model(lm_df,dev_df,1,batch_size=32,learning_rate=0.001,device=0,alpha=0.0,save_path="def12")
     exit(0)
     parser.train_parser(train_df,dev_df,400,batch_size=32,learning_rate=0.001,device=0,alpha=0.0) 
  
