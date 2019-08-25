@@ -754,6 +754,7 @@ class LCmodel(nn.Module):
                 loss = lex_loss(pred_ytokens,ref_ytokens) 
                 NLL += loss.item()
                 N   += sum(batch.tokens_length)
+            print('NLL,'NLL,'N',N)
             return np.exp(NLL/N)
 
 
