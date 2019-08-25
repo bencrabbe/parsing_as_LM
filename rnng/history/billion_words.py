@@ -68,7 +68,7 @@ def load_billion_full(root_path):
         print('  processing file %s'%(filename,),file=sys.stderr,flush=True)
         for sentence in next_sentence(filename):
             yield ' '.join(sentence)
-        #break #remove me
+        break #remove me
         
 def extract_vocabulary(root_path):
     """
@@ -82,8 +82,7 @@ def extract_vocabulary(root_path):
     return vocabulary
 
 if __name__ == '__main__':  
-   
-    
+       
     print('vocab size',len(vocab))
     print('vocab size (>=5)',len([tok for tok, count in vocab.items() if int(count) >= 5]))
     print('vocab size (>=10)',len([tok for tok, count in vocab.items() if int(count) >= 10]))

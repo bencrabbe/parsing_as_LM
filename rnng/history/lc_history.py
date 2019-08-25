@@ -494,7 +494,9 @@ class LCmodel(nn.Module):
         self.rnn_memory     = rnn_memory
         self.embedding_size = embedding_size
         self.allocate_structure(device)
-
+        if device >= 0:
+            self.cuda(device=device)
+            
     @staticmethod
     def load(path,device=-1):
         refset  = ParsingDataSet.load(os.path.join(path,'data'))
@@ -1019,16 +1021,27 @@ if __name__ == '__main__':
     #Max vocab size with float32 (still fits in memory, maybe still fits with threshold 75)
     #vocab = Vocabulary(extract_vocabulary('/home/bcrabbe/parsing_as_LM/rnng/history/billion_words'),unk='<unk>',sos='<sos>',min_freq=100)
     #vocab.save('vocab100')
+
     evocab   = Vocabulary.load('vocab100')
-    lm_df    = ParsingDataSet(list(load_billion_full('/home/bcrabbe/parsing_as_LM/rnng/history/billion_words')),ext_vocab=evocab)
+    lmset    = list(load_billion_full('/home/bcrabbe/parsing_as_LM/rnng/history/billion_words')),ext_vocab=evocab)
     trainset = list(input_treebank('../ptb_train.mrg'))
     devset   = list(input_treebank('../ptb_dev.mrg'))
 
+    lm_df           = ParsingDataSet(lmset)
     train_df        = ParsingDataSet(trainset,ext_vocab=evocab)
     dev_df          = ParsingDataSet(devset,root_dataset=train_df)
 
-    parser = LCmodel(train_df,rnn_memory=1200,embedding_size=300,device=0)
-    parser.cuda(device=0)
+    print('Lm vocab',lm_df.lex_vocab.size())
+    print('Train vocab',train_df.lex_vocab.size())
+    print('Dev vocab',dev_df.lex_vocab.size())
+    print('contents')
+    print('Lm',lm_df.lex_vocab.itos[:30])
+    print('train',dev_df.lex_vocab.itos[:30])
+    print('dev',dev_df.lex_vocab.itos[:30])
+    
+    exit(0)
+    
+    parser = LCmodel(train_df,rnn_memory=1200,embedding_size=300,device=0) 
     parser.train_language_model(lm_df,dev_df,5,batch_size=32,learning_rate=0.001,device=0,alpha=0.0,save_path="def12")
     exit(0)
     parser.train_parser(train_df,dev_df,400,batch_size=32,learning_rate=0.001,device=0,alpha=0.0) 
