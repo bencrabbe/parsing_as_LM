@@ -473,14 +473,16 @@ class BucketLoader:
         """
         This yields a batch of data.
         """
-        shuffle(self.data_idxes)
-        lengths         = [ self.dataset.example_length(idx) for idx in self.data_idxes ]
-        data_idxes      = [idx for (idx,length) in sorted(zip(self.data_idxes,lengths),key=lambda x:x[1],reverse=True) if length < self.max_sent_len]
-        start_idxes     = list(range(0, len(data_idxes),self.batch_size))
-        shuffle(start_idxes)
-            
-        for start_idx in start_idxes:
-            batch_idxes  = data_idxes[ start_idx:start_idx+self.batch_size ]
+        if not hasattr(self,'start_positions'):
+            shuffle(self.data_idxes)
+            lengths              = [ self.dataset.example_length(idx) for idx in self.data_idxes ]
+            self.data_idxes      = [idx for (idx,length) in sorted(zip(self.data_idxes,lengths),key=lambda x:x[1],reverse=True) if length < self.max_sent_len]
+            self.start_positions = list(range(0, len(self.data_idxes),self.batch_size))
+            shuffle(self.start_positions)
+
+        if start_positions:
+            start_pos    = start_positions.pop()
+            batch_idxes  = self.data_idxes[ start_pos:start_pos+self.batch_size ]
             return self.encode_batch(batch_idxes)
         else:
             raise StopIteration
