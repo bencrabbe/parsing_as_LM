@@ -742,7 +742,7 @@ class LCmodel(nn.Module):
         """
         with torch.no_grad():
             
-            lex_loss    = nn.NLLLoss(reduction='sum',ignore_index=eval_set.lex_action_vocab.stoi[eval_set.pad])
+            lex_loss    = nn.NLLLoss(reduction='sum',ignore_index=eval_set.lex_vocab.stoi[eval_set.pad])
             dataloader = BucketLoader(eval_set,batch_size,device)
             N   = 0
             NLL = 0
