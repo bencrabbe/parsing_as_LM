@@ -1040,7 +1040,7 @@ if __name__ == '__main__':
     trainset = list(input_treebank('../ptb_train.mrg'))
     devset   = list(input_treebank('../ptb_dev.mrg'))
 
-    lm_df           = ParsingDataSet(lmset,ext_vocab=evocab)
+    lm_df           = ParsingDataSet(lmset[:1000],ext_vocab=evocab)
     train_df        = ParsingDataSet(trainset,ext_vocab=evocab)
     dev_df          = ParsingDataSet(devset,root_dataset=train_df)
 
@@ -1056,7 +1056,7 @@ if __name__ == '__main__':
     
     #parser = LCmodel(train_df,rnn_memory=600,embedding_size=300,device=0)
     parser = LCmodel.load('def12',device=0)
-    print(parser.eval_language_model(dev_df,batch_size=32,device=0)) 
+    print(parser.eval_language_model(lm_df,batch_size=32,device=0)) 
     exit(0)
 
     parser.train_language_model(lm_df,dev_df,1,batch_size=32,learning_rate=0.001,device=0,alpha=0.0,save_path="def12")
