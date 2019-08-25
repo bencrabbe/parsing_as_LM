@@ -476,7 +476,7 @@ class BucketLoader:
         shuffle(self.data_idxes)
         lengths         = [ self.dataset.example_length(idx) for idx in self.data_idxes ]
         data_idxes      = [idx for (idx,length) in sorted(zip(self.data_idxes,lengths),key=lambda x:x[1],reverse=True) if length < self.max_sent_len]
-        start_idxes     = range(0, len(data_idxes),self.batch_size)
+        start_idxes     = list(range(0, len(data_idxes),self.batch_size))
         shuffle(start_idxes)
             
         for start_idx in start_idxes:
