@@ -10,6 +10,7 @@ from collections import Counter
 from random      import shuffle,random
 import torch.nn as nn
 import torch.optim as optim
+from torch.nn.utils import clip_grad_norm
 from torch.nn.utils.rnn import pack_padded_sequence,pad_packed_sequence
 from torch.optim.lr_scheduler import LambdaLR,ReduceLROnPlateau
 
@@ -755,7 +756,7 @@ class LCmodel(nn.Module):
             return np.exp(NLL/N) 
 
 
-    def train_language_model(self,train_set,dev_set,epochs,batch_size=64,learning_rate=0.001,device=-1,alpha=0.0,save_path='default'):
+    def train_language_model(self,train_set,dev_set,epochs,batch_size=64,learning_rate=0.001,device=-1,alpha=0.0,clip=1.0,save_path='default'):
         """
         This trains a language model only (that can be used as a submodel of the parser).
         Meant to be used on very large data sets (such as the billion words corpus).
@@ -789,6 +790,7 @@ class LCmodel(nn.Module):
                 loss.backward()
                 NLL += loss.item()  
                 N   += sum(batch.tokens_length)
+                clip_grad_norm_(self.parameters(), clip)
                 optimizer.step()
                 if idx % 100 == 0:
                     ppl = self.eval_language_model(dev_set,batch_size,device)
