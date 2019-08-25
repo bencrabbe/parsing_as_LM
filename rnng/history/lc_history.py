@@ -1043,7 +1043,7 @@ if __name__ == '__main__':
 
     lm_df           = ParsingDataSet(lmset[:1000],ext_vocab=evocab)
     train_df        = ParsingDataSet(trainset,ext_vocab=evocab)
-    dev_df          = ParsingDataSet(devset,root_dataset=train_df)
+    dev_df          = ParsingDataSet(lmset[1000:2000],root_dataset=train_df)
 
     print('Lm vocab',lm_df.lex_vocab.size())
     print('Train vocab',train_df.lex_vocab.size())
@@ -1060,7 +1060,7 @@ if __name__ == '__main__':
     #print(parser.eval_language_model(lm_df,batch_size=32,device=0)) 
     #exit(0)
 
-    parser.train_language_model(dev_df,dev_df,40,batch_size=32,learning_rate=0.001,device=0,alpha=0.0,save_path="def12")
+    parser.train_language_model(lm_df,dev_df,40,batch_size=32,learning_rate=0.001,device=0,alpha=0.0,save_path="def12")
     exit(0)
     parser.train_parser(train_df,dev_df,400,batch_size=32,learning_rate=0.001,device=0,alpha=0.0) 
  
