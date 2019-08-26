@@ -768,7 +768,7 @@ class LCmodel(nn.Module):
         """
         lex_loss  = nn.NLLLoss(reduction='sum',ignore_index=train_set.lex_vocab.stoi[train_set.pad])
         #optimizer = optim.Adam(self.parameters(),lr=learning_rate)
-        optimizer = optim.ASGD(self.parameters(),lr=learning_rate,t0=0)
+        optimizer = optim.ASGD(self.parameters(),lr=learning_rate,t0=5000,lambd=1,alpha=1)
         min_ppl   = 10000000000
 
         print('Starting...\n\n',file=sys.stderr,flush=True)
