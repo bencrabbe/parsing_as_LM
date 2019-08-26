@@ -895,7 +895,7 @@ class LCmodel(nn.Module):
         struct_loss        = nn.NLLLoss(reduction='sum',ignore_index=train_set.struct_vocab.stoi[train_set.pad])
         #reduction='mean'
         optimizer = optim.SGD(self.parameters(),lr=learning_rate)
-        scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10, verbose=True)
+        scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, min_lr=0.001 ,patience=10, verbose=True)
         #scheduler = LambdaLR(optimizer,lr_lambda = lambda epoch:learning_rate/(1+0.001*epoch))
 
         for e in range(epochs): 
