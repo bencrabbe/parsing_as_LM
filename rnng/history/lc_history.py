@@ -767,7 +767,8 @@ class LCmodel(nn.Module):
           epochs               (int): xxx
         """
         lex_loss  = nn.NLLLoss(reduction='sum',ignore_index=train_set.lex_vocab.stoi[train_set.pad])
-        optimizer = optim.Adam(self.parameters(),lr=learning_rate)
+        #optimizer = optim.Adam(self.parameters(),lr=learning_rate)
+        optimizer = optim.ASGD(self.parameters(),lr=learning_rate)
         min_ppl   = 10000000000
 
         print('Starting...\n\n',file=sys.stderr,flush=True)
@@ -1085,7 +1086,7 @@ if __name__ == '__main__':
             update_suff = ''
             
         if args.lmtrain:
-            parser.train_language_model(lm_df,dev_df,args.epochs,batch_size=args.batch_size,learning_rate=0.001,device=args.device,alpha=0.0,save_path=args.modeldir+update_suff)
+            parser.train_language_model(lm_df,dev_df,args.epochs,batch_size=args.batch_size,learning_rate=0.01,device=args.device,alpha=0.0,save_path=args.modeldir+update_suff)
         else:
             if not update_suff:
                 print('Cannot train parser from scratch. Train language model first.\naborting.',file=sys.stderr)
