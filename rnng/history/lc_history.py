@@ -778,6 +778,7 @@ class LCmodel(nn.Module):
             N   = 0
             dataloader = BucketLoader(train_set,batch_size,device,alpha)
 
+            idx = 0
             for batch in tqdm.tqdm(dataloader,total=dataloader.nbatches()):
                 
                 self.zero_grad()
@@ -792,6 +793,9 @@ class LCmodel(nn.Module):
                 N   += sum(batch.tokens_length)
                 clip_grad_norm_(self.parameters(), clip)
                 optimizer.step()
+                if idx % 100 == 0:
+                    print('PPL', self.eval_language_model(dev_set,batch_size,device))
+                idx +=1
                 
             print("Epoch",e,'training loss (NLL) =', NLL/N ,'training PPL =',np.exp(NLL/N), 'learning rate =',optimizer.param_groups[0]['lr'],flush=True)
             ppl = self.eval_language_model(dev_set,batch_size,device)
@@ -1059,7 +1063,7 @@ if __name__ == '__main__':
         evocab = Vocabulary.load( args.vocabname )
         
     if args.train and args.dev:
-        print('Loading parser data...',file=sys.stderr)
+        print('Loading treebank data...',file=sys.stderr)
         trainset = list(input_treebank(args.train))
         devset   = list(input_treebank(args.dev))
         train_df = ParsingDataSet(trainset,ext_vocab=evocab)
