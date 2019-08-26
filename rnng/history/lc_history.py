@@ -793,7 +793,7 @@ class LCmodel(nn.Module):
                 N   += sum(batch.tokens_length)
                 clip_grad_norm_(self.parameters(), clip)
                 optimizer.step()
-                if idx > 0 and idx % 1000 == 0:
+                if idx > 0 and idx % 500 == 0:
                     print('PPL', self.eval_language_model(dev_set,batch_size,device))
                 idx +=1
                 
