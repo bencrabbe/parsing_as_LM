@@ -770,6 +770,7 @@ class LCmodel(nn.Module):
         #optimizer = optim.Adam(self.parameters(),lr=learning_rate)
         #optimizer = optim.ASGD(self.parameters(),lr=learning_rate,t0=5000,lambd=1,alpha=1)
         optimizer = optim.SGD(self.parameters(),lr=learning_rate)
+        scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=10, verbose=True)
         min_ppl   = 10000000000
 
         print('Starting...\n\n',file=sys.stderr,flush=True)
@@ -796,7 +797,9 @@ class LCmodel(nn.Module):
                 clip_grad_norm_(self.parameters(), clip)
                 optimizer.step()
                 if idx > 0 and idx % 500 == 0:
-                    print('PPL', self.eval_language_model(dev_set,batch_size,device))
+                    ppl = self.eval_language_model(dev_set,batch_size,device)
+                    print('PPL',ppl)
+                    scheduler.step(ppl)
                 idx +=1
                 
             print("Epoch",e,'training loss (NLL) =', NLL/N ,'training PPL =',np.exp(NLL/N), 'learning rate =',optimizer.param_groups[0]['lr'],flush=True)
@@ -1087,15 +1090,14 @@ if __name__ == '__main__':
             update_suff = ''
             
         if args.lmtrain:
-            parser.train_language_model(lm_df,dev_df,args.epochs,batch_size=args.batch_size,learning_rate=0.1,device=args.device,alpha=0.0,save_path=args.modeldir+update_suff)
+            parser.train_language_model(lm_df,dev_df,args.epochs,batch_size=args.batch_size,learning_rate=10,device=args.device,alpha=0.0,save_path=args.modeldir+update_suff)
         else:
             if not update_suff:
                 print('Cannot train parser from scratch. Train language model first.\naborting.',file=sys.stderr)
                 exit(1)
             parser.train_parser(train_df,dev_df,args.epochs,batch_size=args.batch_size,learning_rate=0.001,device=args.device,alpha=0.0,save_path=args.modeldir+update_suff)
             
-        print('Model saved as %s'%(args.modeldir),file=sys.stderr)
-        print('done.',file=sys.stderr,flush=True)
+        print('Done. Model saved as %s'%(args.modeldir+update_suff),file=sys.stderr,flush=True)
         
     if args.test:
         print('Running test...',file=sys.stderr,flush=True)
