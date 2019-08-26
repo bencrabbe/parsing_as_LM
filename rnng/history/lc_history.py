@@ -802,7 +802,7 @@ class LCmodel(nn.Module):
                     scheduler.step(ppl)
                 idx +=1
                 
-            print("Epoch",e,'training loss (NLL) =', NLL/N ,'training PPL =',np.exp(NLL/N), 'learning rate =',optimizer.param_groups[0]['lr'],flush=True)
+            print("\nEpoch",e,'training loss (NLL) =', NLL/N ,'training PPL =',np.exp(NLL/N), 'learning rate =',optimizer.param_groups[0]['lr'],flush=True)
             ppl = self.eval_language_model(dev_set,batch_size,device)
             print("                                                dev      PPL =",ppl,flush=True)
             if ppl < min_ppl:
