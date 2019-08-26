@@ -770,7 +770,7 @@ class LCmodel(nn.Module):
         optimizer = optim.Adam(self.parameters(),lr=learning_rate)
         min_ppl   = 10000000000
 
-        print('Starting...\n\n')
+        print('Starting...\n\n',file=sys.stderr,flush=True)
         
         for e in range(epochs): 
             
@@ -792,12 +792,13 @@ class LCmodel(nn.Module):
                 N   += sum(batch.tokens_length)
                 clip_grad_norm_(self.parameters(), clip)
                 optimizer.step()
+                
             print("Epoch",e,'training loss (NLL) =', NLL/N ,'training PPL =',np.exp(NLL/N), 'learning rate =',optimizer.param_groups[0]['lr'],flush=True)
             ppl = self.eval_language_model(dev_set,batch_size,device)
-            print("                                             dev      PPL =",ppl,flush=True)
+            print("                                                dev      PPL =",ppl,flush=True)
             if ppl < min_ppl:
-                print('model saved.',flush=True)
-                self.save(save_path)   
+                print('     => model saved.',flush=True)
+                self.save(save_path)  
         
     def eval_parser(self,dev_set,batch_size=1,device=-1,with_loss=False): 
         """
@@ -871,10 +872,8 @@ class LCmodel(nn.Module):
             if with_loss:
                 print("        development loss   (NLL) = ", NLL/(4*N),flush=True)
             return [ pred_trees[current_idx] for (current_idx,orig_idx) in sorted(matched_idxes,key=lambda x:x[1]) ]
-
-
         
-    def train_parser(self,train_set,dev_set,epochs,batch_size=1,learning_rate=0.1,device=-1,alpha=0.0):
+    def train_parser(self,train_set,dev_set,epochs,batch_size=1,learning_rate=0.1,device=-1,alpha=0.0,save_path='.'):
         """
         Args :    
           train_set (ParsingDataSet): xxx
@@ -1075,14 +1074,16 @@ if __name__ == '__main__':
         if os.path.exists(args.modeldir):
             print('Existing model detected at %s. Training will update this model.'%(args.modeldir,),file=sys.stderr,flush=True)
             parser = LCmodel.load(args.modeldir,device=args.device)
+            update_suff = '.up'
         else:
             print('New model created at %s'%(args.modeldir,),file=sys.stderr,flush=True)
             parser = LCmodel(train_df,rnn_memory=args.rnn_memory,embedding_size=args.embedding,device=args.device)
+            update_suff = ''
             
         if args.lmtrain:
-            parser.train_language_model(lm_df,dev_df,args.epochs,batch_size=args.batch_size,learning_rate=0.001,device=args.device,alpha=0.0,save_path=args.modeldir)
+            parser.train_language_model(lm_df,dev_df,args.epochs,batch_size=args.batch_size,learning_rate=0.001,device=args.device,alpha=0.0,save_path=args.modeldir+update_suff)
         else:
-            parser.train_parser(train_df,dev_df,args.epochs,batch_size=args.batch_size,learning_rate=0.001,device=args.device,alpha=0.0)
+            parser.train_parser(train_df,dev_df,args.epochs,batch_size=args.batch_size,learning_rate=0.001,device=args.device,alpha=0.0,save_path=args.modeldir+update_suff)
             
         print('Model saved as %s'%(args.modeldir),file=sys.stderr)
         print('done.',file=sys.stderr,flush=True)
