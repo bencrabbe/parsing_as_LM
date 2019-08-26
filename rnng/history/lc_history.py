@@ -1044,6 +1044,7 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,description='Trains and predicts parsing language models on GPUs with a left corner algorithm. MODELDIR and VOCABNAME are mandatory arguments. The parser performs training if both TRAIN and DEV are provided and testing if TEST is provided. A new language model is trained if TRAIN, DEV and LMTRAIN are provided. A new vocabulary is generated if VOCABTRAIN is provided too. If MODELDIR is already existing, this existing model is updated. Training both a language model and a parsing model requires to run the command twice (with update).')
     parser.add_argument('--epochs', dest='epochs',         type=int,default=10,help='max number of epochs')
+    parser.add_argument('--lr', dest='lr',         type=int,default=0.001,help='Learning rate of the trainer')
     parser.add_argument('--rnn-memory', dest='rnn_memory', type=int,default=600,help='Size of the RNN memory')
     parser.add_argument('--device', dest='device',       type=int,default=-1,help='Device (GPU) number where to run the computations: -1 for CPU, 0 or more for GPUs')
     parser.add_argument('--embedding', dest='embedding', type=int,default=300,help='Size of the embeddings')
@@ -1090,12 +1091,12 @@ if __name__ == '__main__':
             update_suff = ''
             
         if args.lmtrain:
-            parser.train_language_model(lm_df,dev_df,args.epochs,batch_size=args.batch_size,learning_rate=10,device=args.device,alpha=0.0,save_path=args.modeldir+update_suff)
+            parser.train_language_model(lm_df,dev_df,args.epochs,batch_size=args.batch_size,learning_rate=args.lr,device=args.device,alpha=0.0,save_path=args.modeldir+update_suff)
         else:
             if not update_suff:
                 print('Cannot train parser from scratch. Train language model first.\naborting.',file=sys.stderr)
                 exit(1)
-            parser.train_parser(train_df,dev_df,args.epochs,batch_size=args.batch_size,learning_rate=0.001,device=args.device,alpha=0.0,save_path=args.modeldir+update_suff)
+            parser.train_parser(train_df,dev_df,args.epochs,batch_size=args.batch_size,learning_rate=args.lr,device=args.device,alpha=0.0,save_path=args.modeldir+update_suff)
             
         print('Done. Model saved as %s'%(args.modeldir+update_suff),file=sys.stderr,flush=True)
         
