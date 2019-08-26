@@ -1076,7 +1076,7 @@ if __name__ == '__main__':
             parser = LCmodel.load(args.modeldir,device=args.device)
             update_suff = '.up'
         else:
-            print('New model created at %s'%(args.modeldir,),file=sys.stderr,flush=True)
+            print('New model will be saved as %s'%(args.modeldir,),file=sys.stderr,flush=True)
             parser = LCmodel(train_df,rnn_memory=args.rnn_memory,embedding_size=args.embedding,device=args.device)
             update_suff = ''
             
