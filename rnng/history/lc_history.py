@@ -1033,10 +1033,10 @@ def output_treebank(treelist,filename=None):
 if __name__ == '__main__':
 
     import argparse
-    parser = argparse.ArgumentParser(description='Trains and predicts parsing language models on GPUs with a left corner algorithm. MODELDIR and VOCABNAME are mandatory arguments. The parser performs training if both TRAIN and DEV are provided and testing if TEST is provided. A new language model is trained if TRAIN, DEV and LMTRAIN are provided. A new vocabulary is generated if VOCABTRAIN is provided too. If MODELDIR is already existing, this existing model is updated. Training both a language model and a parsing model requires to run the command twice (with update).')
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,description='Trains and predicts parsing language models on GPUs with a left corner algorithm. MODELDIR and VOCABNAME are mandatory arguments. The parser performs training if both TRAIN and DEV are provided and testing if TEST is provided. A new language model is trained if TRAIN, DEV and LMTRAIN are provided. A new vocabulary is generated if VOCABTRAIN is provided too. If MODELDIR is already existing, this existing model is updated. Training both a language model and a parsing model requires to run the command twice (with update).')
     parser.add_argument('--epochs', dest='epochs',         type=int,default=10,help='max number of epochs')
     parser.add_argument('--rnn-memory', dest='rnn_memory', type=int,default=600,help='Size of the RNN memory')
-    parser.add_argument('--device', dest='device',       type=int,default=-1,help='Device (GPU) number where to run the computations (-1 for CPU)')
+    parser.add_argument('--device', dest='device',       type=int,default=-1,help='Device (GPU) number where to run the computations: -1 for CPU, 0 or more for GPUs')
     parser.add_argument('--embedding', dest='embedding', type=int,default=300,help='Size of the embeddings')
     parser.add_argument('--batch', dest='batch_size', type=int,default=32,help='Size of the mini-batches')
     parser.add_argument('--lm-train', dest='lmtrain', type=str,help='Path to the root of the billion word dataset')
@@ -1051,7 +1051,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     
     if args.vocabtrain and args.lex_min_freq:
-        print('Extracting vocabulary from file %s with words of frequency >= %d'%(args.vocabtrain,args.lex_min_freq),file=sys.stderr,flush=True)
+        print('Extracting vocabulary from dir %s with words of frequency >= %d'%(args.vocabtrain,args.lex_min_freq),file=sys.stderr,flush=True)
         evocab = Vocabulary(extract_vocabulary(args.vocabtrain),unk='<unk>',sos='<sos>',min_freq=args.lex_min_freq) #'/home/bcrabbe/parsing_as_LM/rnng/history/billion_words'; 100
         evocab.save( args.vocabname )
         print('Vocab saved as %s'%(args.vocabname,),file=sys.stderr,flush=True)
@@ -1083,6 +1083,9 @@ if __name__ == '__main__':
         if args.lmtrain:
             parser.train_language_model(lm_df,dev_df,args.epochs,batch_size=args.batch_size,learning_rate=0.001,device=args.device,alpha=0.0,save_path=args.modeldir+update_suff)
         else:
+            if not update_suff:
+                print('Cannot train parser from scratch. Train language model first.\naborting.',file=sys.stderr)
+                exit(1)
             parser.train_parser(train_df,dev_df,args.epochs,batch_size=args.batch_size,learning_rate=0.001,device=args.device,alpha=0.0,save_path=args.modeldir+update_suff)
             
         print('Model saved as %s'%(args.modeldir),file=sys.stderr)
