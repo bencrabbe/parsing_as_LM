@@ -767,9 +767,9 @@ class LCmodel(nn.Module):
           epochs               (int): xxx
         """
         lex_loss  = nn.NLLLoss(reduction='sum',ignore_index=train_set.lex_vocab.stoi[train_set.pad])
-        #optimizer = optim.Adam(self.parameters(),lr=learning_rate)
+        optimizer = optim.Adam(self.parameters(),lr=learning_rate)
         #optimizer = optim.ASGD(self.parameters(),lr=learning_rate,t0=5000,lambd=1,alpha=1)
-        optimizer = optim.SGD(self.parameters(),lr=learning_rate)
+        #optimizer = optim.SGD(self.parameters(),lr=learning_rate)
         scheduler = ReduceLROnPlateau(optimizer, mode='min', min_lr=0.001, factor=0.1, patience=10, verbose=True)
         min_ppl   = 10000000000
 
@@ -798,7 +798,7 @@ class LCmodel(nn.Module):
                 optimizer.step()
                 if idx > 0 and idx % 500 == 0:
                     ppl = self.eval_language_model(dev_set,batch_size,device)
-                    print('PPL',ppl)
+                    print('PPL',ppl,flush=True)
                     scheduler.step(ppl)
                 idx +=1
                 
