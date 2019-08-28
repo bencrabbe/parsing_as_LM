@@ -92,6 +92,7 @@ class Vocabulary:
         self.sos = sos
         self.counts = Counter(dict([ (item,count) for (item,count) in counter.items() if count >= min_freq] ))
 
+        #codes the lexicon to make it compatible with the adaptive logsoftmax 
         self.itos   = [ ] 
         if unk and not unk in self.counts:
             self.itos.append( unk ) 
@@ -99,7 +100,7 @@ class Vocabulary:
             self.itos.append( pad )
         if sos and sos not in self.counts:
             self.itos.append( sos )    
-        self.itos.extend( sorted(self.counts.keys()))    
+        self.itos.extend( [ elt for (elt, count) in self.counts.most_common() ]) # <- here
         self.stoi = dict( zip(self.itos,range(len(self.itos))))
   
     def save(self,filename):
@@ -407,14 +408,18 @@ class BucketLoader:
     This BucketLoader is an iterator that reformulates torch.text.data.BucketIterator
     TODO: add multiprocessing capacities (load batch while computing another)
     """
-    def __init__(self,dataset,batch_size,device=-1,alpha=0.0,max_len=100): 
+    def __init__(self,dataset,batch_size,device=-1,alpha=0.0): 
         """
         This function is responsible for delivering batches of examples from the dataset for a given epoch.
         It attempts to bucket examples of the same size in the same batches.
+       
+        Generated batches contain approximatively the same number of words.
+        However the number of sentences in a batch may differ.     
+        If a single sentence contains more words than the batch size, it is simply dropped
 
         Args:
           dataset   (ParsingDataset): the treebank from where to get samples
-          batch_size           (int): the size of the batch
+          batch_size           (int): the size of the generated batches (in words !)
           device               (str): a string that says on which device the batched data should live (defaults to cpu).
           alpha              (float): param for sampling unk words
         """ 
@@ -422,7 +427,6 @@ class BucketLoader:
         self.batch_size   = batch_size
         self.device       = device
         self.alpha        = alpha
-        self.max_sent_len = max_len #maximum length of a sentence (batches with outlier style lengths may cause memory blowup)
         self.data_idxes   = list(range(len(self.dataset)))
 
     def nbatches(self):
@@ -468,7 +472,21 @@ class BucketLoader:
             
     def __iter__(self):
         return self
-    
+
+    def batch_range(self,p0):
+        """
+        Computes the number of sentences to include in this batch and returns a couple
+        (p0,pe) of begin and end index position for this batch
+        Args:
+           p0        (int): begin position of this batch
+        Returns
+           a tuple (p0,pe). the begin and end position of this batch
+           a tuple (p0,p0) in case no valid batch can be generated starting from p0
+        """
+        L0 = self.dataset.example_length(self.data_idxes[p0])
+        N  = int(self.batch_size/L0)
+        return (L0,L0+N)
+        
     def __next__(self):
         """
         This yields a batch of data.
@@ -477,12 +495,21 @@ class BucketLoader:
             shuffle(self.data_idxes)
             lengths              = [ self.dataset.example_length(idx) for idx in self.data_idxes ]
             self.data_idxes      = [idx for (idx,length) in sorted(zip(self.data_idxes,lengths),key=lambda x:x[1],reverse=True) if length < self.max_sent_len]
-            self.start_positions = list(range(0, len(self.data_idxes),self.batch_size))
-            shuffle(self.start_positions)
 
-        if self.start_positions:
-            start_pos    = self.start_positions.pop()
-            batch_idxes  = self.data_idxes[ start_pos:start_pos+self.batch_size ]
+            self.start_end_positions = [ ]
+            cpos = 0
+            while cpos < len(self.data_idxes):
+                p0,pE = self.batch_range(cpos)
+                if p0 == pE: #invalid batch of size 0
+                    p0 +=1
+                    print('invalid batch detected (sentence too long). skipped.',file=sys.stderr,flush=True)
+                else:
+                    self.start_end_positions.append((p0,pE))
+            shuffle(self.start_end_positions)
+
+        if self.start_end_positions:
+            start_pos,end_pos    = self.start_end_positions.pop()
+            batch_idxes  = self.data_idxes[ start_pos:end_pos ]
             return self.encode_batch(batch_idxes)
         else:
             raise StopIteration
@@ -806,6 +833,7 @@ class LCmodel(nn.Module):
             ppl = self.eval_language_model(dev_set,batch_size,device)
             print("                                                dev      PPL =",ppl,flush=True)
             if ppl < min_ppl:
+                min_ppl = ppl
                 print('     => model saved.',flush=True)
                 self.save(save_path)  
         
