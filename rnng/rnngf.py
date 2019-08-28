@@ -884,7 +884,8 @@ class RNNGparser:
         #Log likelihood etc...
         #logprobs2              = [elt.prefix_gprob/np.log(2) for elt in success] #change logprobs from base e to base 2
         logprobs2              = [(elt.prefix_gprob-elt.prefix_dprob+np.log(elt.K))/np.log(2) for elt in success] 
-        marginal_logprob2      = np.logaddexp2.reduce(logprobs2)   
+        actualK                = sum(elt.K for elt in success)
+        marginal_logprob2      = np.logaddexp2.reduce(logprobs2) - np.log(actualK)  
         cond_logprobs2         = [elt-marginal_logprob2 for elt in logprobs2]
 
         #information theoretic metrics
@@ -1028,7 +1029,7 @@ class RNNGparser:
                 nextfailures[-1].append(elt)
         
           #select
-          weights  = [ np.exp(elt.prefix_gprob) for elt in nextword[-1]]
+          weights  = [ elt.K * np.exp(elt.prefix_gprob-elt.prefix_dprob)  for elt in nextword[-1]]
           #weights = [ elt.K * exp(elt.prefix_gprob - elt.prefix_dprob)**alpha for elt in nextword[-1] ]
           Z       = sum(weights)
           beam.clear()
