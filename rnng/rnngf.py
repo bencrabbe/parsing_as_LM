@@ -929,7 +929,7 @@ class RNNGparser:
 
             loc_nll2            = (marginal_prob - stats_dic['prefix_logprob'])   
             nll2               += loc_nll2
-            print(token,loc_nll2)
+            print(token,loc_nll2,nll2,idx)
             
             marginal_prob       = stats_dic['prefix_logprob']
             prefix_entropy      = stats_dic['entropy']
