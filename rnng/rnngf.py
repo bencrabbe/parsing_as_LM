@@ -927,8 +927,10 @@ class RNNGparser:
             stats_dic['is_unk'] = token not in self.lexicon
             datalines.append(stats_dic)
 
-            nll2               += (marginal_prob - stats_dic['prefix_logprob'])   
-
+            loc_nll2            = (marginal_prob - stats_dic['prefix_logprob'])   
+            nll2               += loc_nll2
+            print(token,loc_nll2)
+            
             marginal_prob       = stats_dic['prefix_logprob']
             prefix_entropy      = stats_dic['entropy']
             
@@ -1232,7 +1234,6 @@ class RNNGparser:
                     tokens                  = line.split()
                     results,successes,fails =  self.particle_beam_search(tokens,K)
                     #results,successes,fails  = self.predict_beam_generative(tokens,K)
-                        
                 if results:
                     nll2,df = self.gather_stats(tokens,successes,fails)
                     NLL2 += nll2
