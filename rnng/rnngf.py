@@ -929,7 +929,7 @@ class RNNGparser:
             stats_dic['is_unk'] = token not in self.lexicon
             datalines.append(stats_dic)
             
-            loc_nll2            = (stats_dic['prefix_logprob']-prefix_prob)   
+            loc_nll2            = -(stats_dic['prefix_logprob']-prefix_prob)   
             nll2               += loc_nll2
             print(token,np.exp2(loc_nll2))
             
