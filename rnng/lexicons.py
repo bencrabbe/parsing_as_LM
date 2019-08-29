@@ -94,6 +94,7 @@ class SymbolLexicon:
         @return the integer index of the unknown word if it exists
         """
         if self.unk_word:
+            print('<unk>')
             return self.index(self.unk_word)
         return -1
        

@@ -1237,8 +1237,8 @@ class RNNGparser:
                     #results,successes,fails  = self.predict_beam_generative(tokens,K)
                 if results:
                     nll2,df = self.gather_stats(tokens,successes,fails)
-                    NLL2 += nll2
-                    N   += len(tokens)
+                    NLL2   += nll2
+                    N      += len(tokens)
                     print(tokens,nll2,len(tokens),np.exp2(nll2/len(tokens)))
                     deriv = RNNGparser.weighted_derivation(results[0])
                     tree  = RNNGparser.deriv2tree(deriv)
