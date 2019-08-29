@@ -918,21 +918,22 @@ class RNNGparser:
         N        = len(sentence) 
         #assert(N == len(successes) == len(failures)) 
 
-        marginal_prob  = 0.0
+        prefix_prob  = 0.0
         prefix_entropy = 0.0
         datalines      = [ ]
         nll2           = 0.0
         for idx,token in enumerate(sentence):
-            stats_dic           = self.beam2stats(successes[idx],failures[idx],marginal_prob,prefix_entropy)
+        
+            stats_dic           = self.beam2stats(successes[idx],failures[idx],prefix_prob,prefix_entropy)
             stats_dic['word']   = token
             stats_dic['is_unk'] = token not in self.lexicon
             datalines.append(stats_dic)
-
-            loc_nll2            = (marginal_prob - stats_dic['prefix_logprob'])   
+            
+            loc_nll2            = (stats_dic['prefix_logprob']-prefix_prob)   
             nll2               += loc_nll2
             print(token,np.exp2(marginal_prob))
             
-            marginal_prob       = stats_dic['prefix_logprob']
+            prefix_prob         = stats_dic['prefix_logprob']
             prefix_entropy      = stats_dic['entropy']
             
         df = pda.DataFrame(datalines)
