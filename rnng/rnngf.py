@@ -1257,7 +1257,6 @@ class RNNGparser:
                         stats_header = False
                 else:
                     print('(())',file=ostream,flush=True)
-                break
         print("NLL = %f, PPL = %f"%(NLL2,np.exp2(NLL2/N)),file=sys.stdout)
 
 
