@@ -882,11 +882,10 @@ class RNNGparser:
         overall_activity   = sum([ backtrack_overall(elt) for elt in success+failures])
 
         #Log likelihood etc... 
-        #logprobs2             = [elt.prefix_gprob/np.log(2) for elt in success] #change logprobs from base e to base 2
-        logprobs2              = [(elt.prefix_gprob-elt.prefix_dprob+np.log(elt.trueK))/np.log(2) for elt in success] 
+        logprobs2             = [elt.prefix_gprob/np.log(2) for elt in success] #change logprobs from base e to base 2
+        #logprobs2              = [(elt.prefix_gprob-elt.prefix_dprob+np.log(elt.trueK))/np.log(2) for elt in success] 
         actualK                = sum(elt.trueK for elt in success)
         marginal_logprob2      = np.logaddexp2.reduce(logprobs2) - np.log2(actualK)  
-        print('marlogp2',np.exp2(marginal_logprob2))
         cond_logprobs2         = [elt-marginal_logprob2 for elt in logprobs2]
 
         #information theoretic metrics 
@@ -936,7 +935,7 @@ class RNNGparser:
             prefix_entropy      = stats_dic['entropy']
             
         df = pda.DataFrame(datalines)
-        return (-prefix_prob,df)#(nll2,df)
+        return (-prefix_prob,df) #(nll2,df)
 
     
     @staticmethod
