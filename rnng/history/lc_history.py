@@ -620,8 +620,6 @@ class LCmodel(nn.Module):
         Returns:
              a tuple (softmaxed output ,loss). A list of softmaxed word predictions for each example provided as argument and the logsoftmax loss for ref_output
         """
-        ref_output = pack_padded_sequences(ref_output, true_batch_lengths, batch_first=True)
-
         #print('pred',base_output.shape)
         #print('ref',ref_output.shape)
         #print()
