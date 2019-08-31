@@ -818,7 +818,6 @@ class LCmodel(nn.Module):
                 
                 N   += sum(batch.tokens_length)
                 NLL += loss.item()  #lib implementation uses a mean rather than a basic sum
-
             return np.exp(NLL/N) 
 
 
@@ -856,7 +855,8 @@ class LCmodel(nn.Module):
                 clip_grad_norm_(self.parameters(), clip)
                 optimizer.step()
 
-                NLL   += loss.item()  
+                NLL   += loss.item()
+                print(loss.item())
                 N     += sum(batch.tokens_length)
                 bsize += len(batch.tokens_length) 
                 if idx > 0 and idx % 1000 == 0: 
