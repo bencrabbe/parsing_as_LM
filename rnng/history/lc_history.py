@@ -621,7 +621,7 @@ class LCmodel(nn.Module):
         ref_output  =  ref_output.view(-1)                             #flattens the target too
         print(ref_output.shape)
         #pred = self.W_lex_label(base_output)
-        print(pred.shape)
+        print(base_output.shape)
         return self.adalogsoftmax(base_output,ref_output)    
     
     def forward_structural_actions(self,base_output,ref_action=None,loss=None):
