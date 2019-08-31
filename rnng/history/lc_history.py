@@ -848,8 +848,9 @@ class LCmodel(nn.Module):
             bsize = 0
             for batch in tqdm.tqdm(dataloader,total=dataloader.nbatches()):
                 
-                self.zero_grad( ) 
-                xpacked = pack_padded_sequence(batch.xtokens,batch.tokens_length, batch_first=True)
+                self.zero_grad( )
+                xembedded         = self.E(batch.xtokens)#self.E(xinput)   
+                xpacked = pack_padded_sequence(xembedded,batch.tokens_length, batch_first=True)
                 ypacked = pack_padded_sequence(batch.ytokens,batch.tokens_length, batch_first=True)
                 seq_representation  = self.forward_base(xpacked)          
                 pred_ytokens,loss   = self.forward_lexical_tokens(seq_representation,ypacked)
