@@ -473,7 +473,7 @@ class BucketLoader:
     def __iter__(self):
         return self
 
-    def batch_range(self,p0):
+    def batch_range(self,r0):
         """
         Computes the number of sentences to include in this batch and returns a couple
         (p0,pe) of begin and end index position for this batch
@@ -483,10 +483,10 @@ class BucketLoader:
            a tuple (p0,pe). the begin and end position of this batch
            a tuple (p0,p0) in case no valid batch can be generated starting from p0
         """
-        L0 = self.dataset.example_length(self.data_idxes[p0])
+        L0 = self.dataset.example_length(self.data_idxes[r0])
         N  = int(self.batch_size/L0)
         #print(self.batch_size,L0,N)
-        return (L0,L0+N)
+        return (r0,r0+N)
         
     def __next__(self):
         """
