@@ -584,7 +584,6 @@ class LCmodel(nn.Module):
         self.lstm            = nn.LSTM(self.embedding_size, self.rnn_memory,num_layers=1,bidirectional=False)
         
         self.W_struct_label  = nn.Linear(self.rnn_memory, self.ref_set.struct_vocab.size())     
-        #self.W_lex_label     = nn.Linear(self.rnn_memory, self.ref_set.lex_vocab.size())    
         self.W_lex_action    = nn.Linear(self.rnn_memory, self.ref_set.lex_action_vocab.size()) 
         self.W_struct_action = nn.Linear(self.rnn_memory, self.ref_set.struct_action_vocab.size())    
         self.logsoftmax      = nn.LogSoftmax(dim=1)
@@ -592,7 +591,7 @@ class LCmodel(nn.Module):
         vs                   = self.ref_set.lex_vocab.size()
         self.adalogsoftmax   = nn.AdaptiveLogSoftmaxWithLoss(self.rnn_memory,vs,[ int(vs/15), 2*int(vs/15), 4*int(vs/15), 8*int(vs/15)], div_value=4.0, head_bias=False)
         
-    def forward_lexical_actions(self,base_output,ref_action=None,loss=None):
+    def forward_lexical_actions(self,base_output,ref_actions=None,loss=None):
         """
         Performs the forward pass for the lexical action subtask
         Args:
@@ -603,27 +602,29 @@ class LCmodel(nn.Module):
             a tensor. A list of softmaxed predictions for each example provided as argument.
             if ref_action and loss are provided, returns a tuple (softmaxed output ,loss)
         """
-        output = self.logsoftmax(self.W_lex_action(base_output))
+        output = self.logsoftmax(self.W_lex_action(base_output)) 
 
         if ref_action and loss:
-            ref_lexactions     =  ref_action.view(-1)
+            ref_lexactions     =  ref_actions.view(-1)
             L      = loss(output,ref_lexactions)       
             return (output,L)
         return output
         
-    def forward_lexical_tokens(self,base_output,ref_output):
+    def forward_lexical_tokens(self,base_output,ref_output,true_lengths):
         """
         Performs the forward pass for the lexical token subtask
         Args:
             base_output  (tensor): the tensor outputted by the base LSTM encoder.
             ref_output   (tensor): the tensor encoding the next word
+            true_legnth    (list): list of integers. The true lengths of the unpadded sequences
         Returns:
              a tuple (softmaxed output ,loss). A list of softmaxed word predictions for each example provided as argument and the logsoftmax loss for ref_output
         """
-        ref_output  =  ref_output.view(-1)                             #flattens the target too
-        print('pred',base_output.shape)
-        print('ref',ref_output.shape)
-        print()
+        ref_output = pack_padded_sequences(ref_output, true_batch_lengths, batch_first=True)
+
+        #print('pred',base_output.shape)
+        #print('ref',ref_output.shape)
+        #print()
         return self.adalogsoftmax(base_output,ref_output)    
     
     def forward_structural_actions(self,base_output,ref_action=None,loss=None):
@@ -672,14 +673,14 @@ class LCmodel(nn.Module):
         """
         #@see (packing) https://gist.github.com/HarshTrivedi/f4e7293e941b17d19058f6fb90ab0fec
         xembedded         = self.E(xinput)                                                        #xembedded [dim] = batch_size x sent_len x embedding_size
-        xembedded         = pack_padded_sequence(xembedded, true_batch_lengths, batch_first=True)
+        #xembedded         = pack_padded_sequence(xembedded, true_batch_lengths, batch_first=True)
         lstm_out, _       = self.lstm(xembedded)                                                 
-        lstm_out, _       = pad_packed_sequence(lstm_out,batch_first=True)                        #lstm_out  [dim] = batch_size x sent_len x hidden_size
+        #lstm_out, _       = pad_packed_sequence(lstm_out,batch_first=True)                        #lstm_out  [dim] = batch_size x sent_len x hidden_size
           
         # We flatten the batch before applying the linear outputs (required by the loss functions at the end)
-        batch_size,sent_len,hidden_size = lstm_out.shape
+        #batch_size,sent_len,hidden_size = lstm_out.shape
         #Reshapes the output as a flat sequence compatible with softmax and loss functions
-        lstm_out = lstm_out.contiguous().view(batch_size*sent_len,hidden_size)                    #lstm_out  [dim] = (batch_size*sent_len) x hidden_size
+        #lstm_out = lstm_out.contiguous().view(batch_size*sent_len,hidden_size)                    #lstm_out  [dim] = (batch_size*sent_len) x hidden_size
         return torch.tanh(lstm_out)
         
     def decode(self,tokens,pred_lexaction,pred_ytokens,pred_structaction,pred_structlabels,true_length):
@@ -809,8 +810,12 @@ class LCmodel(nn.Module):
             N   = 0
             NLL = 0
             for batch in dataloader:
-                seq_representation =  self.forward_base(batch.xtokens,batch.tokens_length)
-                pred_ytokens,loss  =  self.forward_lexical_tokens(seq_representation,batch.ytokens)
+                
+                xpacked = pack_padded_sequence(batch.xtokens,batch.tokens_length, batch_first=True)
+                ypacked = pack_padded_sequence(batch.ytokens,batch.tokens_length, batch_first=True)
+                seq_representation  = self.forward_base(xpacked)          
+                pred_ytokens,loss   = self.forward_lexical_tokens(seq_representation,ypacked)
+                
                 NLL += loss.item()
                 N   += sum(batch.tokens_length)
             return np.exp(NLL/N) 
@@ -838,15 +843,16 @@ class LCmodel(nn.Module):
             NLL = 0
             N   = 0
             dataloader = BucketLoader(train_set,batch_size,device,alpha)
-
+ 
             idx   = 0
             bsize = 0
             for batch in tqdm.tqdm(dataloader,total=dataloader.nbatches()):
                 
-                self.zero_grad()
-
-                seq_representation =  self.forward_base(batch.xtokens,batch.tokens_length)
-                pred_ytokens,loss  =  self.forward_lexical_tokens(seq_representation,batch.ytokens)
+                self.zero_grad( ) 
+                xpacked = pack_padded_sequence(batch.xtokens,batch.tokens_length, batch_first=True)
+                ypacked = pack_padded_sequence(batch.ytokens,batch.tokens_length, batch_first=True)
+                seq_representation  = self.forward_base(xpacked)          
+                pred_ytokens,loss   = self.forward_lexical_tokens(seq_representation,ypacked)
                 loss.backward()
                 clip_grad_norm_(self.parameters(), clip)
                 optimizer.step()
