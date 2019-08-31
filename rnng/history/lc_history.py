@@ -620,6 +620,7 @@ class LCmodel(nn.Module):
         Returns:
              a tuple (softmaxed output ,loss). A list of softmaxed word predictions for each example provided as argument and the logsoftmax loss for ref_output
         """
+        ref_output  =  ref_output.view(-1)
         print('pred',base_output.shape)
         print('ref',ref_output.shape)
         print()
@@ -851,8 +852,8 @@ class LCmodel(nn.Module):
                 clip_grad_norm_(self.parameters(), clip)
                 optimizer.step()
 
-                NLL += loss.item()  
-                N   += sum(batch.tokens_length)
+                NLL   += loss.item()  
+                N     += sum(batch.tokens_length)
                 bsize += len(batch.tokens_length) 
                 if idx > 0 and idx % 1000 == 0: 
                     ppl = self.eval_language_model(dev_set,batch_size,device)
