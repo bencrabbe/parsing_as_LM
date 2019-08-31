@@ -502,10 +502,11 @@ class BucketLoader:
             while cpos < len(self.data_idxes):
                 p0,pE = self.batch_range(cpos)
                 if p0 == pE: #invalid batch of size 0
-                    p0 +=1
+                    cpos +=1
                     print('invalid batch detected (sentence too long) skipped.',file=sys.stderr,flush=True)
                 else:
                     self.start_end_positions.append((p0,pE))
+                    cpos = pE
             shuffle(self.start_end_positions)
 
         if self.start_end_positions:
