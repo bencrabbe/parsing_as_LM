@@ -610,7 +610,7 @@ class LCmodel(nn.Module):
             return (output,L)
         return output
         
-    def forward_lexical_tokens(self,base_output,ref_output,true_lengths):
+    def forward_lexical_tokens(self,base_output,ref_output):
         """
         Performs the forward pass for the lexical token subtask
         Args:
