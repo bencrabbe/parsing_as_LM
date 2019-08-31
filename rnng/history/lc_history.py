@@ -622,7 +622,7 @@ class LCmodel(nn.Module):
         print(ref_output.shape)
         pred = self.W_lex_label(base_output)
         print(pred.shape)
-        return self.adalogsoftmax(pred,ref_output)    
+        return self.adalogsoftmax(base_output,ref_output)    
     
     def forward_structural_actions(self,base_output,ref_action=None,loss=None):
         """
