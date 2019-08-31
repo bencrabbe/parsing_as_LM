@@ -582,7 +582,7 @@ class LCmodel(nn.Module):
         self.lstm            = nn.LSTM(self.embedding_size, self.rnn_memory,num_layers=1,bidirectional=False)
         
         self.W_struct_label  = nn.Linear(self.rnn_memory, self.ref_set.struct_vocab.size())     
-        self.W_lex_label     = nn.Linear(self.rnn_memory, self.ref_set.lex_vocab.size())    
+        #self.W_lex_label     = nn.Linear(self.rnn_memory, self.ref_set.lex_vocab.size())    
         self.W_lex_action    = nn.Linear(self.rnn_memory, self.ref_set.lex_action_vocab.size()) 
         self.W_struct_action = nn.Linear(self.rnn_memory, self.ref_set.struct_action_vocab.size())    
         self.logsoftmax      = nn.LogSoftmax(dim=1)
@@ -620,7 +620,7 @@ class LCmodel(nn.Module):
         """
         ref_output  =  ref_output.view(-1)                             #flattens the target too
         print(ref_output.shape)
-        pred = self.W_lex_label(base_output)
+        #pred = self.W_lex_label(base_output)
         print(pred.shape)
         return self.adalogsoftmax(base_output,ref_output)    
     
