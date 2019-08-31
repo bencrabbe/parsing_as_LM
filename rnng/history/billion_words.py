@@ -69,7 +69,7 @@ def load_billion_full(root_path):
         print('.',end='',file=sys.stderr,flush=True)
         for sentence in next_sentence(filename):
             yield ' '.join(sentence)
-        break #remove me
+        #break #remove me
     print()
     
 def extract_vocabulary(root_path):
