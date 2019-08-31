@@ -500,6 +500,7 @@ class BucketLoader:
             self.start_end_positions = [ ]
             cpos = 0
             while cpos < len(self.data_idxes):
+                print(cpos)
                 p0,pE = self.batch_range(cpos)
                 if p0 == pE: #invalid batch of size 0
                     cpos +=1
