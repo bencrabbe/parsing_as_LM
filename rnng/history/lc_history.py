@@ -625,10 +625,7 @@ class LCmodel(nn.Module):
         nonpadded_idxes =  (ref_output != pad_idx).nonzero().t().squeeze()
         ref_output      =  ref_output[nonpadded_idxes]
         base_output     =  base_output[nonpadded_idxes]
-        
-        print('pred',base_output.shape)
-        print('ref',ref_output.shape)
-        print()
+    
         return self.adalogsoftmax(base_output,ref_output)    
     
     def forward_structural_actions(self,base_output,ref_action=None,loss=None):
