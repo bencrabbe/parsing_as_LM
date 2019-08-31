@@ -620,7 +620,9 @@ class LCmodel(nn.Module):
         Returns:
              a tuple (softmaxed output ,loss). A list of softmaxed word predictions for each example provided as argument and the logsoftmax loss for ref_output
         """
+        print(ref_output)
         ref_output  =  ref_output.view(-1)                             #flattens the target too
+        print(ref_output)
         #pred = self.W_lex_label(base_output)
         return self.adalogsoftmax(base_output,ref_output)    
     
@@ -840,6 +842,7 @@ class LCmodel(nn.Module):
             idx   = 0
             bsize = 0
             for batch in tqdm.tqdm(dataloader,total=dataloader.nbatches()):
+                
                 self.zero_grad()
 
                 seq_representation =  self.forward_base(batch.xtokens,batch.tokens_length)
