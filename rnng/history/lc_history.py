@@ -485,7 +485,6 @@ class BucketLoader:
         """
         L0 = self.dataset.example_length(self.data_idxes[r0])
         N  = int(self.batch_size/L0)
-        print(N)
         return (r0,r0+N)
         
     def __next__(self):
@@ -619,9 +618,7 @@ class LCmodel(nn.Module):
              a tuple (softmaxed output ,loss). A list of softmaxed word predictions for each example provided as argument and the logsoftmax loss for ref_output
         """
         ref_output  =  ref_output.view(-1)                             #flattens the target too
-        print(ref_output.shape)
         #pred = self.W_lex_label(base_output)
-        print(base_output.shape)
         return self.adalogsoftmax(base_output,ref_output)    
     
     def forward_structural_actions(self,base_output,ref_action=None,loss=None):
