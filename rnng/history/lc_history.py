@@ -848,7 +848,6 @@ class LCmodel(nn.Module):
                 clip_grad_norm_(self.parameters(), clip)
                 optimizer.step()
 
-                print(loss,loss.item())
                 NLL += loss.item()  
                 N   += sum(batch.tokens_length)
                 if idx > 0 and idx % 100 == 0:
