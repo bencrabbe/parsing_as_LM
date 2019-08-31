@@ -485,7 +485,7 @@ class BucketLoader:
         """
         L0 = self.dataset.example_length(self.data_idxes[p0])
         N  = int(self.batch_size/L0)
-        print(self.batch_size,L0,N)
+        #print(self.batch_size,L0,N)
         return (L0,L0+N)
         
     def __next__(self):
@@ -507,6 +507,7 @@ class BucketLoader:
                     cpos +=1
                     print('invalid batch detected (sentence too long) skipped.',file=sys.stderr,flush=True)
                 else:
+                    print('*')
                     self.start_end_positions.append((p0,pE))
                     cpos = pE
             shuffle(self.start_end_positions)
