@@ -681,7 +681,7 @@ class LCmodel(nn.Module):
         #batch_size,sent_len,hidden_size = lstm_out.shape
         #Reshapes the output as a flat sequence compatible with softmax and loss functions
         #lstm_out = lstm_out.contiguous().view(batch_size*sent_len,hidden_size)                    #lstm_out  [dim] = (batch_size*sent_len) x hidden_size
-        return torch.tanh(lstm_out)
+        return lstm_out#torch.tanh(lstm_out)
         
     def decode(self,tokens,pred_lexaction,pred_ytokens,pred_structaction,pred_structlabels,true_length):
         """
