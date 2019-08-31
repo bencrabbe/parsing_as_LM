@@ -619,7 +619,10 @@ class LCmodel(nn.Module):
              a tuple (softmaxed output ,loss). A list of softmaxed word predictions for each example provided as argument and the logsoftmax loss for ref_output
         """
         ref_output  =  ref_output.view(-1)                             #flattens the target too
-        return self.adalogsoftmax(self.W_lex_label(base_output),ref_output)    
+        print(ref_output.shape)
+        pred = self.W_lex_label(base_output)
+        print(pred.shape)
+        return self.adalogsoftmax(pred,ref_output)    
     
     def forward_structural_actions(self,base_output,ref_action=None,loss=None):
         """
