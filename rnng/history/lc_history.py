@@ -616,11 +616,16 @@ class LCmodel(nn.Module):
         Args:
             base_output  (tensor): the tensor outputted by the base LSTM encoder.
             ref_output   (tensor): the tensor encoding the next word
-            true_legnth    (list): list of integers. The true lengths of the unpadded sequences
         Returns:
              a tuple (softmaxed output ,loss). A list of softmaxed word predictions for each example provided as argument and the logsoftmax loss for ref_output
         """
-        ref_output  =  ref_output.view(-1)
+        ref_output      =  ref_output.view(-1)
+
+        pad_idx = self.ref_set.lex_vocab.stoi[self.ref_set.pad] #some sort of masking on the fly... probably easier ways to achieve that
+        nonpadded_idxes =  (ref_output != pad_idx).nonzero().t().squeeze()
+        ref_output      =  ref_output[nonpadded_idxes]
+        base_output     =  base_output[nonpadded_idxes]
+        
         print('pred',base_output.shape)
         print('ref',ref_output.shape)
         print()
