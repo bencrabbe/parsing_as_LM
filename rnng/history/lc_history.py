@@ -663,7 +663,7 @@ class LCmodel(nn.Module):
             return (output,L)
         return output
         
-    def forward_base(self,xinput)#,true_batch_lengths):
+    def forward_base(self,xinput):#,true_batch_lengths):
         """
         Args :
            xinput           (tensor): an integer coded input 
