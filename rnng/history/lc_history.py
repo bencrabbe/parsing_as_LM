@@ -485,6 +485,7 @@ class BucketLoader:
         """
         L0 = self.dataset.example_length(self.data_idxes[p0])
         N  = int(self.batch_size/L0)
+        print(self.batch_size,L0,N)
         return (L0,L0+N)
         
     def __next__(self):
