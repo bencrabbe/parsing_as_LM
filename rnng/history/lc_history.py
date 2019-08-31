@@ -661,7 +661,7 @@ class LCmodel(nn.Module):
             return (output,L)
         return output
         
-    def forward_base(self,xinput):#,true_batch_lengths):
+    def forward_base(self,xinput,true_batch_lengths):
         """
         Args :
            xinput           (tensor): an integer coded input 
@@ -670,16 +670,16 @@ class LCmodel(nn.Module):
            The RNN output as a pytorch flattened Sequence of wordwise encodings
         """
         #@see (packing) https://gist.github.com/HarshTrivedi/f4e7293e941b17d19058f6fb90ab0fec
-        #xembedded         = self.E(xinput)                                                        #xembedded [dim] = batch_size x sent_len x embedding_size
-        #xembedded         = pack_padded_sequence(xembedded, true_batch_lengths, batch_first=True)
+        xembedded         = self.E(xinput)                                                        #xembedded [dim] = batch_size x sent_len x embedding_size
+        xembedded         = pack_padded_sequence(xembedded, true_batch_lengths, batch_first=True)
         lstm_out, _       = self.lstm(xinput)                                                 
-        #lstm_out, _       = pad_packed_sequence(lstm_out,batch_first=True)                        #lstm_out  [dim] = batch_size x sent_len x hidden_size
+        lstm_out, _       = pad_packed_sequence(lstm_out,batch_first=True)                        #lstm_out  [dim] = batch_size x sent_len x hidden_size
           
         # We flatten the batch before applying the linear outputs (required by the loss functions at the end)
-        #batch_size,sent_len,hidden_size = lstm_out.shape
+        batch_size,sent_len,hidden_size = lstm_out.shape
         #Reshapes the output as a flat sequence compatible with softmax and loss functions
-        #lstm_out = lstm_out.contiguous().view(batch_size*sent_len,hidden_size)                    #lstm_out  [dim] = (batch_size*sent_len) x hidden_size
-        return lstm_out#torch.tanh(lstm_out)
+        lstm_out = lstm_out.contiguous().view(batch_size*sent_len,hidden_size)                    #lstm_out  [dim] = (batch_size*sent_len) x hidden_size
+        return torch.tanh(lstm_out)
         
     def decode(self,tokens,pred_lexaction,pred_ytokens,pred_structaction,pred_structlabels,true_length):
         """
@@ -809,10 +809,8 @@ class LCmodel(nn.Module):
             NLL = 0
             for batch in dataloader:
                 
-                xpacked = pack_padded_sequence(batch.xtokens,batch.tokens_length, batch_first=True)
-                ypacked = pack_padded_sequence(batch.ytokens,batch.tokens_length, batch_first=True)
-                seq_representation  = self.forward_base(xpacked)          
-                pred_ytokens,loss   = self.forward_lexical_tokens(seq_representation,ypacked)
+                seq_representation  = self.forward_base(batch.xtokens,batch.tokens_length)          
+                pred_ytokens,loss   = self.forward_lexical_tokens(seq_representation,batch.ytokens)
                 
                 NLL += loss.item()
                 N   += sum(batch.tokens_length)
@@ -847,11 +845,8 @@ class LCmodel(nn.Module):
             for batch in tqdm.tqdm(dataloader,total=dataloader.nbatches()):
                 
                 self.zero_grad( )
-                xembedded         = self.E(batch.xtokens)#self.E(xinput)   
-                xpacked = pack_padded_sequence(xembedded,batch.tokens_length, batch_first=True)
-                ypacked = pack_padded_sequence(batch.ytokens,batch.tokens_length, batch_first=True)
-                seq_representation  = self.forward_base(xpacked)          
-                pred_ytokens,loss   = self.forward_lexical_tokens(seq_representation,ypacked)
+                seq_representation  = self.forward_base(batch.xtokens,batch.tokens_length)          
+                pred_ytokens,loss   = self.forward_lexical_tokens(seq_representation,batch.ytokens)
                 loss.backward()
                 clip_grad_norm_(self.parameters(), clip)
                 optimizer.step()
