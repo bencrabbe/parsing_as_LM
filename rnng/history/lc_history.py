@@ -447,9 +447,6 @@ class BucketLoader:
         max_token_length   = max(token_lengths)
         
         raw_tokens    = [ self.dataset.sample_tokens(self.dataset.tokens[batch_idxes[step]],max_token_length,alpha=self.alpha) for step in range(batchN) ]
-        for (toklist,L) in zip(raw_tokens,token_lengths):
-            print(toklist,L)
-        
         ytoken_matrix = [ self.dataset.numericalize_example(elt,max_token_length,self.dataset.lex_vocab) for elt in raw_tokens ]
         xtoken_matrix = [ self.dataset.numericalize_example([self.dataset.sos]+elt[:-1],max_token_length,self.dataset.lex_vocab) for elt in raw_tokens ]
 
@@ -624,6 +621,9 @@ class LCmodel(nn.Module):
              a tuple (softmaxed output ,loss). A list of softmaxed word predictions for each example provided as argument and the logsoftmax loss for ref_output
         """
         ref_output  =  ref_output.view(-1)                             #flattens the target too
+        print('pred',base_output.shape)
+        print('ref',ref_output.shape)
+        print()
         return self.adalogsoftmax(base_output,ref_output)    
     
     def forward_structural_actions(self,base_output,ref_action=None,loss=None):
