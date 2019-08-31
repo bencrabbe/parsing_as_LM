@@ -485,7 +485,7 @@ class BucketLoader:
         """
         L0 = self.dataset.example_length(self.data_idxes[r0])
         N  = int(self.batch_size/L0)
-        #print(self.batch_size,L0,N)
+        print(N)
         return (r0,r0+N)
         
     def __next__(self):
@@ -500,14 +500,11 @@ class BucketLoader:
             self.start_end_positions = [ ]
             cpos = 0
             while cpos < len(self.data_idxes):
-                print(cpos)
                 p0,pE = self.batch_range(cpos)
-                print(p0,pE)
                 if p0 == pE: #invalid batch of size 0
                     cpos +=1
                     print('invalid batch detected (sentence too long) skipped.',file=sys.stderr,flush=True)
                 else:
-                    print('*',len(self.data_idxes))
                     self.start_end_positions.append((p0,pE))
                     cpos = pE
                     
@@ -622,7 +619,7 @@ class LCmodel(nn.Module):
              a tuple (softmaxed output ,loss). A list of softmaxed word predictions for each example provided as argument and the logsoftmax loss for ref_output
         """
         ref_output  =  ref_output.view(-1)                             #flattens the target too
-        return self.softmax(self.W_lex_label(base_output),ref_output)    
+        return self.adalogsoftmax(self.W_lex_label(base_output),ref_output)    
     
     def forward_structural_actions(self,base_output,ref_action=None,loss=None):
         """
