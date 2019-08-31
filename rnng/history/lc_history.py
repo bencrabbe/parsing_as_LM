@@ -815,9 +815,10 @@ class LCmodel(nn.Module):
                 
                 seq_representation  = self.forward_base(batch.xtokens,batch.tokens_length)          
                 pred_ytokens,loss   = self.forward_lexical_tokens(seq_representation,batch.ytokens)
-                
-                N   += sum(batch.tokens_length)
-                NLL += loss.item()  #lib implementation uses a mean rather than a basic sum
+
+                locN = sum(batch.tokens_length)
+                N   += locN
+                NLL += (loss.item() * locN)  #lib implementation uses a mean rather than a basic sum
             return np.exp(NLL/N) 
 
 
@@ -857,7 +858,6 @@ class LCmodel(nn.Module):
 
                 NLL   += loss.item()
                 N     += sum(batch.tokens_length)
-                print(loss.item(),N,loss.item()*N)
                 bsize += len(batch.tokens_length) 
                 if idx > 0 and idx % 1000 == 0: 
                     ppl = self.eval_language_model(dev_set,batch_size,device)
