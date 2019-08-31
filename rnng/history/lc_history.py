@@ -620,7 +620,7 @@ class LCmodel(nn.Module):
         Returns:
              a tuple (softmaxed output ,loss). A list of softmaxed word predictions for each example provided as argument and the logsoftmax loss for ref_output
         """
-        print(ref_output)
+        print(ref_output,self.ref_set.lex_vocab.stoi[self.ref_set.pad])
         ref_output  =  ref_output.view(-1)                             #flattens the target too
         print(ref_output)
         #pred = self.W_lex_label(base_output)
