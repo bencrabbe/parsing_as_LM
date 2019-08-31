@@ -621,7 +621,8 @@ class LCmodel(nn.Module):
         """
         ref_output      =  ref_output.view(-1)
 
-        pad_idx = self.ref_set.lex_vocab.stoi[self.ref_set.pad] #some sort of masking on the fly... probably easier ways to achieve that
+        #implements some sort of masking of the padded elts on the fly... probably easier ways to achieve that but the loss has no built-in.
+        pad_idx         = self.ref_set.lex_vocab.stoi[self.ref_set.pad] 
         nonpadded_idxes =  (ref_output != pad_idx).nonzero().t().squeeze()
         ref_output      =  ref_output[nonpadded_idxes]
         base_output     =  base_output[nonpadded_idxes]
@@ -815,8 +816,9 @@ class LCmodel(nn.Module):
                 seq_representation  = self.forward_base(batch.xtokens,batch.tokens_length)          
                 pred_ytokens,loss   = self.forward_lexical_tokens(seq_representation,batch.ytokens)
                 
-                NLL += loss.item()
                 N   += sum(batch.tokens_length)
+                NLL += loss.item() * N #uses a mean rather than a sum
+
             return np.exp(NLL/N) 
 
 
