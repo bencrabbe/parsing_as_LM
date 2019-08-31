@@ -582,51 +582,79 @@ class LCmodel(nn.Module):
         self.W_lex_label     = nn.Linear(self.rnn_memory, self.ref_set.lex_vocab.size())    
         self.W_lex_action    = nn.Linear(self.rnn_memory, self.ref_set.lex_action_vocab.size()) 
         self.W_struct_action = nn.Linear(self.rnn_memory, self.ref_set.struct_action_vocab.size())    
-        self.softmax         = nn.LogSoftmax(dim=1)
+        self.logsoftmax      = nn.LogSoftmax(dim=1)
 
-    def forward_lexical_actions(self,base_output):
+        vs                   = self.ref_set.lex_vocab.size()
+        self.adalogsoftmax   = nn.AdaptiveLogSoftmaxWithLoss(self.rnn_memory,vs,[ int(vs/15), 2*int(vs/15), 4*int(vs/15), 8*int(vs/15)], div_value=4.0, head_bias=False)
+        
+    def forward_lexical_actions(self,base_output,ref_action=None,loss=None):
         """
         Performs the forward pass for the lexical action subtask
         Args:
             base_output  (tensor): the tensor outputted by the base LSTM encoder.
+            ref_action   (tensor): the tensor with correct predictions
+            loss   (pytorch loss): the function used to compute the loss
         Returns:
             a tensor. A list of softmaxed predictions for each example provided as argument.
+            if ref_action and loss are provided, returns a tuple (softmaxed output ,loss)
         """
-        return self.softmax(self.W_lex_action(base_output))    
+        output = self.logsoftmax(self.W_lex_action(base_output))
 
-    def forward_lexical_tokens(self,base_output):
+        if ref_action and loss:
+            ref_lexactions     =  ref_action.view(-1)
+            L      = loss(output,ref_lexactions)       
+            return (output,L)
+        return output
+        
+    def forward_lexical_tokens(self,base_output,ref_output):
         """
         Performs the forward pass for the lexical token subtask
         Args:
             base_output  (tensor): the tensor outputted by the base LSTM encoder.
+            ref_output   (tensor): the tensor encoding the next word
         Returns:
-            a tensor. A list of softmaxed word predictions for each example provided as argument.
+             a tuple (softmaxed output ,loss). A list of softmaxed word predictions for each example provided as argument and the logsoftmax loss for ref_output
         """
-        #  @see AdaptiveLogSoftmaxWithLoss in pytorch + requirements (sorting etc.)
-        #  @see https://towardsdatascience.com/speed-up-your-deep-learning-language-model-up-to-1000-with-the-adaptive-softmax-part-1-e7cc1f89fcc9
-        return self.softmax(self.W_lex_label(base_output))    
+        ref_output  =  ref_output.view(-1)                             #flattens the target too
+        return self.softmax(self.W_lex_label(base_output),ref_output)    
     
-    def forward_structural_actions(self,base_output):
+    def forward_structural_actions(self,base_output,ref_action=None,loss=None):
         """
         Performs the forward pass for the structural actions subtask
         Args:
             base_output  (tensor): the tensor outputted by the base LSTM encoder.
+            ref_action   (tensor): the tensor with correct predictions
+            loss   (pytorch loss): the function used to compute the loss
         Returns:
             a tensor. A list of softmaxed actions predictions for each example provided as argument.
+            if ref_action and loss are provided, returns a tuple (softmaxed output ,loss)
         """
-        return self.softmax(self.W_struct_action(base_output))
+        output = self.logsoftmax(self.W_struct_action(base_output))
+        if ref_action and loss:
+            ref_action  =  ref_action.view(-1)
+            L           = loss(output,ref_action)       
+            return (output,L)
+        return output
 
-    def forward_structural_labels(self,base_output):
+    def forward_structural_labels(self,base_output,ref_action=None,loss=None):
         """
         Performs the forward pass for the structural labels subtask
         Args:
             base_output  (tensor): the tensor outputted by the base LSTM encoder.
+            ref_action   (tensor): the tensor with correct predictions
+            loss   (pytorch loss): the function used to compute the loss
         Returns:
             a tensor. A list of softmaxed non terminal predictions for each example provided as argument.
+            if ref_action and loss are provided, returns a tuple (softmaxed output ,loss)
         """
-        return self.softmax(self.W_struct_label(base_output)) 
-    
-    def forward_base(self,xinput,true_batch_lengths,train_mode=True):
+        output = self.logsoftmax(self.W_struct_label(base_output)) 
+        if ref_action and loss:
+            ref_action  =  ref_action.view(-1)
+            L           = loss(output,ref_action)       
+            return (output,L)
+        return output
+        
+    def forward_base(self,xinput,true_batch_lengths):
         """
         Args :
            xinput           (tensor): an integer coded input 
@@ -769,16 +797,12 @@ class LCmodel(nn.Module):
           float. The perplexity on this dev set
         """
         with torch.no_grad():
-            
-            lex_loss    = nn.NLLLoss(reduction='sum',ignore_index=eval_set.lex_vocab.stoi[eval_set.pad])
             dataloader = BucketLoader(eval_set,batch_size,device)
             N   = 0
             NLL = 0
             for batch in dataloader:
                 seq_representation =  self.forward_base(batch.xtokens,batch.tokens_length)
-                pred_ytokens       =  self.forward_lexical_tokens(seq_representation)
-                ref_ytokens        =  batch.ytokens.view(-1) #flattens the target too
-                loss = lex_loss(pred_ytokens,ref_ytokens) 
+                pred_ytokens,loss  =  self.forward_lexical_tokens(seq_representation,batch.ytokens)
                 NLL += loss.item()
                 N   += sum(batch.tokens_length)
             return np.exp(NLL/N) 
@@ -793,7 +817,6 @@ class LCmodel(nn.Module):
           dev_set   (ParsingDataSet): xxx
           epochs               (int): xxx
         """
-        lex_loss  = nn.NLLLoss(reduction='sum',ignore_index=train_set.lex_vocab.stoi[train_set.pad])
         optimizer = optim.Adam(self.parameters(),lr=learning_rate)
         #optimizer = optim.ASGD(self.parameters(),lr=learning_rate,t0=5000,lambd=1,alpha=1)
         #optimizer = optim.SGD(self.parameters(),lr=learning_rate)
@@ -814,15 +837,13 @@ class LCmodel(nn.Module):
                 self.zero_grad()
 
                 seq_representation =  self.forward_base(batch.xtokens,batch.tokens_length)
-                pred_ytokens       =  self.forward_lexical_tokens(seq_representation)
-                ref_ytokens        =  batch.ytokens.view(-1)                             #flattens the target too
-                
-                loss = lex_loss(pred_ytokens,ref_ytokens)    
+                pred_ytokens,loss  =  self.forward_lexical_tokens(seq_representation,batch.ytokens)
                 loss.backward()
-                NLL += loss.item()  
-                N   += sum(batch.tokens_length)
                 clip_grad_norm_(self.parameters(), clip)
                 optimizer.step()
+                
+                NLL += loss.item()  
+                N   += sum(batch.tokens_length)
                 if idx > 0 and idx % 500 == 0:
                     ppl = self.eval_language_model(dev_set,batch_size,device)
                     print('PPL',ppl,flush=True)
@@ -855,32 +876,21 @@ class LCmodel(nn.Module):
             N   = 0
             NLL = 0
 
-            if with_loss:
-                lex_action_loss    = nn.NLLLoss(reduction='sum',ignore_index=dev_set.lex_action_vocab.stoi[dev_set.pad])
-                struct_action_loss = nn.NLLLoss(reduction='sum',ignore_index=dev_set.struct_action_vocab.stoi[dev_set.pad])
-                lex_loss           = nn.NLLLoss(reduction='sum',ignore_index=dev_set.lex_vocab.stoi[dev_set.pad])
-                struct_loss        = nn.NLLLoss(reduction='sum',ignore_index=dev_set.struct_vocab.stoi[dev_set.pad])
+            if with_loss:                
+                lex_action_loss    = nn.NLLLoss(reduction='sum',ignore_index=train_set.lex_action_vocab.stoi[train_set.pad])
+                struct_action_loss = nn.NLLLoss(reduction='sum',ignore_index=train_set.struct_action_vocab.stoi[train_set.pad])
+                struct_loss        = nn.NLLLoss(reduction='sum',ignore_index=train_set.struct_vocab.stoi[train_set.pad])
 
             
             for batch in dataloader:
                 seq_representation =  self.forward_base(batch.xtokens,batch.tokens_length)
-                 
-                pred_lexaction     =  self.forward_lexical_actions(seq_representation)
-                pred_structaction  =  self.forward_structural_actions(seq_representation)
-                pred_ytokens       =  self.forward_lexical_tokens(seq_representation)
-                pred_structlabels  =  self.forward_structural_labels(seq_representation)
-
+                  
+                pred_lexaction,loss1     =  self.forward_lexical_actions(seq_representation,ref_action=batch.lex_actions,loss=lex_action_loss)
+                pred_structaction,loss2  =  self.forward_structural_actions(seq_representation,ref_action=batch.struct_actions,loss=struct_action_loss)
+                pred_ytokens,loss3       =  self.forward_lexical_tokens(seq_representation,batch.ytokens)
+                pred_structlabels,loss4  =  self.forward_structural_labels(seq_representation,ref_action=batch.struct_labels,loss=struct_loss)
+            
                 if with_loss:
-                    ref_lexactions     =  batch.lex_actions.view(-1)      #flattens the target too
-                    ref_structactions  =  batch.struct_actions.view(-1)   #flattens the target too
-                    ref_ytokens        =  batch.ytokens.view(-1)          #flattens the target too
-                    ref_structlabels   =  batch.struct_labels.view(-1)    #flattens the target too
-                
-                    loss1 = lex_action_loss(pred_lexaction,ref_lexactions)       
-                    loss2 = struct_action_loss(pred_structaction,ref_structactions)       
-                    loss3 = lex_loss(pred_ytokens,ref_ytokens)       
-                    loss4 = struct_loss(pred_structlabels,ref_structlabels)       
-
                     NLL += loss1.item() + loss2.item() + loss3.item() + loss4.item()
                     N   += sum(batch.tokens_length)
 
@@ -919,12 +929,9 @@ class LCmodel(nn.Module):
         """ 
         lex_action_loss    = nn.NLLLoss(reduction='sum',ignore_index=train_set.lex_action_vocab.stoi[train_set.pad])
         struct_action_loss = nn.NLLLoss(reduction='sum',ignore_index=train_set.struct_action_vocab.stoi[train_set.pad])
-        lex_loss           = nn.NLLLoss(reduction='sum',ignore_index=train_set.lex_vocab.stoi[train_set.pad])
         struct_loss        = nn.NLLLoss(reduction='sum',ignore_index=train_set.struct_vocab.stoi[train_set.pad])
-        #reduction='mean'
-        optimizer = optim.SGD(self.parameters(),lr=learning_rate)
-        scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1 ,patience=10, verbose=True)
-        #scheduler = LambdaLR(optimizer,lr_lambda = lambda epoch:learning_rate/(1+0.001*epoch))
+        optimizer          = optim.SGD(self.parameters(),lr=learning_rate)
+        scheduler          = ReduceLROnPlateau(optimizer, mode='min', factor=0.1 ,patience=10, verbose=True)
 
         for e in range(epochs): 
             
@@ -938,23 +945,12 @@ class LCmodel(nn.Module):
                 self.zero_grad()
 
                 seq_representation =  self.forward_base(batch.xtokens,batch.tokens_length)
-
                 
-                pred_lexaction     =  self.forward_lexical_actions(seq_representation)
-                pred_structaction  =  self.forward_structural_actions(seq_representation)
-                pred_ytokens       =  self.forward_lexical_tokens(seq_representation)
-                pred_structlabels  =  self.forward_structural_labels(seq_representation)
-
-                ref_lexactions     =  batch.lex_actions.view(-1)      #flattens the target too
-                ref_structactions  =  batch.struct_actions.view(-1)   #flattens the target too
-                ref_ytokens        =  batch.ytokens.view(-1)          #flattens the target too
-                ref_structlabels   =  batch.struct_labels.view(-1)    #flattens the target too
-                
-                loss1 = lex_action_loss(pred_lexaction,ref_lexactions)       
-                loss2 = struct_action_loss(pred_structaction,ref_structactions)       
-                loss3 = lex_loss(pred_ytokens,ref_ytokens)       
-                loss4 = struct_loss(pred_structlabels,ref_structlabels)       
-
+                pred_lexaction,loss1     =  self.forward_lexical_actions(seq_representation,ref_action=batch.lex_actions,loss=lex_action_loss)
+                pred_structaction,loss2  =  self.forward_structural_actions(seq_representation,ref_action=batch.struct_actions,loss=struct_action_loss)
+                pred_ytokens,loss3       =  self.forward_lexical_tokens(seq_representation,batch.ytokens)
+                pred_structlabels,loss4  =  self.forward_structural_labels(seq_representation,ref_action=batch.struct_labels,loss=struct_loss)
+            
                 _lex_loss           += loss3.item()
                 _lex_action_loss    += loss1.item()
                 _struct_loss        += loss4.item()

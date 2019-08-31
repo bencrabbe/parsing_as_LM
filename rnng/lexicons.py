@@ -80,8 +80,6 @@ class SymbolLexicon:
         if alpha_dropout:
             if random() < alpha_dropout/self.word_counts[token]:
                 return self.unk_word
-        if token not in self.words2i:
-            print('<unk>')
         return token if token in self.words2i else self.unk_word
     
     def index(self,token,alpha_dropout=0.0):
