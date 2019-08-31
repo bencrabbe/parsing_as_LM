@@ -811,7 +811,6 @@ class LCmodel(nn.Module):
                 pred_ytokens,loss  =  self.forward_lexical_tokens(seq_representation,batch.ytokens)
                 NLL += loss.item()
                 N   += sum(batch.tokens_length)
-                print(NLL,N)
             return np.exp(NLL/N) 
 
 
