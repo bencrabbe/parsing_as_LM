@@ -67,7 +67,7 @@ class LCtree (ConsTree):
         else: #arity < 2
             return None if self.is_leaf() else self  
 
-    def is_complete(self):
+    def is_complete(self): 
         return self.rightmost_attach_site() is None
     
 
@@ -494,7 +494,7 @@ class BucketLoader:
         if not hasattr(self,'start_positions'):
             shuffle(self.data_idxes)
             lengths              = [ self.dataset.example_length(idx) for idx in self.data_idxes ]
-            self.data_idxes      = [idx for (idx,length) in sorted(zip(self.data_idxes,lengths),key=lambda x:x[1],reverse=True) if length < self.max_sent_len]
+            self.data_idxes      = [ idx for (idx,length) in sorted(zip(self.data_idxes,lengths),key=lambda x:x[1],reverse=True) ]
 
             self.start_end_positions = [ ]
             cpos = 0
@@ -502,7 +502,7 @@ class BucketLoader:
                 p0,pE = self.batch_range(cpos)
                 if p0 == pE: #invalid batch of size 0
                     p0 +=1
-                    print('invalid batch detected (sentence too long). skipped.',file=sys.stderr,flush=True)
+                    print('invalid batch detected (sentence too long) skipped.',file=sys.stderr,flush=True)
                 else:
                     self.start_end_positions.append((p0,pE))
             shuffle(self.start_end_positions)
