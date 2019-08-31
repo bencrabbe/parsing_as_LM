@@ -486,14 +486,14 @@ class BucketLoader:
         """
         L0 = self.dataset.example_length(self.data_idxes[r0])
         N  = int(self.batch_size/L0)
-        print(N)
+        #print(N)
         return (r0,r0+N)
         
     def __next__(self):
         """
         This yields a batch of data.
         """
-        if not hasattr(self,'start_positions'):
+        if not hasattr(self,'start_end_positions'):
             shuffle(self.data_idxes)
             lengths              = [ self.dataset.example_length(idx) for idx in self.data_idxes ]
             self.data_idxes      = [ idx for (idx,length) in sorted(zip(self.data_idxes,lengths),key=lambda x:x[1],reverse=True) ]
