@@ -856,8 +856,8 @@ class LCmodel(nn.Module):
                 optimizer.step()
 
                 NLL   += loss.item()
-                print(loss.item())
                 N     += sum(batch.tokens_length)
+                print(loss.item(),N,loss.item()*N)
                 bsize += len(batch.tokens_length) 
                 if idx > 0 and idx % 1000 == 0: 
                     ppl = self.eval_language_model(dev_set,batch_size,device)
