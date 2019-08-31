@@ -507,9 +507,10 @@ class BucketLoader:
                     cpos +=1
                     print('invalid batch detected (sentence too long) skipped.',file=sys.stderr,flush=True)
                 else:
-                    print('*')
+                    print('*',len(self.data_idxes))
                     self.start_end_positions.append((p0,pE))
                     cpos = pE
+                    
             shuffle(self.start_end_positions)
 
         if self.start_end_positions:
