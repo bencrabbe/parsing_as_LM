@@ -850,7 +850,7 @@ class LCmodel(nn.Module):
 
                 NLL += loss.item()  
                 N   += sum(batch.tokens_length)
-                if idx > 0 and idx % 100 == 0:
+                if idx > 0 and idx % 1000 == 0: 
                     ppl = self.eval_language_model(dev_set,batch_size,device)
                     print('PPL',ppl,flush=True)
                     scheduler.step(ppl)
