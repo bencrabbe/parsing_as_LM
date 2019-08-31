@@ -428,9 +428,10 @@ class BucketLoader:
         self.device       = device
         self.alpha        = alpha
         self.data_idxes   = list(range(len(self.dataset)))
-
+        self.make_batches()
+        
     def nbatches(self):
-        return len(self.dataset)/self.batch_size
+        return len(self.start_end_positions)
         
     def encode_batch(self,batch_idxes):
         """
@@ -487,36 +488,37 @@ class BucketLoader:
         N  = int(self.batch_size/L0)
         #print(N)
         return (r0,r0+N)
-        
+
+    def make_batches(self):
+        """
+        Actually makes the batches
+        """
+        shuffle(self.data_idxes)
+        lengths              = [ self.dataset.example_length(idx) for idx in self.data_idxes ]
+        self.data_idxes      = [ idx for (idx,length) in sorted(zip(self.data_idxes,lengths),key=lambda x:x[1],reverse=True) ]
+
+        self.start_end_positions = [ ]
+        cpos = 0
+        while cpos < len(self.data_idxes):
+            p0,pE = self.batch_range(cpos)
+            if p0 == pE: #invalid batch of size 0
+                cpos +=1
+                print('invalid batch detected (sentence too long) skipped.',file=sys.stderr,flush=True)
+            else:
+                self.start_end_positions.append((p0,pE))
+                cpos = pE
+        shuffle(self.start_end_positions)
+            
     def __next__(self):
         """
         This yields a batch of data.
         """
-        if not hasattr(self,'start_end_positions'):
-            shuffle(self.data_idxes)
-            lengths              = [ self.dataset.example_length(idx) for idx in self.data_idxes ]
-            self.data_idxes      = [ idx for (idx,length) in sorted(zip(self.data_idxes,lengths),key=lambda x:x[1],reverse=True) ]
-
-            self.start_end_positions = [ ]
-            cpos = 0
-            while cpos < len(self.data_idxes):
-                p0,pE = self.batch_range(cpos)
-                if p0 == pE: #invalid batch of size 0
-                    cpos +=1
-                    print('invalid batch detected (sentence too long) skipped.',file=sys.stderr,flush=True)
-                else:
-                    self.start_end_positions.append((p0,pE))
-                    cpos = pE
-                    
-            shuffle(self.start_end_positions)
-
         if self.start_end_positions:
             start_pos,end_pos    = self.start_end_positions.pop()
-            batch_idxes  = self.data_idxes[ start_pos:end_pos ]
+            batch_idxes          = self.data_idxes[ start_pos:end_pos ]
             return self.encode_batch(batch_idxes)
         else:
             raise StopIteration
-        pass #return
 
           
 class LCmodel(nn.Module):
