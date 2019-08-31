@@ -838,9 +838,9 @@ class LCmodel(nn.Module):
             N   = 0
             dataloader = BucketLoader(train_set,batch_size,device,alpha)
 
-            idx = 0
+            idx   = 0
+            bsize = 0
             for batch in tqdm.tqdm(dataloader,total=dataloader.nbatches()):
-                
                 self.zero_grad()
 
                 seq_representation =  self.forward_base(batch.xtokens,batch.tokens_length)
@@ -851,9 +851,10 @@ class LCmodel(nn.Module):
 
                 NLL += loss.item()  
                 N   += sum(batch.tokens_length)
+                bsize += len(batch.tokens_length) 
                 if idx > 0 and idx % 1000 == 0: 
                     ppl = self.eval_language_model(dev_set,batch_size,device)
-                    print('PPL',ppl,flush=True)
+                    print('PPL',ppl,'mean batch size',bsize/idx,flush=True)
                     scheduler.step(ppl)
                 idx +=1
                 
