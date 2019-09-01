@@ -835,7 +835,7 @@ class LCmodel(nn.Module):
         #optimizer = optim.ASGD(self.parameters(),lr=learning_rate,t0=5000,lambd=1,alpha=1)
         optimizer = optim.SGD(self.parameters(),lr=learning_rate)
         #scheduler = ReduceLROnPlateau(optimizer, mode='min', min_lr=0.001, factor=0.1, patience=10, verbose=True)
-        scheduler = LambdaLR(optimizer,lr=lambda epoch:learning_rate/(1+epoch)**1.1)
+        scheduler = LambdaLR(optimizer,lr_lambda=lambda epoch:learning_rate/(1+epoch)**1.1)
         min_ppl   = 10000000000
 
         print('Starting...\n\n',file=sys.stderr,flush=True)
