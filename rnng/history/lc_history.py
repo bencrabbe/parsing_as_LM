@@ -822,7 +822,7 @@ class LCmodel(nn.Module):
             return np.exp(NLL/N) 
 
 
-    def train_language_model(self,train_set,dev_set,epochs,batch_size=64,learning_rate=0.001,device=-1,alpha=0.0,clip=1.0,save_path='default'):
+    def train_language_model(self,train_set,dev_set,epochs,batch_size=64,learning_rate=10.0,device=-1,alpha=0.0,clip=1.0,save_path='default'):
         """
         This trains a language model only (that can be used as a submodel of the parser).
         Meant to be used on very large data sets (such as the billion words corpus).
@@ -834,7 +834,8 @@ class LCmodel(nn.Module):
         #optimizer = optim.Adam(self.parameters(),lr=learning_rate)
         #optimizer = optim.ASGD(self.parameters(),lr=learning_rate,t0=5000,lambd=1,alpha=1)
         optimizer = optim.SGD(self.parameters(),lr=learning_rate)
-        scheduler = ReduceLROnPlateau(optimizer, mode='min', min_lr=0.001, factor=0.1, patience=10, verbose=True)
+        #scheduler = ReduceLROnPlateau(optimizer, mode='min', min_lr=0.001, factor=0.1, patience=10, verbose=True)
+        scheduler = LambdaLR(optimizer,lr=lambda epoch:learning_rate/(1+epoch)**1.1)
         min_ppl   = 10000000000
 
         print('Starting...\n\n',file=sys.stderr,flush=True)
