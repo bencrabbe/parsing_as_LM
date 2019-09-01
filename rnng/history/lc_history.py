@@ -863,7 +863,8 @@ class LCmodel(nn.Module):
                 if idx > 0 and idx % 1000 == 0: 
                     ppl = self.eval_language_model(dev_set,batch_size,device)
                     print('PPL',ppl,'mean batch size',bsize/idx,file=sys.stderr,flush=True)
-                    scheduler.step(ppl)
+                    #scheduler.step(ppl)
+                    scheduler.step()
                 idx +=1
                 
             print("\nEpoch",e,'training loss (NLL) =', NLL/N ,'training PPL =',np.exp(NLL/N), 'learning rate =',optimizer.param_groups[0]['lr'],flush=True)
