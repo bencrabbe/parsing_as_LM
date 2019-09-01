@@ -831,9 +831,9 @@ class LCmodel(nn.Module):
           dev_set   (ParsingDataSet): xxx
           epochs               (int): xxx
         """
-        optimizer = optim.Adam(self.parameters(),lr=learning_rate)
+        #optimizer = optim.Adam(self.parameters(),lr=learning_rate)
         #optimizer = optim.ASGD(self.parameters(),lr=learning_rate,t0=5000,lambd=1,alpha=1)
-        #optimizer = optim.SGD(self.parameters(),lr=learning_rate)
+        optimizer = optim.SGD(self.parameters(),lr=learning_rate)
         scheduler = ReduceLROnPlateau(optimizer, mode='min', min_lr=0.001, factor=0.1, patience=10, verbose=True)
         min_ppl   = 10000000000
 
@@ -861,7 +861,7 @@ class LCmodel(nn.Module):
                 bsize += len(batch.tokens_length) 
                 if idx > 0 and idx % 1000 == 0: 
                     ppl = self.eval_language_model(dev_set,batch_size,device)
-                    print('PPL',ppl,'mean batch size',bsize/idx,flush=True)
+                    print('PPL',ppl,'mean batch size',bsize/idx,file=sys.stderr,flush=True)
                     scheduler.step(ppl)
                 idx +=1
                 
@@ -1118,7 +1118,7 @@ if __name__ == '__main__':
             print('Loading language model data...',file=sys.stderr)
             lmset    = list(load_billion_full(args.lmtrain))  #'/home/bcrabbe/parsing_as_LM/rnng/history/billion_words'
             lm_df    = ParsingDataSet(lmset,ext_vocab=evocab)
-            print('language model data loaded.',file=sys.stderr,flush=True)
+            print('\nlanguage model data loaded.',file=sys.stderr,flush=True)
 
         if os.path.exists(args.modeldir):
             print('Existing model detected at %s. Training will update this model.'%(args.modeldir,),file=sys.stderr,flush=True)
