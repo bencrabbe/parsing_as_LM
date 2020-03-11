@@ -863,7 +863,7 @@ class LCmodel(nn.Module):
                 bsize += len(batch.tokens_length) 
                 if idx > 0 and idx % 1000 == 0: 
                     ppl = self.eval_language_model(dev_set,batch_size,device)
-                    print('PPL',ppl,'mean batch size',bsize/idx,file=sys.stderr,flush=True)
+                    print('PPL',ppl,'mean batch size',bsize/idx,'LR =',optimizer.param_groups[0]['lr'],file=sys.stderr,flush=True)
                     #scheduler.step(ppl)
                     scheduler.step()
                 idx +=1

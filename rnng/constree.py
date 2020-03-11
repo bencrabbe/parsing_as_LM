@@ -273,7 +273,7 @@ class ConsTree(object):
                 if tokens[idx-1] != '(':
                     stack[-1].add_child(ConsTree(tok))
         assert(len(stack) == 1)
-        return stack[-1].get_child()
+        return stack[-1].get_child( )
 
     
 class FrenchTreebank:
@@ -528,7 +528,7 @@ class PennTreebank:
         """
         Replaces all numbers with the <num> token
         """
-        if tree.is_leaf():
+        if tree.is_leaf( ):
             if re.match(r'[0-9]+([,/\.][0-9]+)*',tree.label):
                 tree.label = num_token
         for child in tree.children:
